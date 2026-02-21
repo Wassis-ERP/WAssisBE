@@ -1,1 +1,1 @@
-# WAssisInsurance (Equinox-style Modular Monolith Skeleton)
+Esqueleto do projeto de corretora Digital
