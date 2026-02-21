@@ -1,0 +1,15 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="../../src/WAssis.Application/WAssis.Application.csproj" />
+    <ProjectReference Include="../../src/WAssis.Domain/WAssis.Domain.csproj" />
+    <ProjectReference Include="../../src/WAssis.Domain.Core/WAssis.Domain.Core.csproj" />
+    <ProjectReference Include="../../src/WAssis.Infra.Data/WAssis.Infra.Data.csproj" />
+  </ItemGroup>
+</Project>

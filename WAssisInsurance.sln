@@ -1,0 +1,84 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WAssis.Application", "src\WAssis.Application\WAssis.Application.csproj", "{3F5F86FF-C2C5-400F-9EB5-93D45719003C}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WAssis.Domain.Core", "src\WAssis.Domain.Core\WAssis.Domain.Core.csproj", "{911B17F0-4B97-4515-AECB-6197C36EAD07}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WAssis.Domain", "src\WAssis.Domain\WAssis.Domain.csproj", "{BF847854-06C7-48AB-BE17-7829170DCEA5}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WAssis.Infra.CrossCutting.Bus", "src\WAssis.Infra.CrossCutting.Bus\WAssis.Infra.CrossCutting.Bus.csproj", "{1B05E10E-59AA-4516-8FEC-5C711DA4D08F}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WAssis.Infra.CrossCutting.Identity", "src\WAssis.Infra.CrossCutting.Identity\WAssis.Infra.CrossCutting.Identity.csproj", "{F5913B8C-242E-48C9-8DB0-DB747D1201D1}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WAssis.Infra.CrossCutting.IoC", "src\WAssis.Infra.CrossCutting.IoC\WAssis.Infra.CrossCutting.IoC.csproj", "{94EC2A31-C254-4223-BCBF-11DD59A06CC0}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WAssis.Infra.Data", "src\WAssis.Infra.Data\WAssis.Infra.Data.csproj", "{42D16AB1-7A3D-485E-97B8-0C62D66CF4F6}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WAssis.Services.Api", "src\WAssis.Services.Api\WAssis.Services.Api.csproj", "{439BE1DC-EFE1-4B68-96F2-93BD12955093}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WAssis.UI.Web", "src\WAssis.UI.Web\WAssis.UI.Web.csproj", "{9453DD36-6FEB-4000-AC2E-E43776FE1874}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WAssis.BackgroundTasks", "src\WAssis.BackgroundTasks\WAssis.BackgroundTasks.csproj", "{71335783-4E21-4359-9C6C-EE925C8789A9}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WAssis.Tests", "tests\WAssis.Tests\WAssis.Tests.csproj", "{1967A050-0387-4915-90B5-0AA64A6B0102}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{3F5F86FF-C2C5-400F-9EB5-93D45719003C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3F5F86FF-C2C5-400F-9EB5-93D45719003C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3F5F86FF-C2C5-400F-9EB5-93D45719003C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3F5F86FF-C2C5-400F-9EB5-93D45719003C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{911B17F0-4B97-4515-AECB-6197C36EAD07}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{911B17F0-4B97-4515-AECB-6197C36EAD07}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{911B17F0-4B97-4515-AECB-6197C36EAD07}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{911B17F0-4B97-4515-AECB-6197C36EAD07}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BF847854-06C7-48AB-BE17-7829170DCEA5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BF847854-06C7-48AB-BE17-7829170DCEA5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BF847854-06C7-48AB-BE17-7829170DCEA5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BF847854-06C7-48AB-BE17-7829170DCEA5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1B05E10E-59AA-4516-8FEC-5C711DA4D08F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1B05E10E-59AA-4516-8FEC-5C711DA4D08F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1B05E10E-59AA-4516-8FEC-5C711DA4D08F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1B05E10E-59AA-4516-8FEC-5C711DA4D08F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{F5913B8C-242E-48C9-8DB0-DB747D1201D1}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{F5913B8C-242E-48C9-8DB0-DB747D1201D1}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{F5913B8C-242E-48C9-8DB0-DB747D1201D1}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{F5913B8C-242E-48C9-8DB0-DB747D1201D1}.Release|Any CPU.Build.0 = Release|Any CPU
+		{94EC2A31-C254-4223-BCBF-11DD59A06CC0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{94EC2A31-C254-4223-BCBF-11DD59A06CC0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{94EC2A31-C254-4223-BCBF-11DD59A06CC0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{94EC2A31-C254-4223-BCBF-11DD59A06CC0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{42D16AB1-7A3D-485E-97B8-0C62D66CF4F6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{42D16AB1-7A3D-485E-97B8-0C62D66CF4F6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{42D16AB1-7A3D-485E-97B8-0C62D66CF4F6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{42D16AB1-7A3D-485E-97B8-0C62D66CF4F6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{439BE1DC-EFE1-4B68-96F2-93BD12955093}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{439BE1DC-EFE1-4B68-96F2-93BD12955093}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{439BE1DC-EFE1-4B68-96F2-93BD12955093}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{439BE1DC-EFE1-4B68-96F2-93BD12955093}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9453DD36-6FEB-4000-AC2E-E43776FE1874}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9453DD36-6FEB-4000-AC2E-E43776FE1874}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9453DD36-6FEB-4000-AC2E-E43776FE1874}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9453DD36-6FEB-4000-AC2E-E43776FE1874}.Release|Any CPU.Build.0 = Release|Any CPU
+		{71335783-4E21-4359-9C6C-EE925C8789A9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{71335783-4E21-4359-9C6C-EE925C8789A9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{71335783-4E21-4359-9C6C-EE925C8789A9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{71335783-4E21-4359-9C6C-EE925C8789A9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{1967A050-0387-4915-90B5-0AA64A6B0102}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{1967A050-0387-4915-90B5-0AA64A6B0102}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{1967A050-0387-4915-90B5-0AA64A6B0102}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{1967A050-0387-4915-90B5-0AA64A6B0102}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {342C0D42-EAD2-45D7-89E1-666E06FE33D5}
+	EndGlobalSection
+EndGlobal
