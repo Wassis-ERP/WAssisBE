@@ -127,6 +127,10 @@ dotnet build WAssisInsurance.sln -p:UseSharedCompilation=false -nodeReuse:false
 dotnet test WAssisInsurance.sln -p:UseSharedCompilation=false -nodeReuse:false
 ```
 
+## CI
+
+O repositório agora possui validação automática no GitHub Actions em PRs e pushes para `main`, usando o workflow `.github/workflows/pr-validation.yml`.
+
 ## Configuração
 
 O projeto já possui seções de configuração para:
