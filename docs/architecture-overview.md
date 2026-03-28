@@ -44,6 +44,7 @@
 - parser de proposta com perfil por seguradora e fallback generico
 - criacao de `PolicyDraft` a partir de documento parseado
 - progressao de `PolicyDraft` ate `Issued`
+- `Billing` separado de `Financial` para assinatura e faturamento das corretoras clientes do ERP
 - `Financial` e `Documents` persistidos com EF
 - visao operacional via `GET /api/operations/dashboard`
 - trilha de auditoria em `operations.audit_entries`
@@ -60,6 +61,11 @@
 ## Endpoints canonicos ja disponiveis
 
 - `POST /api/quotes/requests`
+- `POST /api/billing/subscriptions`
+- `GET /api/billing/subscriptions/{id}`
+- `POST /api/billing/subscriptions/{id}/invoices`
+- `GET /api/billing/invoices/{id}`
+- `POST /api/billing/invoices/{id}/pay`
 - `GET /api/quotes/requests/{id}`
 - `GET /api/quotes/requests/{id}/results`
 - `GET /api/quotes/providers`

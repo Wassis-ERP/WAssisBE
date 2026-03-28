@@ -31,6 +31,7 @@ Plataforma e ERP digital da corretora W.Assis, construída como um monólito mod
 
 - `Identity`
 - `Customers`
+- `Billing`
 - `Quotes`
 - `Policies`
 - `Claims`
@@ -49,12 +50,18 @@ Plataforma e ERP digital da corretora W.Assis, construída como um monólito mod
 - parser inicial de proposta com perfil por seguradora
 - `Policies` com `PolicyDraft`, progressão até emissão interna e `PolicyNumber`
 - `Financial` e `Documents` persistidos com `EF Core`
+- `Billing` preparado para assinatura e fatura das corretoras clientes do ERP
 - dashboard operacional e trilha de auditoria
 - base de identidade com `JWT`, `claims`, `roles` e políticas
 - base de isolamento multi-tenant com `TenantId` nos agregados centrais e filtro por tenant no `DbContext`
 
 ## Endpoints já disponíveis
 
+- `POST /api/billing/subscriptions`
+- `GET /api/billing/subscriptions/{id}`
+- `POST /api/billing/subscriptions/{id}/invoices`
+- `GET /api/billing/invoices/{id}`
+- `POST /api/billing/invoices/{id}/pay`
 - `POST /api/quotes/requests`
 - `GET /api/quotes/requests/{id}`
 - `GET /api/quotes/requests/{id}/results`
@@ -150,6 +157,7 @@ Documentação técnica no repositório:
 
 - `docs/architecture-overview.md`
 - `docs/identity-access-model.md`
+- `docs/billing-overview.md`
 - `docs/quotes-provider-justos.md`
 - `docs/quotes-provider-bradesco.md`
 - `docs/quotes-provider-icatu.md`

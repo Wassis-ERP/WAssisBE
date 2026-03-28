@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using WAssis.Infra.Data.Context;
@@ -11,9 +12,11 @@ using WAssis.Infra.Data.Context;
 namespace WAssis.Infra.Data.Migrations
 {
     [DbContext(typeof(WAssisDbContext))]
-    partial class WAssisDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260328222758_20260328234500_AddBillingModule")]
+    partial class _20260328234500_AddBillingModule
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
