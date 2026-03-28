@@ -10,4 +10,6 @@ public sealed record ProposalDocumentParsingResultDto(
     DateTime? CoverageEndDateUtc,
     decimal? TotalPremiumAmount,
     decimal? CommissionAmount,
+    decimal ParsingConfidence,
+    bool RequiresHumanReview,
     string? ParsingNotes);

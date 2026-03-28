@@ -1,8 +1,10 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WAssis.Application.Modules.Documents.Commands;
 using WAssis.Application.Modules.Documents.Dtos;
 using WAssis.Application.Modules.Documents.Queries;
+using WAssis.Infra.CrossCutting.Identity.Authorization;
 using WAssis.Services.Api.Modules.Documents.Contracts;
 using WAssis.Services.Api.Modules.Documents.ViewModels;
 
@@ -10,6 +12,7 @@ namespace WAssis.Services.Api.Modules.Documents.Controllers;
 
 [ApiController]
 [Route("api/documents/proposals")]
+[Authorize(Policy = AccessPolicies.BrokerageStaff)]
 public sealed class ProposalDocumentsController(IMediator mediator) : ControllerBase
 {
     [HttpPost("uploads")]
@@ -46,6 +49,24 @@ public sealed class ProposalDocumentsController(IMediator mediator) : Controller
         return result is null ? NotFound() : Ok(ToViewModel(result));
     }
 
+    [HttpPost("{id:guid}/review")]
+    [ProducesResponseType(typeof(ImportedDocumentViewModel), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Review(Guid id, [FromBody] ReviewImportedDocumentRequest? request, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new ReviewImportedDocumentCommand(id, request?.Notes), cancellationToken);
+        return result is null ? NotFound() : Ok(ToViewModel(result));
+    }
+
+    [HttpPost("{id:guid}/reprocess")]
+    [ProducesResponseType(typeof(ImportedDocumentViewModel), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Reprocess(Guid id, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new ReprocessImportedDocumentCommand(id), cancellationToken);
+        return result is null ? NotFound() : Ok(ToViewModel(result));
+    }
+
     private static ImportedDocumentViewModel ToViewModel(ImportedDocumentDto result)
     {
         return new ImportedDocumentViewModel(
@@ -54,6 +75,7 @@ public sealed class ProposalDocumentsController(IMediator mediator) : Controller
             result.FileName,
             result.ContentType,
             result.Source,
+            result.StoragePath,
             result.Status,
             result.DocumentType,
             result.InsuranceCompanyName,
@@ -63,7 +85,12 @@ public sealed class ProposalDocumentsController(IMediator mediator) : Controller
             result.CoverageEndDateUtc,
             result.TotalPremiumAmount,
             result.CommissionAmount,
+            result.ParsingConfidence,
+            result.RequiresHumanReview,
+            result.ReviewedAtUtc,
+            result.ReviewedByUserId,
             result.ParsingNotes,
-            result.CreatedAtUtc);
+            result.CreatedAtUtc,
+            result.LastProcessedAtUtc);
     }
 }

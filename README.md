@@ -51,6 +51,7 @@ Plataforma e ERP digital da corretora W.Assis, construída como um monólito mod
 - `Financial` e `Documents` persistidos com `EF Core`
 - dashboard operacional e trilha de auditoria
 - base de identidade com `JWT`, `claims`, `roles` e políticas
+- base de isolamento multi-tenant com `TenantId` nos agregados centrais e filtro por tenant no `DbContext`
 
 ## Endpoints já disponíveis
 
@@ -60,13 +61,45 @@ Plataforma e ERP digital da corretora W.Assis, construída como um monólito mod
 - `GET /api/quotes/providers`
 - `POST /api/documents/proposals/uploads`
 - `GET /api/documents/proposals/{id}`
+- `POST /api/documents/proposals/{id}/review`
+- `POST /api/documents/proposals/{id}/reprocess`
 - `POST /api/policies/drafts/from-document`
 - `GET /api/policies/drafts/{id}`
+- `POST /api/policies/drafts/{id}/approve-review`
 - `POST /api/policies/drafts/{id}/ready`
 - `POST /api/policies/drafts/{id}/issue`
+- `POST /api/financial/statement-analyses`
+- `GET /api/financial/reconciliations/{id}`
+- `POST /api/financial/reconciliations/{id}/settle`
 - `GET /api/operations/dashboard`
 - `GET /api/identity/me`
 - `POST /api/whatsapp/conversations/inbound`
+- `GET /api/whatsapp/conversations/queue`
+- `GET /api/whatsapp/conversations/{id}`
+- `POST /api/whatsapp/conversations/{id}/assign`
+- `POST /api/whatsapp/conversations/{id}/close`
+
+## Fluxograma macro
+
+```mermaid
+flowchart TD
+    A[Cliente ou corretor inicia fluxo] --> B[API recebe request com CorrelationId e TenantId]
+    B --> C[Persistência inicial no módulo correto]
+    C --> D{Tipo de fluxo}
+    D -- Quotes --> E[BackgroundTasks aciona providers de seguradora]
+    E --> F[Resultados normalizados em Quotes]
+    D -- Documents --> G[Upload, extração textual e OCR]
+    G --> H[Parser por seguradora]
+    H --> I[PolicyDraft]
+    I --> J[ReadyForIssuance / Issued]
+    D -- Financial --> K[Registro de recebimento]
+    K --> L[Reconciliação e divergência]
+    D -- WhatsApp --> M[Conversa bot ou handoff humano]
+    F --> N[Dashboard e auditoria]
+    J --> N
+    L --> N
+    M --> N
+```
 
 ## Como rodar localmente
 
@@ -105,6 +138,7 @@ O projeto já possui seções de configuração para:
 - `Quotes:Providers:IcatuSeguros`
 
 As integrações reais por seguradora dependem das credenciais e do detalhamento do produto ou jornada liberado por cada parceiro.
+O modelo de dados também já começou a ser preparado para operação multi-tenant entre corretoras.
 
 ## Documentação
 

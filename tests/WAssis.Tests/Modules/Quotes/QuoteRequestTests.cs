@@ -9,6 +9,7 @@ public sealed class QuoteRequestTests
     public void Create_ShouldInitializeShareTokenAndPendingStatus()
     {
         var quoteRequest = QuoteRequest.Create(
+            "tenant-domain",
             "corr-domain",
             "Cliente Domain",
             "DOC-999",
@@ -30,6 +31,7 @@ public sealed class QuoteRequestTests
             null);
 
         Assert.Equal(QuoteRequestStatus.Pending, quoteRequest.Status);
+        Assert.Equal("tenant-domain", quoteRequest.TenantId);
         Assert.False(string.IsNullOrWhiteSpace(quoteRequest.ShareToken));
         Assert.Equal("Cliente Domain", quoteRequest.CustomerName);
         Assert.Equal("05516020", quoteRequest.PostalCode);

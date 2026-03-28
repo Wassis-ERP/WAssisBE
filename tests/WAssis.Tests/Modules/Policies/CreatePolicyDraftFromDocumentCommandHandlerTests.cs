@@ -1,3 +1,4 @@
+using WAssis.Tests.TestDoubles;
 using WAssis.Application.Modules.Documents.Interfaces;
 using WAssis.Application.Modules.Policies.Commands;
 using WAssis.Application.Modules.Policies.Interfaces;
@@ -13,7 +14,7 @@ public sealed class CreatePolicyDraftFromDocumentCommandHandlerTests
     [Fact]
     public async Task Handle_ShouldCreateDraftFromParsedDocument()
     {
-        var document = ImportedDocument.Create("corr-pol-1", "proposta.pdf", "application/pdf", "manual_upload");
+        var document = ImportedDocument.Create("tenant-policies", "corr-pol-1", "proposta.pdf", "application/pdf", "manual_upload");
         document.MarkAsParsed(
             "proposal_pdf",
             "texto",
@@ -24,11 +25,19 @@ public sealed class CreatePolicyDraftFromDocumentCommandHandlerTests
             DateTime.UtcNow.Date.AddYears(1),
             1000m,
             100m,
+            0.95m,
+            false,
             "ok");
 
+        var policyDraftRepository = new InMemoryPolicyDraftRepository();
         var handler = new CreatePolicyDraftFromDocumentCommandHandler(
+            new FakeCurrentUserContext
+            {
+                IsAuthenticated = true,
+                TenantId = "tenant-policies"
+            },
             new InMemoryImportedDocumentRepository(document),
-            new InMemoryPolicyDraftRepository());
+            policyDraftRepository);
 
         var result = await handler.Handle(new CreatePolicyDraftFromDocumentCommand(document.Id), CancellationToken.None);
 
@@ -37,6 +46,7 @@ public sealed class CreatePolicyDraftFromDocumentCommandHandlerTests
         Assert.Equal(document.Id, result.Value!.ImportedDocumentId);
         Assert.Equal("PROP-1", result.Value.ProposalNumber);
         Assert.Equal(PolicyDraftStatus.Draft, result.Value.Status);
+        Assert.Equal("tenant-policies", policyDraftRepository.Items.Single().TenantId);
     }
 
     private sealed class InMemoryImportedDocumentRepository(ImportedDocument document) : IImportedDocumentRepository
@@ -49,6 +59,8 @@ public sealed class CreatePolicyDraftFromDocumentCommandHandlerTests
     private sealed class InMemoryPolicyDraftRepository : IPolicyDraftRepository
     {
         private readonly List<PolicyDraft> _items = [];
+
+        public IReadOnlyCollection<PolicyDraft> Items => _items;
 
         public Task AddAsync(PolicyDraft draft, CancellationToken cancellationToken)
         {

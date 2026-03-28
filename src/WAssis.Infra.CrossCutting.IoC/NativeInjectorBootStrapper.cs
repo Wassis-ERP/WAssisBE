@@ -15,6 +15,6 @@ public static class NativeInjectorBootStrapper
         services.AddWAssisIdentity(configuration);
         services.AddApplicationServices();
         services.AddInfraDataServices(configuration);
-        services.AddSingleton<IQuoteProviderRegistry, QuoteProviderRegistry>();
+        services.AddScoped<IQuoteProviderRegistry, QuoteProviderRegistry>();
     }
 }

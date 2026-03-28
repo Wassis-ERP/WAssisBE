@@ -11,6 +11,7 @@ public sealed class AuditEntryMap : IEntityTypeConfiguration<AuditEntry>
         builder.ToTable("audit_entries", "operations");
 
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.TenantId).HasMaxLength(64).IsRequired();
         builder.Property(x => x.CorrelationId).HasMaxLength(64).IsRequired();
         builder.Property(x => x.Module).HasMaxLength(50).IsRequired();
         builder.Property(x => x.Action).HasMaxLength(100).IsRequired();

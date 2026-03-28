@@ -8,6 +8,7 @@ public sealed record ImportedDocumentDto(
     string FileName,
     string ContentType,
     string Source,
+    string? StoragePath,
     ImportedDocumentStatus Status,
     string? DocumentType,
     string? InsuranceCompanyName,
@@ -17,5 +18,10 @@ public sealed record ImportedDocumentDto(
     DateTime? CoverageEndDateUtc,
     decimal? TotalPremiumAmount,
     decimal? CommissionAmount,
+    decimal ParsingConfidence,
+    bool RequiresHumanReview,
+    DateTime? ReviewedAtUtc,
+    string? ReviewedByUserId,
     string? ParsingNotes,
-    DateTime CreatedAtUtc);
+    DateTime CreatedAtUtc,
+    DateTime? LastProcessedAtUtc);

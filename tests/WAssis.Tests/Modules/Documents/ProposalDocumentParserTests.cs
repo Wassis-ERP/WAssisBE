@@ -29,6 +29,8 @@ public sealed class ProposalDocumentParserTests
         Assert.Equal(250.10m, result.CommissionAmount);
         Assert.NotNull(result.CoverageStartDateUtc);
         Assert.NotNull(result.CoverageEndDateUtc);
+        Assert.True(result.ParsingConfidence >= 0.80m);
+        Assert.False(result.RequiresHumanReview);
     }
 
     [Fact]
@@ -52,5 +54,23 @@ public sealed class ProposalDocumentParserTests
         Assert.Equal("PS-7788", result.ProposalNumber);
         Assert.Equal("Maria Silva", result.InsuredName);
         Assert.Contains("Porto Seguro", result.ParsingNotes);
+        Assert.True(result.ParsingConfidence >= 0.80m);
+    }
+
+    [Fact]
+    public void Parse_ShouldRequireHumanReview_WhenOnlySparseDataIsAvailable()
+    {
+        const string text = """
+            Documento simples
+            Segurado: Cliente Parcial
+            """;
+
+        var parser = new ProposalDocumentParser();
+
+        var result = parser.Parse(text);
+
+        Assert.Equal("Cliente Parcial", result.InsuredName);
+        Assert.True(result.RequiresHumanReview);
+        Assert.True(result.ParsingConfidence < 0.80m);
     }
 }

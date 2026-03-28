@@ -3,6 +3,7 @@ using WAssis.Application.Modules.Quotes.Commands;
 using WAssis.Application.Modules.Quotes.Interfaces;
 using WAssis.Domain.Modules.Quotes.Entities;
 using WAssis.Domain.Modules.Quotes.Enums;
+using WAssis.Tests.TestDoubles;
 
 namespace WAssis.Tests.Modules.Quotes;
 
@@ -12,7 +13,13 @@ public sealed class CreateQuoteRequestCommandHandlerTests
     public async Task Handle_ShouldCreatePendingQuoteRequest()
     {
         var repository = new InMemoryQuoteRequestRepository();
-        var handler = new CreateQuoteRequestCommandHandler(repository);
+        var handler = new CreateQuoteRequestCommandHandler(
+            repository,
+            new FakeCurrentUserContext
+            {
+                IsAuthenticated = true,
+                TenantId = "tenant-alpha"
+            });
 
         var result = await handler.Handle(
             new CreateQuoteRequestCommand(
@@ -43,6 +50,7 @@ public sealed class CreateQuoteRequestCommandHandlerTests
         Assert.Equal("023108-8", result.VehicleFipeCode);
         Assert.NotEqual(Guid.Empty, result.Id);
         Assert.Single(repository.Items);
+        Assert.Equal("tenant-alpha", repository.Items.Single().TenantId);
     }
 
     private sealed class InMemoryQuoteRequestRepository : IQuoteRequestRepository

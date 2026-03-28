@@ -11,12 +11,13 @@ public sealed class DocumentSearchMap : IEntityTypeConfiguration<DocumentSearch>
         builder.ToTable("document_searches", "documents");
 
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.TenantId).HasMaxLength(64).IsRequired();
         builder.Property(x => x.CorrelationId).HasMaxLength(64).IsRequired();
         builder.Property(x => x.InsuranceCompanyCode).HasMaxLength(50).IsRequired();
         builder.Property(x => x.SearchType).HasMaxLength(50).IsRequired();
         builder.Property(x => x.Status).HasConversion<int>().IsRequired();
         builder.Property(x => x.CreatedAtUtc).IsRequired();
 
-        builder.HasIndex(x => x.CorrelationId).IsUnique();
+        builder.HasIndex(x => new { x.TenantId, x.CorrelationId }).IsUnique();
     }
 }

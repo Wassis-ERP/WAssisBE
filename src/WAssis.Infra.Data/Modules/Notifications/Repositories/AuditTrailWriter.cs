@@ -4,7 +4,9 @@ using WAssis.Infra.Data.Context;
 
 namespace WAssis.Infra.Data.Modules.Notifications.Repositories;
 
-public sealed class AuditTrailWriter(WAssisDbContext dbContext) : IAuditTrailWriter
+public sealed class AuditTrailWriter(
+    WAssisDbContext dbContext,
+    ICurrentUserContext currentUserContext) : IAuditTrailWriter
 {
     public async Task WriteAsync(
         string correlationId,
@@ -15,7 +17,14 @@ public sealed class AuditTrailWriter(WAssisDbContext dbContext) : IAuditTrailWri
         string? notes,
         CancellationToken cancellationToken)
     {
-        var entry = AuditEntry.Create(correlationId, module, action, entityType, entityId, notes);
+        var entry = AuditEntry.Create(
+            currentUserContext.ResolveTenantIdOrPlatform(),
+            correlationId,
+            module,
+            action,
+            entityType,
+            entityId,
+            notes);
         await dbContext.AuditEntries.AddAsync(entry, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
     }

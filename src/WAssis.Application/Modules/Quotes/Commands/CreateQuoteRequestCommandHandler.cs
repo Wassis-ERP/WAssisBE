@@ -1,11 +1,14 @@
 using MediatR;
+using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Quotes.Dtos;
 using WAssis.Application.Modules.Quotes.Interfaces;
 using WAssis.Domain.Modules.Quotes.Entities;
 
 namespace WAssis.Application.Modules.Quotes.Commands;
 
-public sealed class CreateQuoteRequestCommandHandler(IQuoteRequestRepository repository)
+public sealed class CreateQuoteRequestCommandHandler(
+    IQuoteRequestRepository repository,
+    ICurrentUserContext currentUserContext)
     : IRequestHandler<CreateQuoteRequestCommand, QuoteRequestDto>
 {
     public async Task<QuoteRequestDto> Handle(CreateQuoteRequestCommand request, CancellationToken cancellationToken)
@@ -17,6 +20,7 @@ public sealed class CreateQuoteRequestCommandHandler(IQuoteRequestRepository rep
         }
 
         var quoteRequest = QuoteRequest.Create(
+            currentUserContext.ResolveTenantIdOrPlatform(),
             request.CorrelationId,
             request.CustomerName,
             request.DocumentNumber,

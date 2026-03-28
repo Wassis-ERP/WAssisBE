@@ -9,4 +9,7 @@ public sealed record CommissionReconciliationViewModel(
     decimal ReceivedAmount,
     decimal DifferenceAmount,
     CommissionReconciliationStatus Status,
-    DateTime CreatedAtUtc);
+    string? MatchedReference,
+    string? SettlementNotes,
+    DateTime CreatedAtUtc,
+    DateTime? SettledAtUtc);

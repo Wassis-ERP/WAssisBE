@@ -1,4 +1,5 @@
 using MediatR;
+using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Documents.Dtos;
 using WAssis.Application.Modules.Documents.Interfaces;
 using WAssis.Domain.Modules.Documents.Entities;
@@ -6,6 +7,7 @@ using WAssis.Domain.Modules.Documents.Entities;
 namespace WAssis.Application.Modules.Documents.Commands;
 
 public sealed class UploadProposalDocumentCommandHandler(
+    ICurrentUserContext currentUserContext,
     IImportedDocumentRepository repository,
     IPdfTextExtractor pdfTextExtractor,
     IOcrTextExtractor ocrTextExtractor,
@@ -14,11 +16,15 @@ public sealed class UploadProposalDocumentCommandHandler(
 {
     public async Task<ImportedDocumentDto> Handle(UploadProposalDocumentCommand request, CancellationToken cancellationToken)
     {
+        var tenantId = currentUserContext.ResolveTenantIdOrPlatform();
+        var storagePath = $"tenants/{tenantId}/documents/proposals/{Guid.NewGuid():N}/{request.FileName}";
         var document = ImportedDocument.Create(
+            tenantId,
             request.CorrelationId,
             request.FileName,
             request.ContentType,
-            request.Source);
+            request.Source,
+            storagePath);
 
         document.MarkAsProcessing();
 
@@ -62,6 +68,8 @@ public sealed class UploadProposalDocumentCommandHandler(
                 parsingResult.CoverageEndDateUtc,
                 parsingResult.TotalPremiumAmount,
                 parsingResult.CommissionAmount,
+                parsingResult.ParsingConfidence,
+                parsingResult.RequiresHumanReview,
                 parsingNotes);
         }
         catch (Exception ex)

@@ -1,12 +1,15 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WAssis.Application.Modules.Quotes.Queries;
+using WAssis.Infra.CrossCutting.Identity.Authorization;
 using WAssis.Services.Api.Modules.Quotes.ViewModels;
 
 namespace WAssis.Services.Api.Modules.Quotes.Controllers;
 
 [ApiController]
 [Route("api/quotes/providers")]
+[Authorize(Policy = AccessPolicies.BrokerageStaff)]
 public sealed class QuoteProvidersController(IMediator mediator) : ControllerBase
 {
     [HttpGet]

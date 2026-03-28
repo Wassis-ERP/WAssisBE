@@ -26,11 +26,51 @@ public sealed class ProposalDocumentParser : IProposalDocumentParser
             notes.Add($"Perfil de parser aplicado: {profile.CanonicalName}.");
         }
 
-        if (string.IsNullOrWhiteSpace(insuranceCompanyName)) notes.Add("Seguradora não identificada.");
-        if (string.IsNullOrWhiteSpace(proposalNumber)) notes.Add("Número da proposta não identificado.");
-        if (string.IsNullOrWhiteSpace(insuredName)) notes.Add("Segurado não identificado.");
-        if (coverageStartDateUtc is null || coverageEndDateUtc is null) notes.Add("Vigência incompleta.");
-        if (totalPremiumAmount is null) notes.Add("Prêmio total não identificado.");
+        var confidence = 1.0m;
+
+        if (string.IsNullOrWhiteSpace(insuranceCompanyName))
+        {
+            notes.Add("Seguradora nao identificada.");
+            confidence -= 0.15m;
+        }
+
+        if (string.IsNullOrWhiteSpace(proposalNumber))
+        {
+            notes.Add("Numero da proposta nao identificado.");
+            confidence -= 0.20m;
+        }
+
+        if (string.IsNullOrWhiteSpace(insuredName))
+        {
+            notes.Add("Segurado nao identificado.");
+            confidence -= 0.20m;
+        }
+
+        if (coverageStartDateUtc is null || coverageEndDateUtc is null)
+        {
+            notes.Add("Vigencia incompleta.");
+            confidence -= 0.15m;
+        }
+
+        if (totalPremiumAmount is null)
+        {
+            notes.Add("Premio total nao identificado.");
+            confidence -= 0.20m;
+        }
+
+        if (commissionAmount is null)
+        {
+            notes.Add("Comissao nao identificada.");
+            confidence -= 0.10m;
+        }
+
+        confidence = Math.Clamp(confidence, 0.10m, 0.99m);
+        var requiresHumanReview = confidence < 0.70m || string.IsNullOrWhiteSpace(proposalNumber) || string.IsNullOrWhiteSpace(insuredName);
+
+        if (requiresHumanReview)
+        {
+            notes.Add("Documento sinalizado para revisao humana.");
+        }
 
         return new ProposalDocumentParsingResultDto(
             "proposal_pdf",
@@ -42,6 +82,8 @@ public sealed class ProposalDocumentParser : IProposalDocumentParser
             coverageEndDateUtc,
             totalPremiumAmount,
             commissionAmount,
+            confidence,
+            requiresHumanReview,
             notes.Count == 0 ? "Parser inicial executado com sucesso." : string.Join(" ", notes));
     }
 

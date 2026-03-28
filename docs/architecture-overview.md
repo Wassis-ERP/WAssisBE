@@ -9,7 +9,7 @@
 - `MediatR + FluentValidation`
 - `Serilog + OpenTelemetry`
 
-## Solução
+## Solucao
 
 - `WAssis.Domain.Core`
 - `WAssis.Domain`
@@ -23,37 +23,41 @@
 - `WAssis.UI.Web`
 - `WAssis.Tests`
 
-## Princípios operacionais
+## Principios operacionais
 
 - `CorrelationId` em todos os fluxos relevantes
-- idempotência em escrita sensível
-- processamento assíncrono com persistência antes da integração
-- auditoria por módulo e ação
+- idempotencia em escrita sensivel
+- processamento assincrono com persistencia antes da integracao
+- auditoria por modulo e acao
 - sem logar PII em claro
+- isolamento multi-tenant nos agregados centrais
 
 ## Estado atual
 
-### Backend já implementado
+### Backend ja implementado
 
 - esqueleto funcional de `Quotes`
 - primeiro provider real de `Quotes` baseado na API da `Justos`
+- catalogo operacional de seguradoras em `GET /api/quotes/providers`
 - fluxo de `Documents` com upload de proposta PDF
-- extração por camada textual com fallback de OCR configurável via `Tesseract`
-- parser de proposta com perfil por seguradora e fallback genérico
-- criação de `PolicyDraft` a partir de documento parseado
-- progressão de `PolicyDraft` até `Issued`
+- extracao por camada textual com fallback de OCR configuravel via `Tesseract`
+- parser de proposta com perfil por seguradora e fallback generico
+- criacao de `PolicyDraft` a partir de documento parseado
+- progressao de `PolicyDraft` ate `Issued`
 - `Financial` e `Documents` persistidos com EF
-- visão operacional via `GET /api/operations/dashboard`
+- visao operacional via `GET /api/operations/dashboard`
 - trilha de auditoria em `operations.audit_entries`
 - canal inicial de `WhatsAppSupport`
+- base de identidade JWT com claims e roles
+- isolamento por `TenantId` nos agregados principais, filtros globais no EF e migration dedicada
 
-### Integrações em espera por documentação ou mapeamento detalhado
+### Integracoes em espera por documentacao ou mapeamento detalhado
 
-- ampliação de providers além da `Justos`
-- integrações documentais automáticas por seguradora
-- emissão externa por seguradora
+- ampliacao de providers alem da `Justos`
+- integracoes documentais automaticas por seguradora
+- emissao externa por seguradora
 
-## Endpoints canônicos já disponíveis
+## Endpoints canonicos ja disponiveis
 
 - `POST /api/quotes/requests`
 - `GET /api/quotes/requests/{id}`
@@ -69,14 +73,14 @@
 - `POST /api/whatsapp/conversations/inbound`
 - `GET /api/whatsapp/conversations/{id}`
 
-## Observabilidade do multicálculo
+## Observabilidade do multicalculo
 
-- `GET /api/quotes/providers` expõe o estado operacional dos providers de cotação
+- `GET /api/quotes/providers` expoe o estado operacional dos providers de cotacao
 - cada provider informa:
-  - se está habilitado
-  - se está pronto de fato
-  - modo de autenticação esperado
-  - documentação oficial
-  - requisitos faltantes de configuração
+  - se esta habilitado
+  - se esta pronto de fato
+  - modo de autenticacao esperado
+  - documentacao oficial
+  - requisitos faltantes de configuracao
 
-Isso dá visibilidade para backend, frontend e operação sem depender de leitura manual de `appsettings`.
+Isso da visibilidade para backend, frontend e operacao sem depender de leitura manual de `appsettings`.

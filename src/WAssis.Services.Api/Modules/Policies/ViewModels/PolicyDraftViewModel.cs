@@ -17,5 +17,7 @@ public sealed record PolicyDraftViewModel(
     string? PolicyNumber,
     string? Notes,
     DateTime CreatedAtUtc,
+    DateTime? ReviewedAtUtc,
+    string? ReviewedByUserId,
     DateTime? ReadyForIssuanceAtUtc,
     DateTime? IssuedAtUtc);

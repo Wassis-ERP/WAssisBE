@@ -1,11 +1,14 @@
 using MediatR;
+using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Documents.Dtos;
 using WAssis.Application.Modules.Documents.Interfaces;
 using WAssis.Domain.Modules.Documents.Entities;
 
 namespace WAssis.Application.Modules.Documents.Commands;
 
-public sealed class CreateDocumentSearchCommandHandler(IDocumentSearchRepository repository)
+public sealed class CreateDocumentSearchCommandHandler(
+    IDocumentSearchRepository repository,
+    ICurrentUserContext currentUserContext)
     : IRequestHandler<CreateDocumentSearchCommand, DocumentSearchDto>
 {
     public async Task<DocumentSearchDto> Handle(CreateDocumentSearchCommand request, CancellationToken cancellationToken)
@@ -22,7 +25,11 @@ public sealed class CreateDocumentSearchCommandHandler(IDocumentSearchRepository
                 existing.CreatedAtUtc);
         }
 
-        var search = DocumentSearch.Create(request.CorrelationId, request.InsuranceCompanyCode, request.SearchType);
+        var search = DocumentSearch.Create(
+            currentUserContext.ResolveTenantIdOrPlatform(),
+            request.CorrelationId,
+            request.InsuranceCompanyCode,
+            request.SearchType);
         await repository.AddAsync(search, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
 

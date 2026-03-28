@@ -19,6 +19,9 @@ public sealed class GetCommissionReconciliationQueryHandler(ICommissionReceiptRe
                 reconciliation.ReceivedAmount,
                 reconciliation.DifferenceAmount,
                 reconciliation.Status,
-                reconciliation.CreatedAtUtc);
+                reconciliation.MatchedReference,
+                reconciliation.SettlementNotes,
+                reconciliation.CreatedAtUtc,
+                reconciliation.SettledAtUtc);
     }
 }

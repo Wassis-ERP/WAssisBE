@@ -59,7 +59,7 @@ public sealed class QuoteProcessingService(
 
                 foreach (var result in results)
                 {
-                    quoteRequest.AddOption(ToEntity(quoteRequest.Id, result));
+                    quoteRequest.AddOption(ToEntity(quoteRequest, result));
                 }
             }
 
@@ -103,11 +103,12 @@ public sealed class QuoteProcessingService(
             quoteRequest.RenewalInsurerCode);
     }
 
-    private static QuoteOption ToEntity(Guid quoteRequestId, QuoteProviderResultDto result)
+    private static QuoteOption ToEntity(QuoteRequest quoteRequest, QuoteProviderResultDto result)
     {
         return new QuoteOption(
             Guid.NewGuid(),
-            quoteRequestId,
+            quoteRequest.TenantId,
+            quoteRequest.Id,
             result.ProviderCode,
             result.ProviderName,
             result.ProviderCode,

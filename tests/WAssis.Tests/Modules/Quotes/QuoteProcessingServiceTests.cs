@@ -13,6 +13,7 @@ public sealed class QuoteProcessingServiceTests
     public async Task ProcessPendingBatchAsync_ShouldPersistProviderOption_AndCompleteRequest()
     {
         var quoteRequest = QuoteRequest.Create(
+            "tenant-proc",
             "corr-proc-1",
             "Cliente Teste",
             "12345678910",

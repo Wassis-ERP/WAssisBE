@@ -11,10 +11,13 @@ public sealed class CommissionReconciliationMap : IEntityTypeConfiguration<Commi
         builder.ToTable("commission_reconciliations", "financial");
 
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.TenantId).HasMaxLength(64).IsRequired();
         builder.Property(x => x.ExpectedAmount).HasColumnType("numeric(18,2)").IsRequired();
         builder.Property(x => x.ReceivedAmount).HasColumnType("numeric(18,2)").IsRequired();
         builder.Property(x => x.DifferenceAmount).HasColumnType("numeric(18,2)").IsRequired();
         builder.Property(x => x.Status).HasConversion<int>().IsRequired();
+        builder.Property(x => x.MatchedReference).HasMaxLength(120);
+        builder.Property(x => x.SettlementNotes).HasMaxLength(2000);
         builder.Property(x => x.CreatedAtUtc).IsRequired();
 
         builder.HasIndex(x => x.CommissionReceiptId);

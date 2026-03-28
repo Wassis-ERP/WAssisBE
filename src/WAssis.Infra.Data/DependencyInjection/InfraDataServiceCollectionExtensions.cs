@@ -47,6 +47,7 @@ public static class InfraDataServiceCollectionExtensions
         services.AddScoped<IDocumentSearchRepository, DocumentSearchRepository>();
         services.AddScoped<IImportedDocumentRepository, ImportedDocumentRepository>();
         services.AddScoped<ICommissionReceiptRepository, CommissionReceiptRepository>();
+        services.AddSingleton<ICommissionStatementParser, CommissionStatementParser>();
         services.AddScoped<IOperationsDashboardReadRepository, OperationsDashboardReadRepository>();
         services.AddScoped<IPolicyDraftRepository, PolicyDraftRepository>();
         services.AddScoped<IQuoteRequestRepository, QuoteRequestRepository>();

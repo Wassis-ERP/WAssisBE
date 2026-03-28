@@ -5,6 +5,7 @@ namespace WAssis.Domain.Modules.Policies.Entities;
 
 public class PolicyDraft : AggregateRoot
 {
+    public string TenantId { get; private set; } = string.Empty;
     public Guid ImportedDocumentId { get; private set; }
     public string CorrelationId { get; private set; } = string.Empty;
     public string? InsuranceCompanyName { get; private set; }
@@ -18,6 +19,8 @@ public class PolicyDraft : AggregateRoot
     public string? PolicyNumber { get; private set; }
     public string? Notes { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
+    public DateTime? ReviewedAtUtc { get; private set; }
+    public string? ReviewedByUserId { get; private set; }
     public DateTime? ReadyForIssuanceAtUtc { get; private set; }
     public DateTime? IssuedAtUtc { get; private set; }
 
@@ -27,6 +30,7 @@ public class PolicyDraft : AggregateRoot
 
     private PolicyDraft(
         Guid id,
+        string tenantId,
         Guid importedDocumentId,
         string correlationId,
         string? insuranceCompanyName,
@@ -39,6 +43,7 @@ public class PolicyDraft : AggregateRoot
         string? notes)
     {
         Id = id;
+        TenantId = tenantId;
         ImportedDocumentId = importedDocumentId;
         CorrelationId = correlationId;
         InsuranceCompanyName = insuranceCompanyName;
@@ -56,6 +61,7 @@ public class PolicyDraft : AggregateRoot
     }
 
     public static PolicyDraft Create(
+        string tenantId,
         Guid importedDocumentId,
         string correlationId,
         string? insuranceCompanyName,
@@ -69,6 +75,7 @@ public class PolicyDraft : AggregateRoot
     {
         return new PolicyDraft(
             Guid.NewGuid(),
+            tenantId,
             importedDocumentId,
             correlationId,
             insuranceCompanyName,
@@ -79,6 +86,14 @@ public class PolicyDraft : AggregateRoot
             totalPremiumAmount,
             commissionAmount,
             notes);
+    }
+
+    public void ApproveReview(string reviewedByUserId, string? notes = null)
+    {
+        Status = PolicyDraftStatus.Draft;
+        ReviewedAtUtc = DateTime.UtcNow;
+        ReviewedByUserId = reviewedByUserId;
+        Notes = notes ?? Notes;
     }
 
     public void MarkReadyForIssuance(string? notes = null)

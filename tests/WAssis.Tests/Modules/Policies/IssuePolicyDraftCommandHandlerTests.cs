@@ -12,6 +12,7 @@ public sealed class IssuePolicyDraftCommandHandlerTests
     public async Task Handle_ShouldMarkDraftAsIssued_AndGeneratePolicyNumber_WhenNumberIsMissing()
     {
         var draft = PolicyDraft.Create(
+            "tenant-issue",
             Guid.NewGuid(),
             "corr-pol-issue-1",
             "Allianz",

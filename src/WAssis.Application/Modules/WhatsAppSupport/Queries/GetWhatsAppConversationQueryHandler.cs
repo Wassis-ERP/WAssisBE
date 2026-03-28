@@ -10,15 +10,6 @@ public sealed class GetWhatsAppConversationQueryHandler(IWhatsAppConversationRep
     public async Task<WhatsAppConversationDto?> Handle(GetWhatsAppConversationQuery request, CancellationToken cancellationToken)
     {
         var conversation = await repository.GetByIdAsync(request.ConversationId, cancellationToken);
-        return conversation is null
-            ? null
-            : new WhatsAppConversationDto(
-                conversation.Id,
-                conversation.CorrelationId,
-                conversation.CustomerIdentifier,
-                conversation.LastMessagePreview,
-                conversation.Status,
-                conversation.CreatedAtUtc,
-                conversation.UpdatedAtUtc);
+        return conversation is null ? null : WhatsAppConversationMappings.ToDto(conversation);
     }
 }

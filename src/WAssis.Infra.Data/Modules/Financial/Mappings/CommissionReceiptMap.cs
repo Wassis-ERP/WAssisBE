@@ -11,6 +11,7 @@ public sealed class CommissionReceiptMap : IEntityTypeConfiguration<CommissionRe
         builder.ToTable("commission_receipts", "financial");
 
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.TenantId).HasMaxLength(64).IsRequired();
         builder.Property(x => x.CorrelationId).HasMaxLength(64).IsRequired();
         builder.Property(x => x.InsuranceCompanyCode).HasMaxLength(50).IsRequired();
         builder.Property(x => x.ReceivedAmount).HasColumnType("numeric(18,2)").IsRequired();

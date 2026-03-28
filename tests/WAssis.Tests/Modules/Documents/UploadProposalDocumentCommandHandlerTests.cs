@@ -2,6 +2,7 @@ using WAssis.Application.Modules.Documents.Commands;
 using WAssis.Application.Modules.Documents.Interfaces;
 using WAssis.Domain.Modules.Documents.Entities;
 using WAssis.Domain.Modules.Documents.Enums;
+using WAssis.Tests.TestDoubles;
 
 namespace WAssis.Tests.Modules.Documents;
 
@@ -12,6 +13,11 @@ public sealed class UploadProposalDocumentCommandHandlerTests
     {
         var repository = new InMemoryImportedDocumentRepository();
         var handler = new UploadProposalDocumentCommandHandler(
+            new FakeCurrentUserContext
+            {
+                IsAuthenticated = true,
+                TenantId = "tenant-docs"
+            },
             repository,
             new EmptyPdfTextExtractor(),
             new EmptyOcrTextExtractor(),
@@ -28,11 +34,14 @@ public sealed class UploadProposalDocumentCommandHandlerTests
 
         Assert.Equal(ImportedDocumentStatus.Failed, result.Status);
         Assert.Contains("OCR", result.ParsingNotes);
+        Assert.Equal("tenant-docs", repository.Items.Single().TenantId);
     }
 
     private sealed class InMemoryImportedDocumentRepository : IImportedDocumentRepository
     {
         private readonly List<ImportedDocument> _items = [];
+
+        public IReadOnlyCollection<ImportedDocument> Items => _items;
 
         public Task AddAsync(ImportedDocument document, CancellationToken cancellationToken)
         {
@@ -81,6 +90,8 @@ public sealed class UploadProposalDocumentCommandHandlerTests
                 null,
                 null,
                 null,
+                0.35m,
+                true,
                 null);
         }
     }

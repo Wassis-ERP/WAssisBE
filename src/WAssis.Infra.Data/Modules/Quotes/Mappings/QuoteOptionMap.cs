@@ -13,6 +13,7 @@ public sealed class QuoteOptionMap : IEntityTypeConfiguration<QuoteOption>
 
         builder.HasKey(x => x.Id);
 
+        builder.Property(x => x.TenantId).HasMaxLength(64).IsRequired();
         builder.Property(x => x.QuoteRequestId).IsRequired();
         builder.Property(x => x.InsuranceCompanyCode).HasMaxLength(50).IsRequired();
         builder.Property(x => x.InsuranceCompanyName).HasMaxLength(120).IsRequired();
@@ -20,6 +21,9 @@ public sealed class QuoteOptionMap : IEntityTypeConfiguration<QuoteOption>
         builder.Property(x => x.ProductName).HasMaxLength(120).IsRequired();
         builder.Property(x => x.Status).HasConversion<int>().IsRequired();
         builder.Property(x => x.ExternalReference).HasMaxLength(100);
+        builder.Ignore(x => x.Coverages);
+        builder.Ignore(x => x.Installments);
+        builder.Ignore(x => x.Messages);
 
         builder.OwnsMany<CoverageSnapshot>("_coverages", coverageBuilder =>
         {

@@ -11,10 +11,12 @@ public sealed class ImportedDocumentMap : IEntityTypeConfiguration<ImportedDocum
         builder.ToTable("imported_documents", "documents");
 
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.TenantId).HasMaxLength(64).IsRequired();
         builder.Property(x => x.CorrelationId).HasMaxLength(64).IsRequired();
         builder.Property(x => x.FileName).HasMaxLength(255).IsRequired();
         builder.Property(x => x.ContentType).HasMaxLength(120).IsRequired();
         builder.Property(x => x.Source).HasMaxLength(50).IsRequired();
+        builder.Property(x => x.StoragePath).HasMaxLength(500);
         builder.Property(x => x.Status).HasConversion<int>().IsRequired();
         builder.Property(x => x.DocumentType).HasMaxLength(50);
         builder.Property(x => x.ExtractedText).HasColumnType("text");
@@ -23,6 +25,9 @@ public sealed class ImportedDocumentMap : IEntityTypeConfiguration<ImportedDocum
         builder.Property(x => x.InsuredName).HasMaxLength(200);
         builder.Property(x => x.TotalPremiumAmount).HasColumnType("numeric(18,2)");
         builder.Property(x => x.CommissionAmount).HasColumnType("numeric(18,2)");
+        builder.Property(x => x.ParsingConfidence).HasColumnType("numeric(5,4)").IsRequired();
+        builder.Property(x => x.RequiresHumanReview).IsRequired();
+        builder.Property(x => x.ReviewedByUserId).HasMaxLength(128);
         builder.Property(x => x.ParsingNotes).HasMaxLength(2000);
         builder.Property(x => x.CreatedAtUtc).IsRequired();
     }

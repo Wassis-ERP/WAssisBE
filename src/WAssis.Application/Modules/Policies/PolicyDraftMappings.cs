@@ -22,6 +22,8 @@ internal static class PolicyDraftMappings
             draft.PolicyNumber,
             draft.Notes,
             draft.CreatedAtUtc,
+            draft.ReviewedAtUtc,
+            draft.ReviewedByUserId,
             draft.ReadyForIssuanceAtUtc,
             draft.IssuedAtUtc);
     }

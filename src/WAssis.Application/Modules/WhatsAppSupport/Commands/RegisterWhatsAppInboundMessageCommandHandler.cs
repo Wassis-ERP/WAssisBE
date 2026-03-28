@@ -7,6 +7,7 @@ using WAssis.Domain.Modules.WhatsAppSupport.Entities;
 namespace WAssis.Application.Modules.WhatsAppSupport.Commands;
 
 public sealed class RegisterWhatsAppInboundMessageCommandHandler(
+    ICurrentUserContext currentUserContext,
     IWhatsAppConversationRepository repository,
     IAuditTrailWriter auditTrailWriter)
     : IRequestHandler<RegisterWhatsAppInboundMessageCommand, WhatsAppConversationDto>
@@ -14,9 +15,11 @@ public sealed class RegisterWhatsAppInboundMessageCommandHandler(
     public async Task<WhatsAppConversationDto> Handle(RegisterWhatsAppInboundMessageCommand request, CancellationToken cancellationToken)
     {
         var conversation = WhatsAppConversation.Create(
+            currentUserContext.ResolveTenantIdOrPlatform(),
             request.CorrelationId,
             request.CustomerIdentifier,
-            request.MessagePreview);
+            request.MessagePreview,
+            request.Priority);
 
         if (request.RequestHumanHandoff)
         {
@@ -35,13 +38,6 @@ public sealed class RegisterWhatsAppInboundMessageCommandHandler(
             request.MessagePreview,
             cancellationToken);
 
-        return new WhatsAppConversationDto(
-            conversation.Id,
-            conversation.CorrelationId,
-            conversation.CustomerIdentifier,
-            conversation.LastMessagePreview,
-            conversation.Status,
-            conversation.CreatedAtUtc,
-            conversation.UpdatedAtUtc);
+        return WhatsAppConversationMappings.ToDto(conversation);
     }
 }

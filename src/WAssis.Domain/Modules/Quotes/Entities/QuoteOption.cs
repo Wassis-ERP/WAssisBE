@@ -10,6 +10,7 @@ public class QuoteOption : Entity
     private readonly List<InstallmentSnapshot> _installments = [];
     private readonly List<QuoteStatusMessage> _messages = [];
 
+    public string TenantId { get; private set; } = string.Empty;
     public Guid QuoteRequestId { get; private set; }
     public string InsuranceCompanyCode { get; private set; } = string.Empty;
     public string InsuranceCompanyName { get; private set; } = string.Empty;
@@ -29,6 +30,7 @@ public class QuoteOption : Entity
 
     public QuoteOption(
         Guid id,
+        string tenantId,
         Guid quoteRequestId,
         string insuranceCompanyCode,
         string insuranceCompanyName,
@@ -43,6 +45,7 @@ public class QuoteOption : Entity
         IEnumerable<QuoteStatusMessage>? messages)
     {
         Id = id;
+        TenantId = tenantId;
         QuoteRequestId = quoteRequestId;
         InsuranceCompanyCode = insuranceCompanyCode;
         InsuranceCompanyName = insuranceCompanyName;

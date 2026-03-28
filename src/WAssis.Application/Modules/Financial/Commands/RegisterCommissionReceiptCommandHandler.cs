@@ -1,16 +1,20 @@
 using MediatR;
+using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Financial.Dtos;
 using WAssis.Application.Modules.Financial.Interfaces;
 using WAssis.Domain.Modules.Financial.Entities;
 
 namespace WAssis.Application.Modules.Financial.Commands;
 
-public sealed class RegisterCommissionReceiptCommandHandler(ICommissionReceiptRepository repository)
+public sealed class RegisterCommissionReceiptCommandHandler(
+    ICommissionReceiptRepository repository,
+    ICurrentUserContext currentUserContext)
     : IRequestHandler<RegisterCommissionReceiptCommand, CommissionReconciliationDto>
 {
     public async Task<CommissionReconciliationDto> Handle(RegisterCommissionReceiptCommand request, CancellationToken cancellationToken)
     {
         var receipt = CommissionReceipt.Create(
+            currentUserContext.ResolveTenantIdOrPlatform(),
             request.CorrelationId,
             request.InsuranceCompanyCode,
             request.ReceivedAmount,
@@ -18,6 +22,7 @@ public sealed class RegisterCommissionReceiptCommandHandler(ICommissionReceiptRe
             request.ImportedDocumentId);
 
         var reconciliation = CommissionReconciliation.Create(
+            receipt.TenantId,
             receipt.Id,
             request.ExpectedAmount,
             request.ReceivedAmount);
@@ -33,6 +38,9 @@ public sealed class RegisterCommissionReceiptCommandHandler(ICommissionReceiptRe
             reconciliation.ReceivedAmount,
             reconciliation.DifferenceAmount,
             reconciliation.Status,
-            reconciliation.CreatedAtUtc);
+            reconciliation.MatchedReference,
+            reconciliation.SettlementNotes,
+            reconciliation.CreatedAtUtc,
+            reconciliation.SettledAtUtc);
     }
 }

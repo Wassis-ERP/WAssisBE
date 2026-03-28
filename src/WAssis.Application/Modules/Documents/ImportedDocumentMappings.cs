@@ -13,6 +13,7 @@ internal static class ImportedDocumentMappings
             document.FileName,
             document.ContentType,
             document.Source,
+            document.StoragePath,
             document.Status,
             document.DocumentType,
             document.InsuranceCompanyName,
@@ -22,7 +23,12 @@ internal static class ImportedDocumentMappings
             document.CoverageEndDateUtc,
             document.TotalPremiumAmount,
             document.CommissionAmount,
+            document.ParsingConfidence,
+            document.RequiresHumanReview,
+            document.ReviewedAtUtc,
+            document.ReviewedByUserId,
             document.ParsingNotes,
-            document.CreatedAtUtc);
+            document.CreatedAtUtc,
+            document.LastProcessedAtUtc);
     }
 }

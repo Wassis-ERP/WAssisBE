@@ -7,6 +7,7 @@ public class QuoteRequest : AggregateRoot
 {
     private readonly List<QuoteOption> _options = [];
 
+    public string TenantId { get; private set; } = string.Empty;
     public string CorrelationId { get; private set; } = string.Empty;
     public string CustomerName { get; private set; } = string.Empty;
     public string DocumentNumber { get; private set; } = string.Empty;
@@ -38,6 +39,7 @@ public class QuoteRequest : AggregateRoot
 
     private QuoteRequest(
         Guid id,
+        string tenantId,
         string correlationId,
         string customerName,
         string documentNumber,
@@ -59,6 +61,7 @@ public class QuoteRequest : AggregateRoot
         int? renewalInsurerCode)
     {
         Id = id;
+        TenantId = tenantId;
         CorrelationId = correlationId;
         CustomerName = customerName;
         DocumentNumber = documentNumber;
@@ -85,6 +88,7 @@ public class QuoteRequest : AggregateRoot
     }
 
     public static QuoteRequest Create(
+        string tenantId,
         string correlationId,
         string customerName,
         string documentNumber,
@@ -107,6 +111,7 @@ public class QuoteRequest : AggregateRoot
     {
         return new QuoteRequest(
             Guid.NewGuid(),
+            tenantId,
             correlationId,
             customerName,
             documentNumber,

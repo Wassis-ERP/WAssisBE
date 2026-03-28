@@ -11,6 +11,7 @@ public sealed class PolicyDraftMap : IEntityTypeConfiguration<PolicyDraft>
         builder.ToTable("policy_drafts", "policies");
 
         builder.HasKey(x => x.Id);
+        builder.Property(x => x.TenantId).HasMaxLength(64).IsRequired();
         builder.Property(x => x.CorrelationId).HasMaxLength(64).IsRequired();
         builder.Property(x => x.InsuranceCompanyName).HasMaxLength(120);
         builder.Property(x => x.ProposalNumber).HasMaxLength(100);
@@ -21,10 +22,11 @@ public sealed class PolicyDraftMap : IEntityTypeConfiguration<PolicyDraft>
         builder.Property(x => x.PolicyNumber).HasMaxLength(100);
         builder.Property(x => x.Notes).HasMaxLength(2000);
         builder.Property(x => x.CreatedAtUtc).IsRequired();
+        builder.Property(x => x.ReviewedByUserId).HasMaxLength(128);
         builder.Property(x => x.ReadyForIssuanceAtUtc);
         builder.Property(x => x.IssuedAtUtc);
 
         builder.HasIndex(x => x.ImportedDocumentId);
-        builder.HasIndex(x => x.PolicyNumber).IsUnique();
+        builder.HasIndex(x => new { x.TenantId, x.PolicyNumber }).IsUnique();
     }
 }

@@ -1,4 +1,5 @@
 using MediatR;
+using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Documents.Interfaces;
 using WAssis.Application.Modules.Policies.Dtos;
 using WAssis.Application.Modules.Policies.Interfaces;
@@ -9,6 +10,7 @@ using WAssis.Domain.Modules.Policies.Entities;
 namespace WAssis.Application.Modules.Policies.Commands;
 
 public sealed class CreatePolicyDraftFromDocumentCommandHandler(
+    ICurrentUserContext currentUserContext,
     IImportedDocumentRepository importedDocumentRepository,
     IPolicyDraftRepository policyDraftRepository)
     : IRequestHandler<CreatePolicyDraftFromDocumentCommand, Result<PolicyDraftDto>>
@@ -29,6 +31,7 @@ public sealed class CreatePolicyDraftFromDocumentCommandHandler(
         }
 
         var draft = PolicyDraft.Create(
+            currentUserContext.ResolveTenantIdOrPlatform(),
             document.Id,
             document.CorrelationId,
             document.InsuranceCompanyName,

@@ -1,8 +1,10 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WAssis.Application.Modules.Policies.Commands;
 using WAssis.Application.Modules.Policies.Dtos;
 using WAssis.Application.Modules.Policies.Queries;
+using WAssis.Infra.CrossCutting.Identity.Authorization;
 using WAssis.Services.Api.Extensions;
 using WAssis.Services.Api.Modules.Policies.Contracts;
 using WAssis.Services.Api.Modules.Policies.ViewModels;
@@ -11,6 +13,7 @@ namespace WAssis.Services.Api.Modules.Policies.Controllers;
 
 [ApiController]
 [Route("api/policies/drafts")]
+[Authorize(Policy = AccessPolicies.BrokerageStaff)]
 public sealed class PolicyDraftsController(IMediator mediator) : ControllerBase
 {
     [HttpPost("from-document")]
@@ -38,6 +41,13 @@ public sealed class PolicyDraftsController(IMediator mediator) : ControllerBase
         return this.ToActionResult(result, value => Ok(ToViewModel(value)));
     }
 
+    [HttpPost("{id:guid}/approve-review")]
+    public async Task<IActionResult> ApproveReview(Guid id, [FromBody] UpdatePolicyDraftStatusRequest? request, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new ApprovePolicyDraftReviewCommand(id, request?.Notes), cancellationToken);
+        return this.ToActionResult(result, value => Ok(ToViewModel(value)));
+    }
+
     [HttpPost("{id:guid}/issue")]
     public async Task<IActionResult> Issue(Guid id, [FromBody] UpdatePolicyDraftStatusRequest? request, CancellationToken cancellationToken)
     {
@@ -62,6 +72,8 @@ public sealed class PolicyDraftsController(IMediator mediator) : ControllerBase
             result.PolicyNumber,
             result.Notes,
             result.CreatedAtUtc,
+            result.ReviewedAtUtc,
+            result.ReviewedByUserId,
             result.ReadyForIssuanceAtUtc,
             result.IssuedAtUtc);
     }
