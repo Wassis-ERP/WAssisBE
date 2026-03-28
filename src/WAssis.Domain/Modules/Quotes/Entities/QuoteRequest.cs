@@ -12,10 +12,20 @@ public class QuoteRequest : AggregateRoot
     public string DocumentNumber { get; private set; } = string.Empty;
     public string? Email { get; private set; }
     public string? PhoneNumber { get; private set; }
+    public string? PostalCode { get; private set; }
+    public string? CustomerSurname { get; private set; }
+    public string? CustomerGender { get; private set; }
+    public DateTime? CustomerBirthDateUtc { get; private set; }
     public string? VehiclePlate { get; private set; }
     public string? VehicleBrand { get; private set; }
     public string? VehicleModel { get; private set; }
+    public string? VehicleFipeCode { get; private set; }
     public int VehicleModelYear { get; private set; }
+    public bool HasDriverUnder24 { get; private set; }
+    public bool IsCurrentlyInsured { get; private set; }
+    public string? PreviousBonus { get; private set; }
+    public int? BrokerCommissionPercentage { get; private set; }
+    public int? RenewalInsurerCode { get; private set; }
     public QuoteRequestStatus Status { get; private set; }
     public string? ShareToken { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
@@ -33,10 +43,20 @@ public class QuoteRequest : AggregateRoot
         string documentNumber,
         string? email,
         string? phoneNumber,
+        string? postalCode,
+        string? customerSurname,
+        string? customerGender,
+        DateTime? customerBirthDateUtc,
         string? vehiclePlate,
         string? vehicleBrand,
         string? vehicleModel,
-        int vehicleModelYear)
+        string? vehicleFipeCode,
+        int vehicleModelYear,
+        bool hasDriverUnder24,
+        bool isCurrentlyInsured,
+        string? previousBonus,
+        int? brokerCommissionPercentage,
+        int? renewalInsurerCode)
     {
         Id = id;
         CorrelationId = correlationId;
@@ -44,10 +64,20 @@ public class QuoteRequest : AggregateRoot
         DocumentNumber = documentNumber;
         Email = email;
         PhoneNumber = phoneNumber;
+        PostalCode = postalCode;
+        CustomerSurname = customerSurname;
+        CustomerGender = customerGender;
+        CustomerBirthDateUtc = customerBirthDateUtc;
         VehiclePlate = vehiclePlate;
         VehicleBrand = vehicleBrand;
         VehicleModel = vehicleModel;
+        VehicleFipeCode = vehicleFipeCode;
         VehicleModelYear = vehicleModelYear;
+        HasDriverUnder24 = hasDriverUnder24;
+        IsCurrentlyInsured = isCurrentlyInsured;
+        PreviousBonus = previousBonus;
+        BrokerCommissionPercentage = brokerCommissionPercentage;
+        RenewalInsurerCode = renewalInsurerCode;
         Status = QuoteRequestStatus.Pending;
         ShareToken = Guid.NewGuid().ToString("N");
         CreatedAtUtc = DateTime.UtcNow;
@@ -60,10 +90,20 @@ public class QuoteRequest : AggregateRoot
         string documentNumber,
         string? email,
         string? phoneNumber,
+        string? postalCode,
+        string? customerSurname,
+        string? customerGender,
+        DateTime? customerBirthDateUtc,
         string? vehiclePlate,
         string? vehicleBrand,
         string? vehicleModel,
-        int vehicleModelYear)
+        string? vehicleFipeCode,
+        int vehicleModelYear,
+        bool hasDriverUnder24,
+        bool isCurrentlyInsured,
+        string? previousBonus,
+        int? brokerCommissionPercentage,
+        int? renewalInsurerCode)
     {
         return new QuoteRequest(
             Guid.NewGuid(),
@@ -72,10 +112,20 @@ public class QuoteRequest : AggregateRoot
             documentNumber,
             email,
             phoneNumber,
+            postalCode,
+            customerSurname,
+            customerGender,
+            customerBirthDateUtc,
             vehiclePlate,
             vehicleBrand,
             vehicleModel,
-            vehicleModelYear);
+            vehicleFipeCode,
+            vehicleModelYear,
+            hasDriverUnder24,
+            isCurrentlyInsured,
+            previousBonus,
+            brokerCommissionPercentage,
+            renewalInsurerCode);
     }
 
     public void MarkAsProcessing()

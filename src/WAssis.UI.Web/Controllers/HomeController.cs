@@ -4,5 +4,5 @@ namespace WAssis.UI.Web.Controllers;
 
 public class HomeController : Controller
 {
-    public IActionResult Index() => Content("W.Assis UI Web placeholder (Equinox-style)");
+    public IActionResult Index() => View();
 }

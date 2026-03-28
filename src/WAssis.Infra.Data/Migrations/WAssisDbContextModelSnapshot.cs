@@ -17,6 +17,122 @@ partial class WAssisDbContextModelSnapshot : ModelSnapshot
             .HasAnnotation("ProductVersion", "8.0.11")
             .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
+        modelBuilder.Entity("WAssis.Domain.Modules.Documents.Entities.DocumentSearch", b =>
+        {
+            b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+            b.Property<string>("CorrelationId").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+            b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+            b.Property<string>("InsuranceCompanyCode").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)");
+            b.Property<string>("SearchType").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)");
+            b.Property<int>("Status").HasColumnType("integer");
+            b.Property<DateTime?>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
+            b.HasKey("Id");
+            b.HasIndex("CorrelationId").IsUnique();
+            b.ToTable("document_searches", "documents");
+        });
+
+        modelBuilder.Entity("WAssis.Domain.Modules.Documents.Entities.ImportedDocument", b =>
+        {
+            b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+            b.Property<decimal?>("CommissionAmount").HasColumnType("numeric(18,2)");
+            b.Property<string>("ContentType").IsRequired().HasMaxLength(120).HasColumnType("character varying(120)");
+            b.Property<string>("CorrelationId").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+            b.Property<DateTime?>("CoverageEndDateUtc").HasColumnType("timestamp with time zone");
+            b.Property<DateTime?>("CoverageStartDateUtc").HasColumnType("timestamp with time zone");
+            b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+            b.Property<string>("DocumentType").HasMaxLength(50).HasColumnType("character varying(50)");
+            b.Property<string>("ExtractedText").HasColumnType("text");
+            b.Property<string>("FileName").IsRequired().HasMaxLength(255).HasColumnType("character varying(255)");
+            b.Property<string>("InsuranceCompanyName").HasMaxLength(120).HasColumnType("character varying(120)");
+            b.Property<string>("InsuredName").HasMaxLength(200).HasColumnType("character varying(200)");
+            b.Property<string>("ParsingNotes").HasMaxLength(2000).HasColumnType("character varying(2000)");
+            b.Property<string>("ProposalNumber").HasMaxLength(100).HasColumnType("character varying(100)");
+            b.Property<string>("Source").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)");
+            b.Property<int>("Status").HasColumnType("integer");
+            b.Property<decimal?>("TotalPremiumAmount").HasColumnType("numeric(18,2)");
+            b.HasKey("Id");
+            b.ToTable("imported_documents", "documents");
+        });
+
+        modelBuilder.Entity("WAssis.Domain.Modules.Financial.Entities.CommissionReceipt", b =>
+        {
+            b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+            b.Property<string>("CorrelationId").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+            b.Property<string>("Currency").IsRequired().HasMaxLength(8).HasColumnType("character varying(8)");
+            b.Property<Guid?>("ImportedDocumentId").HasColumnType("uuid");
+            b.Property<string>("InsuranceCompanyCode").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)");
+            b.Property<decimal>("ReceivedAmount").HasColumnType("numeric(18,2)");
+            b.Property<DateTime>("ReceivedAtUtc").HasColumnType("timestamp with time zone");
+            b.Property<string>("SourceType").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)");
+            b.HasKey("Id");
+            b.ToTable("commission_receipts", "financial");
+        });
+
+        modelBuilder.Entity("WAssis.Domain.Modules.Financial.Entities.CommissionReconciliation", b =>
+        {
+            b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+            b.Property<Guid>("CommissionReceiptId").HasColumnType("uuid");
+            b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+            b.Property<decimal>("DifferenceAmount").HasColumnType("numeric(18,2)");
+            b.Property<decimal>("ExpectedAmount").HasColumnType("numeric(18,2)");
+            b.Property<decimal>("ReceivedAmount").HasColumnType("numeric(18,2)");
+            b.Property<int>("Status").HasColumnType("integer");
+            b.HasKey("Id");
+            b.HasIndex("CommissionReceiptId");
+            b.ToTable("commission_reconciliations", "financial");
+        });
+
+        modelBuilder.Entity("WAssis.Domain.Core.Auditing.AuditEntry", b =>
+        {
+            b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+            b.Property<string>("Action").IsRequired().HasMaxLength(100).HasColumnType("character varying(100)");
+            b.Property<string>("CorrelationId").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+            b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+            b.Property<string>("EntityId").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+            b.Property<string>("EntityType").IsRequired().HasMaxLength(100).HasColumnType("character varying(100)");
+            b.Property<string>("Module").IsRequired().HasMaxLength(50).HasColumnType("character varying(50)");
+            b.Property<string>("Notes").HasMaxLength(2000).HasColumnType("character varying(2000)");
+            b.HasKey("Id");
+            b.ToTable("audit_entries", "operations");
+        });
+
+        modelBuilder.Entity("WAssis.Domain.Modules.Policies.Entities.PolicyDraft", b =>
+        {
+            b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+            b.Property<decimal?>("CommissionAmount").HasColumnType("numeric(18,2)");
+            b.Property<string>("CorrelationId").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+            b.Property<DateTime?>("CoverageEndDateUtc").HasColumnType("timestamp with time zone");
+            b.Property<DateTime?>("CoverageStartDateUtc").HasColumnType("timestamp with time zone");
+            b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+            b.Property<Guid>("ImportedDocumentId").HasColumnType("uuid");
+            b.Property<string>("InsuranceCompanyName").HasMaxLength(120).HasColumnType("character varying(120)");
+            b.Property<string>("InsuredName").HasMaxLength(200).HasColumnType("character varying(200)");
+            b.Property<DateTime?>("IssuedAtUtc").HasColumnType("timestamp with time zone");
+            b.Property<string>("Notes").HasMaxLength(2000).HasColumnType("character varying(2000)");
+            b.Property<string>("PolicyNumber").HasMaxLength(100).HasColumnType("character varying(100)");
+            b.Property<string>("ProposalNumber").HasMaxLength(100).HasColumnType("character varying(100)");
+            b.Property<DateTime?>("ReadyForIssuanceAtUtc").HasColumnType("timestamp with time zone");
+            b.Property<int>("Status").HasColumnType("integer");
+            b.Property<decimal?>("TotalPremiumAmount").HasColumnType("numeric(18,2)");
+            b.HasKey("Id");
+            b.HasIndex("ImportedDocumentId");
+            b.HasIndex("PolicyNumber").IsUnique();
+            b.ToTable("policy_drafts", "policies");
+        });
+
+        modelBuilder.Entity("WAssis.Domain.Modules.WhatsAppSupport.Entities.WhatsAppConversation", b =>
+        {
+            b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
+            b.Property<string>("CorrelationId").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+            b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
+            b.Property<string>("CustomerIdentifier").IsRequired().HasMaxLength(100).HasColumnType("character varying(100)");
+            b.Property<string>("LastMessagePreview").IsRequired().HasMaxLength(500).HasColumnType("character varying(500)");
+            b.Property<int>("Status").HasColumnType("integer");
+            b.Property<DateTime?>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
+            b.HasKey("Id");
+            b.ToTable("whatsapp_conversations", "whatsapp_support");
+        });
+
         modelBuilder.Entity("WAssis.Domain.Modules.Quotes.Entities.QuoteOption", b =>
         {
             b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
@@ -38,19 +154,30 @@ partial class WAssisDbContextModelSnapshot : ModelSnapshot
         {
             b.Property<Guid>("Id").ValueGeneratedOnAdd().HasColumnType("uuid");
             b.Property<string>("CorrelationId").IsRequired().HasMaxLength(64).HasColumnType("character varying(64)");
+            b.Property<int?>("BrokerCommissionPercentage").HasColumnType("integer");
+            b.Property<DateTime?>("CustomerBirthDateUtc").HasColumnType("timestamp with time zone");
+            b.Property<string>("CustomerGender").HasMaxLength(1).HasColumnType("character varying(1)");
             b.Property<DateTime>("CreatedAtUtc").HasColumnType("timestamp with time zone");
             b.Property<string>("CustomerName").IsRequired().HasMaxLength(200).HasColumnType("character varying(200)");
+            b.Property<string>("CustomerSurname").HasMaxLength(120).HasColumnType("character varying(120)");
             b.Property<string>("DocumentNumber").IsRequired().HasMaxLength(32).HasColumnType("character varying(32)");
             b.Property<string>("Email").HasMaxLength(200).HasColumnType("character varying(200)");
+            b.Property<bool>("HasDriverUnder24").HasColumnType("boolean");
+            b.Property<bool>("IsCurrentlyInsured").HasColumnType("boolean");
             b.Property<string>("PhoneNumber").HasMaxLength(32).HasColumnType("character varying(32)");
+            b.Property<string>("PostalCode").HasMaxLength(16).HasColumnType("character varying(16)");
+            b.Property<string>("PreviousBonus").HasMaxLength(4).HasColumnType("character varying(4)");
+            b.Property<int?>("RenewalInsurerCode").HasColumnType("integer");
             b.Property<string>("ShareToken").HasMaxLength(64).HasColumnType("character varying(64)");
             b.Property<int>("Status").HasColumnType("integer");
             b.Property<DateTime?>("UpdatedAtUtc").HasColumnType("timestamp with time zone");
             b.Property<string>("VehicleBrand").HasMaxLength(100).HasColumnType("character varying(100)");
+            b.Property<string>("VehicleFipeCode").HasMaxLength(32).HasColumnType("character varying(32)");
             b.Property<string>("VehicleModel").HasMaxLength(100).HasColumnType("character varying(100)");
             b.Property<int>("VehicleModelYear").HasColumnType("integer");
             b.Property<string>("VehiclePlate").HasMaxLength(16).HasColumnType("character varying(16)");
             b.HasKey("Id");
+            b.HasIndex("CorrelationId").IsUnique();
             b.ToTable("quote_requests", "quotes");
         });
 
@@ -59,6 +186,15 @@ partial class WAssisDbContextModelSnapshot : ModelSnapshot
             b.HasOne("WAssis.Domain.Modules.Quotes.Entities.QuoteRequest", null)
                 .WithMany("Options")
                 .HasForeignKey("QuoteRequestId")
+                .OnDelete(DeleteBehavior.Cascade)
+                .IsRequired();
+        });
+
+        modelBuilder.Entity("WAssis.Domain.Modules.Financial.Entities.CommissionReconciliation", b =>
+        {
+            b.HasOne("WAssis.Domain.Modules.Financial.Entities.CommissionReceipt", null)
+                .WithMany()
+                .HasForeignKey("CommissionReceiptId")
                 .OnDelete(DeleteBehavior.Cascade)
                 .IsRequired();
         });

@@ -1,0 +1,131 @@
+@{
+    ViewData["Title"] = "W.Assis ERP";
+}
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>@ViewData["Title"]</title>
+    <style>
+        :root {
+            --bg: #f5f0e8;
+            --panel: #fffaf3;
+            --ink: #1b1b18;
+            --muted: #5e5a52;
+            --accent: #0d5c63;
+            --accent-soft: #d4ecee;
+            --line: #d8cfbf;
+        }
+        body {
+            margin: 0;
+            font-family: Georgia, "Times New Roman", serif;
+            background: radial-gradient(circle at top left, #fff7ec, var(--bg) 40%, #efe5d7 100%);
+            color: var(--ink);
+        }
+        .shell {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 48px 20px 64px;
+        }
+        .hero {
+            display: grid;
+            gap: 18px;
+            margin-bottom: 32px;
+        }
+        .eyebrow {
+            text-transform: uppercase;
+            letter-spacing: .18em;
+            font-size: 12px;
+            color: var(--accent);
+        }
+        h1 {
+            margin: 0;
+            font-size: clamp(36px, 6vw, 64px);
+            line-height: 1;
+        }
+        .lede {
+            max-width: 720px;
+            font-size: 18px;
+            color: var(--muted);
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+            gap: 16px;
+        }
+        .card {
+            background: color-mix(in srgb, var(--panel) 88%, white);
+            border: 1px solid var(--line);
+            border-radius: 18px;
+            padding: 20px;
+            box-shadow: 0 16px 30px rgba(27, 27, 24, 0.06);
+        }
+        .card h2 {
+            margin: 0 0 8px;
+            font-size: 24px;
+        }
+        .tag {
+            display: inline-block;
+            background: var(--accent-soft);
+            color: var(--accent);
+            border-radius: 999px;
+            padding: 6px 10px;
+            font-size: 12px;
+            margin-bottom: 12px;
+        }
+        ul {
+            margin: 0;
+            padding-left: 18px;
+            color: var(--muted);
+        }
+    </style>
+</head>
+<body>
+    <main class="shell">
+        <section class="hero">
+            <div class="eyebrow">W.Assis ERP</div>
+            <h1>Operação única para corretora, proposta, documentos e atendimento.</h1>
+            <div class="lede">
+                Placeholder inicial do canal web para concentrar a visão dos produtos que vão consumir o backend canônico:
+                operação interna, canais digitais e agente de WhatsApp.
+            </div>
+        </section>
+
+        <section class="grid">
+            <article class="card">
+                <div class="tag">Web Operacional</div>
+                <h2>Corretora</h2>
+                <ul>
+                    <li>Multicálculo</li>
+                    <li>Propostas e emissão</li>
+                    <li>Financeiro e conciliação</li>
+                    <li>Gestão documental</li>
+                </ul>
+            </article>
+
+            <article class="card">
+                <div class="tag">Mobile</div>
+                <h2>Segurado</h2>
+                <ul>
+                    <li>Consulta de proposta e apólice</li>
+                    <li>Acompanhamento de sinistro</li>
+                    <li>Notificações</li>
+                    <li>Envio de documentos</li>
+                </ul>
+            </article>
+
+            <article class="card">
+                <div class="tag">WhatsApp</div>
+                <h2>Atendimento</h2>
+                <ul>
+                    <li>Bot inicial</li>
+                    <li>Handoff para humano</li>
+                    <li>Captura de contexto</li>
+                    <li>Solicitação de documentos</li>
+                </ul>
+            </article>
+        </section>
+    </main>
+</body>
+</html>

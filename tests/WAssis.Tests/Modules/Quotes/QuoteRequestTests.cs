@@ -14,13 +14,24 @@ public sealed class QuoteRequestTests
             "DOC-999",
             null,
             null,
+            "05516020",
+            "Domain",
+            "F",
+            new DateTime(1994, 6, 10, 0, 0, 0, DateTimeKind.Utc),
             "BRA2E19",
             "Chevrolet",
             "Onix",
-            2024);
+            "004411-0",
+            2024,
+            false,
+            true,
+            "5",
+            15,
+            null);
 
         Assert.Equal(QuoteRequestStatus.Pending, quoteRequest.Status);
         Assert.False(string.IsNullOrWhiteSpace(quoteRequest.ShareToken));
         Assert.Equal("Cliente Domain", quoteRequest.CustomerName);
+        Assert.Equal("05516020", quoteRequest.PostalCode);
     }
 }

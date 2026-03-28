@@ -1,3 +1,4 @@
+using WAssis.Application.Modules.Quotes.Dtos;
 using WAssis.Application.Modules.Quotes.Commands;
 using WAssis.Application.Modules.Quotes.Interfaces;
 using WAssis.Domain.Modules.Quotes.Entities;
@@ -20,14 +21,26 @@ public sealed class CreateQuoteRequestCommandHandlerTests
                 "DOC-123",
                 "cliente@teste.local",
                 "5511999999999",
+                "05516020",
+                "Silva",
+                "M",
+                new DateTime(1990, 1, 1, 0, 0, 0, DateTimeKind.Utc),
                 "ABC1D23",
                 "Ford",
                 "Ka",
-                2022),
+                "023108-8",
+                2022,
+                true,
+                false,
+                "0",
+                15,
+                null),
             CancellationToken.None);
 
         Assert.Equal("corr-123", result.CorrelationId);
         Assert.Equal(QuoteRequestStatus.Pending, result.Status);
+        Assert.Equal("05516020", result.PostalCode);
+        Assert.Equal("023108-8", result.VehicleFipeCode);
         Assert.NotEqual(Guid.Empty, result.Id);
         Assert.Single(repository.Items);
     }
@@ -45,6 +58,26 @@ public sealed class CreateQuoteRequestCommandHandlerTests
         public Task<QuoteRequest?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
         {
             return Task.FromResult(Items.SingleOrDefault(x => x.Id == id));
+        }
+
+        public Task<QuoteRequest?> GetByCorrelationIdAsync(string correlationId, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(Items.SingleOrDefault(x => x.CorrelationId == correlationId));
+        }
+
+        public Task<IReadOnlyCollection<QuotePendingDispatchDto>> GetPendingDispatchBatchAsync(int batchSize, CancellationToken cancellationToken)
+        {
+            IReadOnlyCollection<QuotePendingDispatchDto> items = Items
+                .Take(batchSize)
+                .Select(x => new QuotePendingDispatchDto(
+                    x.Id,
+                    x.CorrelationId,
+                    x.CreatedAtUtc,
+                    x.CustomerName,
+                    x.VehiclePlate))
+                .ToArray();
+
+            return Task.FromResult(items);
         }
 
         public Task SaveChangesAsync(CancellationToken cancellationToken)
