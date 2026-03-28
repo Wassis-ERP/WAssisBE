@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using WAssis.Application.Modules.Billing.Interfaces;
 using WAssis.Application.Modules.Documents.Interfaces;
 using WAssis.Application.Modules.Financial.Interfaces;
 using WAssis.Application.Modules.Notifications.Interfaces;
@@ -15,6 +16,7 @@ using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Icatu;
 using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos;
 using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos.Clients;
 using WAssis.Infra.Data.Integrations.Parsers;
+using WAssis.Infra.Data.Modules.Billing.Repositories;
 using WAssis.Infra.Data.Modules.Documents.Repositories;
 using WAssis.Infra.Data.Modules.Financial.Repositories;
 using WAssis.Infra.Data.Modules.Notifications.Queries;
@@ -44,6 +46,7 @@ public static class InfraDataServiceCollectionExtensions
             configuration.GetSection(IcatuQuoteOptions.SectionName).Bind(options));
         services.Configure<JustosQuoteOptions>(options =>
             configuration.GetSection(JustosQuoteOptions.SectionName).Bind(options));
+        services.AddScoped<IBillingRepository, BillingRepository>();
         services.AddScoped<IDocumentSearchRepository, DocumentSearchRepository>();
         services.AddScoped<IImportedDocumentRepository, ImportedDocumentRepository>();
         services.AddScoped<ICommissionReceiptRepository, CommissionReceiptRepository>();

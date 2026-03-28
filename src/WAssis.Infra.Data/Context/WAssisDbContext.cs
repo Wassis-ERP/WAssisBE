@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using WAssis.Application.Abstractions;
 using WAssis.Domain.Core.Auditing;
+using WAssis.Domain.Modules.Billing.Entities;
 using WAssis.Domain.Modules.Documents.Entities;
 using WAssis.Domain.Modules.Financial.Entities;
 using WAssis.Domain.Modules.Policies.Entities;
@@ -24,6 +25,8 @@ public class WAssisDbContext : DbContext
 
     public DbSet<DocumentSearch> DocumentSearches => Set<DocumentSearch>();
     public DbSet<ImportedDocument> ImportedDocuments => Set<ImportedDocument>();
+    public DbSet<BillingSubscription> BillingSubscriptions => Set<BillingSubscription>();
+    public DbSet<BillingInvoice> BillingInvoices => Set<BillingInvoice>();
     public DbSet<CommissionReceipt> CommissionReceipts => Set<CommissionReceipt>();
     public DbSet<CommissionReconciliation> CommissionReconciliations => Set<CommissionReconciliation>();
     public DbSet<PolicyDraft> PolicyDrafts => Set<PolicyDraft>();
@@ -39,6 +42,8 @@ public class WAssisDbContext : DbContext
 
         modelBuilder.Entity<DocumentSearch>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
         modelBuilder.Entity<ImportedDocument>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
+        modelBuilder.Entity<BillingSubscription>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
+        modelBuilder.Entity<BillingInvoice>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
         modelBuilder.Entity<CommissionReceipt>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
         modelBuilder.Entity<CommissionReconciliation>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
         modelBuilder.Entity<PolicyDraft>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
