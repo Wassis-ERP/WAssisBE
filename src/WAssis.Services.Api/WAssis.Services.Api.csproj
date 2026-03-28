@@ -6,8 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="FluentValidation" Version="11.9.0" />
+    <PackageReference Include="Serilog.AspNetCore" Version="8.0.3" />
     <ProjectReference Include="../WAssis.Application/WAssis.Application.csproj" />
     <ProjectReference Include="../WAssis.Domain.Core/WAssis.Domain.Core.csproj" />
+    <ProjectReference Include="../WAssis.Infra.Data/WAssis.Infra.Data.csproj" />
     <ProjectReference Include="../WAssis.Infra.CrossCutting.IoC/WAssis.Infra.CrossCutting.IoC.csproj" />
     <ProjectReference Include="../WAssis.Infra.CrossCutting.Identity/WAssis.Infra.CrossCutting.Identity.csproj" />
   </ItemGroup>

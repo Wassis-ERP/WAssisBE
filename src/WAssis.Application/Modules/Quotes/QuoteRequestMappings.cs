@@ -1,0 +1,48 @@
+using WAssis.Application.Modules.Quotes.Dtos;
+using WAssis.Domain.Modules.Quotes.Entities;
+
+namespace WAssis.Application.Modules.Quotes;
+
+internal static class QuoteRequestMappings
+{
+    public static QuoteRequestDto ToDto(QuoteRequest quoteRequest)
+    {
+        return new QuoteRequestDto(
+            quoteRequest.Id,
+            quoteRequest.CorrelationId,
+            quoteRequest.CustomerName,
+            quoteRequest.DocumentNumber,
+            quoteRequest.Email,
+            quoteRequest.PhoneNumber,
+            quoteRequest.VehiclePlate,
+            quoteRequest.VehicleBrand,
+            quoteRequest.VehicleModel,
+            quoteRequest.VehicleModelYear,
+            quoteRequest.Status,
+            quoteRequest.ShareToken,
+            quoteRequest.CreatedAtUtc,
+            quoteRequest.UpdatedAtUtc,
+            quoteRequest.Options.Select(static option => new QuoteOptionDto(
+                option.Id,
+                option.InsuranceCompanyCode,
+                option.InsuranceCompanyName,
+                option.ProductCode,
+                option.ProductName,
+                option.Status,
+                option.PremiumAmount,
+                option.CommissionAmount,
+                option.ExternalReference,
+                option.Coverages.Select(static coverage => new CoverageSnapshotDto(
+                    coverage.Code,
+                    coverage.Name,
+                    coverage.InsuredAmount,
+                    coverage.DeductibleAmount)).ToArray(),
+                option.Installments.Select(static installment => new InstallmentSnapshotDto(
+                    installment.Number,
+                    installment.Amount,
+                    installment.TotalAmount)).ToArray(),
+                option.Messages.Select(static message => new QuoteStatusMessageDto(
+                    message.Code,
+                    message.Description)).ToArray())).ToArray());
+    }
+}

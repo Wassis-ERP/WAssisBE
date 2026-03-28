@@ -6,9 +6,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Serilog.Extensions.Hosting" Version="8.0.0" />
     <ProjectReference Include="../WAssis.Application/WAssis.Application.csproj" />
     <ProjectReference Include="../WAssis.Domain.Core/WAssis.Domain.Core.csproj" />
     <ProjectReference Include="../WAssis.Infra.CrossCutting.Bus/WAssis.Infra.CrossCutting.Bus.csproj" />
     <ProjectReference Include="../WAssis.Infra.CrossCutting.IoC/WAssis.Infra.CrossCutting.IoC.csproj" />
+    <ProjectReference Include="../WAssis.Infra.Data/WAssis.Infra.Data.csproj" />
   </ItemGroup>
 </Project>
