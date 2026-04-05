@@ -1,7 +1,9 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WAssis.Application.Modules.Documents.Commands;
 using WAssis.Application.Modules.Documents.Queries;
+using WAssis.Infra.CrossCutting.Identity.Authorization;
 using WAssis.Services.Api.Modules.Documents.Contracts;
 using WAssis.Services.Api.Modules.Documents.ViewModels;
 
@@ -9,6 +11,7 @@ namespace WAssis.Services.Api.Modules.Documents.Controllers;
 
 [ApiController]
 [Route("api/documents/searches")]
+[Authorize(Policy = AccessPolicies.BrokerageStaff)]
 public sealed class DocumentSearchesController(IMediator mediator) : ControllerBase
 {
     [HttpPost]

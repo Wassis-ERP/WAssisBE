@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Http.Resilience;
 using WAssis.Application.Modules.Billing.Interfaces;
 using WAssis.Application.Modules.Documents.Interfaces;
 using WAssis.Application.Modules.Financial.Interfaces;
@@ -29,6 +30,9 @@ namespace WAssis.Infra.Data.DependencyInjection;
 
 public static class InfraDataServiceCollectionExtensions
 {
+    private static readonly TimeSpan ExternalAttemptTimeout = TimeSpan.FromSeconds(15);
+    private static readonly TimeSpan ExternalRequestTimeout = TimeSpan.FromSeconds(45);
+
     public static IServiceCollection AddInfraDataServices(this IServiceCollection services, IConfiguration configuration)
     {
         var connectionString = configuration.GetConnectionString("DefaultConnection")
@@ -60,12 +64,14 @@ public static class InfraDataServiceCollectionExtensions
         {
             var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<JustosQuoteOptions>>().Value;
             client.BaseAddress = new Uri(options.BaseUrl);
-        });
+        })
+        .AddStandardResilienceHandler(ConfigureExternalResilience);
         services.AddHttpClient<JustosQuoteClient>((serviceProvider, client) =>
         {
             var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<JustosQuoteOptions>>().Value;
             client.BaseAddress = new Uri(options.BaseUrl);
-        });
+        })
+        .AddStandardResilienceHandler(ConfigureExternalResilience);
         services.AddScoped<IQuoteProvider, BradescoQuoteProvider>();
         services.AddScoped<IQuoteProvider, IcatuQuoteProvider>();
         services.AddScoped<IQuoteProvider, JustosQuoteProvider>();
@@ -74,5 +80,17 @@ public static class InfraDataServiceCollectionExtensions
         services.AddSingleton<IProposalDocumentParser, ProposalDocumentParser>();
 
         return services;
+    }
+
+    private static void ConfigureExternalResilience(HttpStandardResilienceOptions options)
+    {
+        options.AttemptTimeout.Timeout = ExternalAttemptTimeout;
+        options.TotalRequestTimeout.Timeout = ExternalRequestTimeout;
+        options.Retry.MaxRetryAttempts = 3;
+        options.Retry.Delay = TimeSpan.FromSeconds(2);
+        options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
+        options.CircuitBreaker.FailureRatio = 0.5;
+        options.CircuitBreaker.MinimumThroughput = 4;
+        options.CircuitBreaker.BreakDuration = TimeSpan.FromSeconds(20);
     }
 }
