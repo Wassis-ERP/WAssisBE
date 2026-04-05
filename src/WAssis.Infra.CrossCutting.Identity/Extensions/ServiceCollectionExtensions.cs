@@ -2,6 +2,7 @@ using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using WAssis.Application.Abstractions;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
@@ -15,8 +16,11 @@ public static class ServiceCollectionExtensions
 {
     public static IServiceCollection AddWAssisIdentity(this IServiceCollection services, IConfiguration configuration)
     {
-        services.Configure<JwtAccessOptions>(options =>
-            configuration.GetSection(JwtAccessOptions.SectionName).Bind(options));
+        services.AddSingleton<IValidateOptions<JwtAccessOptions>, JwtAccessOptionsValidator>();
+        services
+            .AddOptions<JwtAccessOptions>()
+            .Bind(configuration.GetSection(JwtAccessOptions.SectionName))
+            .ValidateOnStart();
 
         var jwtOptions = new JwtAccessOptions();
         configuration.GetSection(JwtAccessOptions.SectionName).Bind(jwtOptions);
@@ -35,6 +39,9 @@ public static class ServiceCollectionExtensions
                     ValidateIssuer = true,
                     ValidateAudience = true,
                     ValidateIssuerSigningKey = true,
+                    ValidateLifetime = true,
+                    RequireExpirationTime = true,
+                    RequireSignedTokens = true,
                     ValidIssuer = jwtOptions.Issuer,
                     ValidAudience = jwtOptions.Audience,
                     IssuerSigningKey = signingKey,

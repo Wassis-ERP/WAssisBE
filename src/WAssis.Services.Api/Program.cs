@@ -3,8 +3,14 @@ using Microsoft.EntityFrameworkCore;
 using Serilog;
 using WAssis.Infra.CrossCutting.IoC;
 using WAssis.Infra.Data.Context;
+using WAssis.Services.Api.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
+
+builder.WebHost.ConfigureKestrel(options =>
+{
+    options.AddServerHeader = false;
+});
 
 builder.Host.UseSerilog((context, configuration) =>
     configuration.ReadFrom.Configuration(context.Configuration));
@@ -27,8 +33,13 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+else
+{
+    app.UseHsts();
+}
 
 app.UseSerilogRequestLogging();
+app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseHttpsRedirection();
 app.UseAuthentication();
 app.UseAuthorization();
