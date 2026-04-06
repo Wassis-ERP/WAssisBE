@@ -1,6 +1,6 @@
-# W.Assis Insurance ERP
+﻿# W.Assis Insurance ERP
 
-Plataforma e ERP digital da corretora W.Assis, construída como um monólito modular no estilo Equinox, com foco em `Clean Architecture`, `DDD`, `CQRS`, integração por seguradora e separação clara de responsabilidades entre domínio, aplicação, infraestrutura e host.
+Plataforma e ERP digital da corretora W.Assis, construÃ­da como um monÃ³lito modular no estilo Equinox, com foco em `Clean Architecture`, `DDD`, `CQRS`, integraÃ§Ã£o por seguradora e separaÃ§Ã£o clara de responsabilidades entre domÃ­nio, aplicaÃ§Ã£o, infraestrutura e host.
 
 ## Stack
 
@@ -13,7 +13,7 @@ Plataforma e ERP digital da corretora W.Assis, construída como um monólito mod
 - `Serilog + OpenTelemetry`
 - `Redis`
 
-## Estrutura da solução
+## Estrutura da soluÃ§Ã£o
 
 - `WAssis.Domain.Core`
 - `WAssis.Domain`
@@ -27,7 +27,7 @@ Plataforma e ERP digital da corretora W.Assis, construída como um monólito mod
 - `WAssis.UI.Web`
 - `WAssis.Tests`
 
-## Módulos do negócio
+## MÃ³dulos do negÃ³cio
 
 - `Identity`
 - `Customers`
@@ -40,22 +40,22 @@ Plataforma e ERP digital da corretora W.Assis, construída como um monólito mod
 - `Notifications`
 - `WhatsAppSupport`
 
-## O que já está implementado
+## O que jÃ¡ estÃ¡ implementado
 
-- esqueleto funcional de `Quotes` com persistência, request idempotente por `CorrelationId` e processamento assíncrono
-- provider real da `Justos` já integrado ao multicálculo
-- catálogo operacional de providers em `GET /api/quotes/providers`
-- providers de `Bradesco Seguros` e `Icatu Seguros` já modelados com readiness, requisitos e documentação oficial
-- `Documents` com upload de PDF de proposta, extração textual e fallback de OCR configurável
+- esqueleto funcional de `Quotes` com persistÃªncia, request idempotente por `CorrelationId` e processamento assÃ­ncrono
+- provider real da `Justos` jÃ¡ integrado ao multicÃ¡lculo
+- catÃ¡logo operacional de providers em `GET /api/quotes/providers`
+- providers de `Bradesco Seguros` e `Icatu Seguros` jÃ¡ modelados com readiness, requisitos e documentaÃ§Ã£o oficial
+- `Documents` com upload de PDF de proposta, extraÃ§Ã£o textual e fallback de OCR configurÃ¡vel
 - parser inicial de proposta com perfil por seguradora
-- `Policies` com `PolicyDraft`, progressão até emissão interna e `PolicyNumber`
+- `Policies` com `PolicyDraft`, progressÃ£o atÃ© emissÃ£o interna e `PolicyNumber`
 - `Financial` e `Documents` persistidos com `EF Core`
 - `Billing` preparado para assinatura e fatura das corretoras clientes do ERP
 - dashboard operacional e trilha de auditoria
-- base de identidade com `JWT`, `claims`, `roles` e políticas
+- base de identidade com `JWT`, `claims`, `roles` e polÃ­ticas
 - base de isolamento multi-tenant com `TenantId` nos agregados centrais e filtro por tenant no `DbContext`
 
-## Endpoints já disponíveis
+## Endpoints jÃ¡ disponÃ­veis
 
 - `POST /api/billing/subscriptions`
 - `GET /api/billing/subscriptions/{id}`
@@ -79,6 +79,7 @@ Plataforma e ERP digital da corretora W.Assis, construída como um monólito mod
 - `GET /api/financial/reconciliations/{id}`
 - `POST /api/financial/reconciliations/{id}/settle`
 - `GET /api/operations/dashboard`
+- `POST /api/identity/login`
 - `GET /api/identity/me`
 - `POST /api/whatsapp/conversations/inbound`
 - `GET /api/whatsapp/conversations/queue`
@@ -91,16 +92,16 @@ Plataforma e ERP digital da corretora W.Assis, construída como um monólito mod
 ```mermaid
 flowchart TD
     A[Cliente ou corretor inicia fluxo] --> B[API recebe request com CorrelationId e TenantId]
-    B --> C[Persistência inicial no módulo correto]
+    B --> C[PersistÃªncia inicial no mÃ³dulo correto]
     C --> D{Tipo de fluxo}
     D -- Quotes --> E[BackgroundTasks aciona providers de seguradora]
     E --> F[Resultados normalizados em Quotes]
-    D -- Documents --> G[Upload, extração textual e OCR]
+    D -- Documents --> G[Upload, extraÃ§Ã£o textual e OCR]
     G --> H[Parser por seguradora]
     H --> I[PolicyDraft]
     I --> J[ReadyForIssuance / Issued]
     D -- Financial --> K[Registro de recebimento]
-    K --> L[Reconciliação e divergência]
+    K --> L[ReconciliaÃ§Ã£o e divergÃªncia]
     D -- WhatsApp --> M[Conversa bot ou handoff humano]
     F --> N[Dashboard e auditoria]
     J --> N
@@ -136,11 +137,11 @@ dotnet test WAssisInsurance.sln -p:UseSharedCompilation=false -nodeReuse:false
 
 ## CI
 
-O repositório agora possui validação automática no GitHub Actions em PRs e pushes para `main`, usando o workflow `.github/workflows/pr-validation.yml`.
+O repositÃ³rio agora possui validaÃ§Ã£o automÃ¡tica no GitHub Actions em PRs e pushes para `main`, usando o workflow `.github/workflows/pr-validation.yml`.
 
-## Configuração
+## ConfiguraÃ§Ã£o
 
-O projeto já possui seções de configuração para:
+O projeto jÃ¡ possui seÃ§Ãµes de configuraÃ§Ã£o para:
 
 - `Identity:Jwt`
 - `Ocr`
@@ -148,12 +149,12 @@ O projeto já possui seções de configuração para:
 - `Quotes:Providers:BradescoSeguros`
 - `Quotes:Providers:IcatuSeguros`
 
-As integrações reais por seguradora dependem das credenciais e do detalhamento do produto ou jornada liberado por cada parceiro.
-O modelo de dados também já começou a ser preparado para operação multi-tenant entre corretoras.
+As integraÃ§Ãµes reais por seguradora dependem das credenciais e do detalhamento do produto ou jornada liberado por cada parceiro.
+O modelo de dados tambÃ©m jÃ¡ comeÃ§ou a ser preparado para operaÃ§Ã£o multi-tenant entre corretoras.
 
-## Documentação
+## DocumentaÃ§Ã£o
 
-Documentação técnica no repositório:
+DocumentaÃ§Ã£o tÃ©cnica no repositÃ³rio:
 
 - `docs/architecture-overview.md`
 - `docs/identity-access-model.md`
@@ -164,4 +165,11 @@ Documentação técnica no repositório:
 - `docs/financial-documents-flows.md`
 - `docs/fluxos-mercado-mapeamento.md`
 
-Documentação executiva e de acompanhamento também está sendo mantida no Notion do projeto.
+DocumentaÃ§Ã£o executiva e de acompanhamento tambÃ©m estÃ¡ sendo mantida no Notion do projeto.
+
+
+Bootstrap para o frontend:
+
+- `docs/frontend-api-bootstrap.md`
+- `docs/collections/WAssisInsurance.local.postman_collection.json`
+- `docs/collections/WAssisInsurance.local.postman_environment.json`

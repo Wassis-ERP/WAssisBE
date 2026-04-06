@@ -1,15 +1,29 @@
+﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WAssis.Application.Abstractions;
+using WAssis.Application.Modules.Identity.Commands;
+using WAssis.Application.Modules.Identity.Dtos;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Services.Api.Extensions;
+using WAssis.Services.Api.Modules.Identity.Contracts;
 using WAssis.Services.Api.Modules.Identity.ViewModels;
 
 namespace WAssis.Services.Api.Modules.Identity.Controllers;
 
 [ApiController]
 [Route("api/identity")]
-public sealed class IdentityController(ICurrentUserContext currentUserContext) : ControllerBase
+public sealed class IdentityController(ICurrentUserContext currentUserContext, IMediator mediator) : ControllerBase
 {
+    [AllowAnonymous]
+    [HttpPost("login")]
+    [ProducesResponseType(typeof(LoginResponseViewModel), StatusCodes.Status200OK)]
+    public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)
+    {
+        var result = await mediator.Send(new LoginCommand(request.Username, request.Password), cancellationToken);
+        return this.ToActionResult(result, value => Ok(ToLoginViewModel(value)));
+    }
+
     [Authorize(Policy = AccessPolicies.AuthenticatedUser)]
     [HttpGet("me")]
     public IActionResult Me()
@@ -22,5 +36,18 @@ public sealed class IdentityController(ICurrentUserContext currentUserContext) :
             currentUserContext.SellerId,
             currentUserContext.UserType,
             currentUserContext.Roles));
+    }
+
+    private static LoginResponseViewModel ToLoginViewModel(LoginResultDto result)
+    {
+        return new LoginResponseViewModel(
+            result.AccessToken,
+            result.ExpiresAtUtc,
+            result.UserId,
+            result.TenantId,
+            result.BrokerageId,
+            result.SellerId,
+            result.UserType,
+            result.Roles);
     }
 }

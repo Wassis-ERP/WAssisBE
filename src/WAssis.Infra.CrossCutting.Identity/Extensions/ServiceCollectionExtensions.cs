@@ -5,6 +5,8 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using WAssis.Application.Abstractions;
+using WAssis.Application.Modules.Identity.Interfaces;
+using WAssis.Infra.CrossCutting.Identity.Authentication;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
 using WAssis.Infra.CrossCutting.Identity.Jwt;
 using WAssis.Infra.CrossCutting.Identity.Models;
@@ -21,6 +23,10 @@ public static class ServiceCollectionExtensions
             .AddOptions<JwtAccessOptions>()
             .Bind(configuration.GetSection(JwtAccessOptions.SectionName))
             .ValidateOnStart();
+        services.Configure<JwtAccessOptions>(options =>
+            configuration.GetSection(JwtAccessOptions.SectionName).Bind(options));
+        services.Configure<DevelopmentAuthOptions>(options =>
+            configuration.GetSection(DevelopmentAuthOptions.SectionName).Bind(options));
 
         var jwtOptions = new JwtAccessOptions();
         configuration.GetSection(JwtAccessOptions.SectionName).Bind(jwtOptions);
@@ -28,6 +34,7 @@ public static class ServiceCollectionExtensions
 
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserContext, HttpContextCurrentUserContext>();
+        services.AddScoped<IIdentityAuthenticationService, DevelopmentIdentityAuthenticationService>();
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
