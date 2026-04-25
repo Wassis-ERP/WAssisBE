@@ -32,8 +32,10 @@ Status atual:
 - persistencia inicial pronta
 - request idempotente por `CorrelationId`
 - provider inicial da `Justos` ja integrado com autenticacao e criacao de cotacao
-- `Bradesco Seguros` e `Icatu Seguros` agora expoem status operacional, requisitos e documentacao oficial pelo endpoint `GET /api/quotes/providers`
-- a integracao HTTP real de `Bradesco Seguros` e `Icatu Seguros` segue aguardando o mapeamento detalhado do produto ou jornada liberado para a parceria
+- `Bradesco Seguros`, `Icatu Seguros` e `Liberty / Yelum` agora possuem documentacao tecnica mapeada para o ERP
+- `Bradesco Seguros` e `Icatu Seguros` ja expoem status operacional, requisitos e documentacao oficial pelo endpoint `GET /api/quotes/providers`
+- `Liberty / Yelum` ja tem a especificacao OpenAPI analisada e backlog tecnico organizado, mas ainda sem autenticacao e ambiente validados
+- a integracao HTTP real de `Bradesco Seguros`, `Icatu Seguros` e `Liberty / Yelum` segue aguardando o mapeamento detalhado do produto ou jornada liberado para a parceria
 
 ### Policies / Importacao e emissao
 
