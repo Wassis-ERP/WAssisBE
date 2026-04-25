@@ -39,6 +39,25 @@ Status atual:
 - a decisao atual de produto prioriza `auto` como primeiro ramo para evolucao das proximas seguradoras
 - o desenho alvo e `uma seguradora por modulo`, com subpastas apenas para os ramos que a seguradora realmente expuser por API propria
 
+Fluxo tecnico planejado:
+
+1. `POST /api/quotes/requests` recebe um pedido unico de cotacao
+2. a aplicacao grava um `QuoteRequest` canonico e responde sem depender da chamada externa
+3. `BackgroundTasks` busca a solicitacao pendente
+4. o worker percorre os `IQuoteProvider` habilitados
+5. cada provider traduz o request comum para sua API especifica
+6. cada resposta volta como resultado normalizado do mesmo `QuoteRequest`
+7. `GET /api/quotes/requests/{id}/results` entrega o consolidado do multicálculo
+
+Trade-offs desta decisao:
+
+- `pro`: entrada unica para frontend e operacao
+- `pro`: novas seguradoras entram sem quebrar controllers ou o contrato publico
+- `pro`: cada ramo fica isolado no modulo da seguradora
+- `contra`: exige bons mapeamentos canônicos para não perder informação importante
+- `contra`: aumenta a responsabilidade dos adapters de integração
+- `contra`: exige governança de timeout, retry, filtro e polling conforme o número de providers cresce
+
 ### Policies / Importacao e emissao
 
 Origem observada:

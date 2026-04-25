@@ -74,6 +74,83 @@ Exemplo de desenho esperado:
 
 Se a seguradora nao oferecer um ramo, a pasta correspondente nao deve existir.
 
+## Fluxo de multicalculo
+
+O fluxo planejado de multicálculo segue o modelo `um request canonico -> varios providers`.
+
+1. a API recebe uma única solicitação em `POST /api/quotes/requests`
+2. a aplicação valida e persiste um `QuoteRequest` canônico com `CorrelationId`
+3. o request não depende de payload específico de seguradora no controller
+4. o worker busca a solicitação pendente e carrega os `IQuoteProvider` registrados
+5. cada provider avalia se está habilitado, pronto e se possui dados mínimos para aquele contexto
+6. cada provider traduz o request canônico para o contrato externo da sua seguradora e ramo
+7. os resultados retornam normalizados para o módulo de `Quotes`
+8. a API expõe o consolidado por `GET /api/quotes/requests/{id}/results`
+
+### Sequencia resumida
+
+```mermaid
+sequenceDiagram
+    participant Cliente
+    participant API
+    participant QuotesApp as Application/Quotes
+    participant Worker as BackgroundTasks
+    participant Justos as Justos/Auto
+    participant Bradesco as Bradesco/Auto
+    participant Liberty as Liberty/Auto
+
+    Cliente->>API: POST /api/quotes/requests
+    API->>QuotesApp: validar e criar QuoteRequest
+    QuotesApp->>QuotesApp: persistir QuoteRequest
+    API-->>Cliente: request aceito + id
+
+    Worker->>QuotesApp: carregar requests pendentes
+    Worker->>Justos: StartQuoteAsync(request canonico)
+    Worker->>Bradesco: StartQuoteAsync(request canonico)
+    Worker->>Liberty: StartQuoteAsync(request canonico)
+
+    Justos-->>Worker: resultado normalizado
+    Bradesco-->>Worker: resultado normalizado ou restricao
+    Liberty-->>Worker: resultado normalizado ou restricao
+
+    Worker->>QuotesApp: persistir resultados por provider
+    Cliente->>API: GET /api/quotes/requests/{id}/results
+    API->>QuotesApp: carregar consolidado
+    API-->>Cliente: opcoes agregadas do multicálculo
+```
+
+Em termos de responsabilidade:
+
+- `Domain` e `Application` seguram o fluxo canônico, ids, status e persistência
+- `Controllers` expõem endpoints estáveis e não conhecem payload de parceiro
+- `Infra.Data/Integrations/.../Carriers` encapsula os adapters por seguradora e ramo
+- `BackgroundTasks` orquestra o disparo assíncrono para vários providers
+
+## Trade-offs da decisao tecnica
+
+### Beneficios
+
+- preserva um contrato público estável para `Quotes`, mesmo quando entram novas seguradoras
+- reduz acoplamento do domínio a APIs externas que mudam com frequência
+- permite evoluir um ramo de uma seguradora sem contaminar outras integrações
+- facilita operar multicálculo como agregação de providers, e não como explosão de controllers
+- melhora observabilidade e readiness por seguradora via `GET /api/quotes/providers`
+
+### Custos e limites
+
+- o contrato canônico precisa ser bem desenhado para não ficar genérico demais
+- parte do mapeamento fica concentrada nos adapters, o que aumenta trabalho de integração
+- seguradoras com fluxos assíncronos podem exigir polling e estados intermediários extras
+- filtrar quais providers devem participar de cada cotação fica mais importante conforme a malha cresce
+- existe risco de duplicar regras operacionais em vários providers se faltarem abstrações comuns
+
+### Porque a variacao nao sobe para Domain ou Controllers
+
+- a estrutura por seguradora e ramo representa detalhe de integração, não regra central do negócio
+- colocar `Justos/Auto`, `Liberty/Life` ou similares no domínio acoplaria o core a contratos externos
+- colocar isso nos controllers quebraria a ideia de entrada única para multicálculo
+- a variação fica melhor encapsulada nos providers porque é ali que vivem autenticação, payload e parsing específicos
+
 ## Documentacao acessivel hoje
 
 - `Justos`: documentacao oficial acessivel e integracao real de `auto` ja implementada

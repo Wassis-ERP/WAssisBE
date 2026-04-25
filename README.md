@@ -69,6 +69,40 @@ Exemplos:
 - `Carriers/Liberty` ja esta organizado por ramos porque o OpenAPI recebido indica APIs separadas
 - seguradoras sem documentacao validada ainda nao devem ganhar submodulos artificiais so para manter simetria
 
+## Como o multicálculo funciona
+
+- a API recebe um único request canônico de cotação
+- o sistema persiste esse request antes de chamar seguradoras
+- o worker carrega os `IQuoteProvider` habilitados
+- cada provider adapta o request comum para a API da sua seguradora e do seu ramo
+- os resultados voltam normalizados para o mesmo `QuoteRequest`
+- o cliente consulta o consolidado por `GET /api/quotes/requests/{id}/results`
+
+```mermaid
+sequenceDiagram
+    participant Cliente
+    participant API
+    participant Worker
+    participant Providers as Providers por seguradora
+
+    Cliente->>API: POST /api/quotes/requests
+    API->>API: persiste QuoteRequest
+    API-->>Cliente: id da solicitacao
+    Worker->>Providers: dispara providers habilitados
+    Providers-->>Worker: retornam resultados normalizados
+    Cliente->>API: GET /api/quotes/requests/{id}/results
+    API-->>Cliente: consolidado do multicálculo
+```
+
+Trade-offs desta decisão:
+
+- `pro`: o domínio e os controllers continuam estáveis mesmo com novas seguradoras
+- `pro`: a variação de autenticação, payload e resposta fica isolada nos adapters
+- `pro`: facilita evoluir por seguradora e por ramo sem contaminar o fluxo público
+- `contra`: os providers ficam mais complexos
+- `contra`: o contrato canônico precisa ser bem cuidado para não ficar simplista demais
+- `contra`: polling, timeout e filtro de providers ficam mais relevantes conforme o multicálculo cresce
+
 ## Endpoints já disponíveis
 
 - `POST /api/billing/subscriptions`
