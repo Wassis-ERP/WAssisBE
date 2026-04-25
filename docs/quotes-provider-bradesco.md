@@ -15,8 +15,9 @@
 
 ## O que ficou implementado no ERP
 
-- provider `Bradesco Seguros` registrado no multicálculo
-- configuracao dedicada em `Quotes:Providers:BradescoSeguros`
+- modulo `Bradesco/Auto` criado dentro de `Carriers`
+- provider `Bradesco Seguros Auto` registrado no multicálculo
+- configuracao dedicada em `Quotes:Providers:BradescoSeguros:Auto`
 - pre-validacao operacional por requisito
 - exposicao do status pelo endpoint `GET /api/quotes/providers`
 
@@ -32,6 +33,7 @@
 
 - o provider ainda nao chama a API real de cotacao
 - o provider ja retorna status operacional e lacunas de configuracao
+- a modelagem atual assume `auto` como primeiro ramo priorizado para evolucao nessa seguradora
 - o proximo passo depende do mapeamento da jornada/produto exato que sera vendido pela corretora
 
 ## Observacao importante

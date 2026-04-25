@@ -5,21 +5,21 @@ using WAssis.Application.Modules.Quotes.Dtos;
 using WAssis.Application.Modules.Quotes.Interfaces;
 using WAssis.Domain.Modules.Quotes.Enums;
 using WAssis.Infra.Data.Configuration;
-using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos.Clients;
-using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos.Models;
+using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos.Auto.Clients;
+using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos.Auto.Models;
 
-namespace WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos;
+namespace WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos.Auto;
 
-public sealed class JustosQuoteProvider(
-    IOptions<JustosQuoteOptions> optionsAccessor,
+public sealed class JustosAutoQuoteProvider(
+    IOptions<JustosAutoQuoteOptions> optionsAccessor,
     JustosBrokerAuthClient authClient,
     JustosQuoteClient quoteClient)
     : IQuoteProvider
 {
-    private readonly JustosQuoteOptions _options = optionsAccessor.Value;
+    private readonly JustosAutoQuoteOptions _options = optionsAccessor.Value;
 
-    public string ProviderCode => "justos";
-    public string ProviderName => "Justos";
+    public string ProviderCode => "justos_auto";
+    public string ProviderName => "Justos Auto";
     public bool IsEnabled => _options.Enabled;
 
     public QuoteProviderDescriptorDto Describe()
@@ -43,7 +43,7 @@ public sealed class JustosQuoteProvider(
             [
                 new QuoteStatusMessageDto(
                     "justos_api_integrated",
-                    "Provider da Justos ja integrado ao fluxo canonico do multicálculo.")
+                    "Provider de auto da Justos ja integrado ao fluxo canonico do multicalculo.")
             ]);
     }
 
@@ -82,7 +82,7 @@ public sealed class JustosQuoteProvider(
                                     requirement.Description)))
                         .Append(new QuoteStatusMessageDto(
                             "justos_auth_unavailable",
-                            "Credenciais Justos nao configuradas ou token nao foi obtido."))
+                            "Credenciais Justos Auto nao configuradas ou token nao foi obtido."))
                         .ToArray())
             ];
         }
@@ -96,7 +96,7 @@ public sealed class JustosQuoteProvider(
                 CreateSingleResult(
                     QuoteOptionStatus.Failure,
                     $"{ProviderCode}-{request.QuoteRequestId:N}",
-                    [new QuoteStatusMessageDto("justos_quote_failed", "A API da Justos nao retornou uma cotacao valida.")])
+                    [new QuoteStatusMessageDto("justos_quote_failed", "A API da Justos Auto nao retornou uma cotacao valida.")])
             ];
         }
 
@@ -149,7 +149,7 @@ public sealed class JustosQuoteProvider(
                     null,
                     ExtractCoverages(item),
                     [],
-                    [new QuoteStatusMessageDto("justos_quote_created", "Cotacao criada via API Justos.")]));
+                    [new QuoteStatusMessageDto("justos_quote_created", "Cotacao criada via API Justos Auto.")]));
             }
 
             if (results.Count > 0)
@@ -169,7 +169,7 @@ public sealed class JustosQuoteProvider(
                 null,
                 [],
                 [],
-                [new QuoteStatusMessageDto("justos_quote_created", "Cotacao criada via API Justos. Parsing detalhado de coberturas ainda em evolucao.")])
+                [new QuoteStatusMessageDto("justos_quote_created", "Cotacao criada via API Justos Auto. Parsing detalhado de coberturas ainda em evolucao.")])
         ];
     }
 
@@ -250,8 +250,8 @@ public sealed class JustosQuoteProvider(
         IReadOnlyCollection<QuoteStatusMessageDto> messages)
     {
         return new QuoteProviderResultDto(
-            "justos",
-            "Justos",
+            "justos_auto",
+            "Justos Auto",
             status,
             externalReference,
             null,
@@ -267,27 +267,27 @@ public sealed class JustosQuoteProvider(
 
         if (string.IsNullOrWhiteSpace(request.VehiclePlate))
         {
-            messages.Add(new QuoteStatusMessageDto("missing_plate", "A Justos exige placa do veiculo."));
+            messages.Add(new QuoteStatusMessageDto("missing_plate", "A Justos Auto exige placa do veiculo."));
         }
 
         if (string.IsNullOrWhiteSpace(request.PostalCode))
         {
-            messages.Add(new QuoteStatusMessageDto("missing_postal_code", "A Justos exige CEP do risco."));
+            messages.Add(new QuoteStatusMessageDto("missing_postal_code", "A Justos Auto exige CEP do risco."));
         }
 
         if (request.CustomerBirthDateUtc is null)
         {
-            messages.Add(new QuoteStatusMessageDto("missing_birth_date", "A Justos exige data de nascimento."));
+            messages.Add(new QuoteStatusMessageDto("missing_birth_date", "A Justos Auto exige data de nascimento."));
         }
 
         if (string.IsNullOrWhiteSpace(request.CustomerGender))
         {
-            messages.Add(new QuoteStatusMessageDto("missing_gender", "A Justos exige genero do segurado."));
+            messages.Add(new QuoteStatusMessageDto("missing_gender", "A Justos Auto exige genero do segurado."));
         }
 
         if (string.IsNullOrWhiteSpace(request.VehicleFipeCode))
         {
-            messages.Add(new QuoteStatusMessageDto("missing_fipe_code", "A Justos exige codigo FIPE do veiculo."));
+            messages.Add(new QuoteStatusMessageDto("missing_fipe_code", "A Justos Auto exige codigo FIPE do veiculo."));
         }
 
         return messages;
