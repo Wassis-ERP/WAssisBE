@@ -123,6 +123,23 @@ dotnet run --project src\WAssis.Services.Api\WAssis.Services.Api.csproj
 dotnet run --project src\WAssis.BackgroundTasks\WAssis.BackgroundTasks.csproj
 ```
 
+### Infra local com Docker
+
+Melhor opÃ§Ã£o para agora: subir apenas a infraestrutura local via Docker e manter API/worker rodando por `dotnet run`.
+
+```powershell
+docker compose -f docker/docker-compose.yml up -d
+```
+
+ServiÃ§os locais:
+
+- PostgreSQL em `localhost:5432`
+- RabbitMQ em `localhost:5672`
+- painel do RabbitMQ em `http://localhost:15672`
+- Redis em `localhost:6379`
+
+Mais detalhes em `docs/local-docker.md`.
+
 ### Build
 
 ```powershell
@@ -164,6 +181,7 @@ DocumentaÃ§Ã£o tÃ©cnica no repositÃ³rio:
 - `docs/quotes-provider-icatu.md`
 - `docs/financial-documents-flows.md`
 - `docs/fluxos-mercado-mapeamento.md`
+- `docs/local-docker.md`
 
 DocumentaÃ§Ã£o executiva e de acompanhamento tambÃ©m estÃ¡ sendo mantida no Notion do projeto.
 
