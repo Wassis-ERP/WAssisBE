@@ -1,8 +1,8 @@
 namespace WAssis.Infra.Data.Configuration;
 
-public sealed class JustosQuoteOptions
+public sealed class JustosAutoQuoteOptions
 {
-    public const string SectionName = "Quotes:Providers:Justos";
+    public const string SectionName = "Quotes:Providers:Justos:Auto";
 
     public bool Enabled { get; set; } = true;
     public string BaseUrl { get; set; } = "https://api.justos.com.br";

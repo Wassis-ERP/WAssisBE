@@ -1,9 +1,9 @@
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
-using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos.Models;
+using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos.Auto.Models;
 
-namespace WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos.Clients;
+namespace WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos.Auto.Clients;
 
 public sealed class JustosQuoteClient(HttpClient httpClient)
 {

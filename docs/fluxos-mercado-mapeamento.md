@@ -34,8 +34,10 @@ Status atual:
 - provider inicial da `Justos` ja integrado com autenticacao e criacao de cotacao
 - `Bradesco Seguros`, `Icatu Seguros` e `Liberty / Yelum` agora possuem documentacao tecnica mapeada para o ERP
 - `Bradesco Seguros` e `Icatu Seguros` ja expoem status operacional, requisitos e documentacao oficial pelo endpoint `GET /api/quotes/providers`
-- `Liberty / Yelum` ja tem a especificacao OpenAPI analisada e backlog tecnico organizado, mas ainda sem autenticacao e ambiente validados
+- `Liberty / Yelum` ja tem a especificacao OpenAPI analisada e modulos iniciais separados para `auto`, `vida`, `residencial`, `empresarial` e `viagem`, mantendo o desenho por ramo dentro da seguradora
 - a integracao HTTP real de `Bradesco Seguros`, `Icatu Seguros` e `Liberty / Yelum` segue aguardando o mapeamento detalhado do produto ou jornada liberado para a parceria
+- a decisao atual de produto prioriza `auto` como primeiro ramo para evolucao das proximas seguradoras
+- o desenho alvo e `uma seguradora por modulo`, com subpastas apenas para os ramos que a seguradora realmente expuser por API propria
 
 ### Policies / Importacao e emissao
 

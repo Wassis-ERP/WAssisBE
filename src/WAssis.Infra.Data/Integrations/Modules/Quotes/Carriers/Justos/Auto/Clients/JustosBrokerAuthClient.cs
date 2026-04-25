@@ -1,16 +1,16 @@
+using System.IdentityModel.Tokens.Jwt;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
-using System.IdentityModel.Tokens.Jwt;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using WAssis.Infra.Data.Configuration;
-using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos.Models;
+using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos.Auto.Models;
 
-namespace WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos.Clients;
+namespace WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos.Auto.Clients;
 
-public sealed class JustosBrokerAuthClient(HttpClient httpClient, IOptions<JustosQuoteOptions> optionsAccessor)
+public sealed class JustosBrokerAuthClient(HttpClient httpClient, IOptions<JustosAutoQuoteOptions> optionsAccessor)
 {
-    private readonly JustosQuoteOptions _options = optionsAccessor.Value;
+    private readonly JustosAutoQuoteOptions _options = optionsAccessor.Value;
 
     public bool HasValidConfiguration =>
         !string.IsNullOrWhiteSpace(_options.Issuer) &&

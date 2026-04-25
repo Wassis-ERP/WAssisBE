@@ -12,10 +12,15 @@ using WAssis.Application.Modules.WhatsAppSupport.Interfaces;
 using WAssis.Application.Abstractions;
 using WAssis.Infra.Data.Configuration;
 using WAssis.Infra.Data.Context;
-using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Bradesco;
+using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Bradesco.Auto;
 using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Icatu;
-using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos;
-using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos.Clients;
+using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos.Auto;
+using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos.Auto.Clients;
+using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Liberty.Auto;
+using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Liberty.Business;
+using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Liberty.Life;
+using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Liberty.Residence;
+using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Liberty.Travel;
 using WAssis.Infra.Data.Integrations.Parsers;
 using WAssis.Infra.Data.Modules.Billing.Repositories;
 using WAssis.Infra.Data.Modules.Documents.Repositories;
@@ -44,12 +49,22 @@ public static class InfraDataServiceCollectionExtensions
 
         services.Configure<TesseractOcrOptions>(options =>
             configuration.GetSection(TesseractOcrOptions.SectionName).Bind(options));
-        services.Configure<BradescoQuoteOptions>(options =>
-            configuration.GetSection(BradescoQuoteOptions.SectionName).Bind(options));
+        services.Configure<BradescoAutoQuoteOptions>(options =>
+            configuration.GetSection(BradescoAutoQuoteOptions.SectionName).Bind(options));
         services.Configure<IcatuQuoteOptions>(options =>
             configuration.GetSection(IcatuQuoteOptions.SectionName).Bind(options));
-        services.Configure<JustosQuoteOptions>(options =>
-            configuration.GetSection(JustosQuoteOptions.SectionName).Bind(options));
+        services.Configure<LibertyAutoQuoteOptions>(options =>
+            configuration.GetSection(LibertyAutoQuoteOptions.SectionName).Bind(options));
+        services.Configure<LibertyBusinessQuoteOptions>(options =>
+            configuration.GetSection(LibertyBusinessQuoteOptions.SectionName).Bind(options));
+        services.Configure<LibertyLifeQuoteOptions>(options =>
+            configuration.GetSection(LibertyLifeQuoteOptions.SectionName).Bind(options));
+        services.Configure<LibertyResidenceQuoteOptions>(options =>
+            configuration.GetSection(LibertyResidenceQuoteOptions.SectionName).Bind(options));
+        services.Configure<LibertyTravelQuoteOptions>(options =>
+            configuration.GetSection(LibertyTravelQuoteOptions.SectionName).Bind(options));
+        services.Configure<JustosAutoQuoteOptions>(options =>
+            configuration.GetSection(JustosAutoQuoteOptions.SectionName).Bind(options));
         services.AddScoped<IBillingRepository, BillingRepository>();
         services.AddScoped<IDocumentSearchRepository, DocumentSearchRepository>();
         services.AddScoped<IImportedDocumentRepository, ImportedDocumentRepository>();
@@ -62,19 +77,24 @@ public static class InfraDataServiceCollectionExtensions
         services.AddScoped<IAuditTrailWriter, AuditTrailWriter>();
         services.AddHttpClient<JustosBrokerAuthClient>((serviceProvider, client) =>
         {
-            var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<JustosQuoteOptions>>().Value;
+            var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<JustosAutoQuoteOptions>>().Value;
             client.BaseAddress = new Uri(options.BaseUrl);
         })
         .AddStandardResilienceHandler(ConfigureExternalResilience);
         services.AddHttpClient<JustosQuoteClient>((serviceProvider, client) =>
         {
-            var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<JustosQuoteOptions>>().Value;
+            var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<JustosAutoQuoteOptions>>().Value;
             client.BaseAddress = new Uri(options.BaseUrl);
         })
         .AddStandardResilienceHandler(ConfigureExternalResilience);
-        services.AddScoped<IQuoteProvider, BradescoQuoteProvider>();
+        services.AddScoped<IQuoteProvider, BradescoAutoQuoteProvider>();
         services.AddScoped<IQuoteProvider, IcatuQuoteProvider>();
-        services.AddScoped<IQuoteProvider, JustosQuoteProvider>();
+        services.AddScoped<IQuoteProvider, LibertyAutoQuoteProvider>();
+        services.AddScoped<IQuoteProvider, LibertyBusinessQuoteProvider>();
+        services.AddScoped<IQuoteProvider, LibertyLifeQuoteProvider>();
+        services.AddScoped<IQuoteProvider, LibertyResidenceQuoteProvider>();
+        services.AddScoped<IQuoteProvider, LibertyTravelQuoteProvider>();
+        services.AddScoped<IQuoteProvider, JustosAutoQuoteProvider>();
         services.AddSingleton<IPdfTextExtractor, PdfPigTextExtractor>();
         services.AddSingleton<IOcrTextExtractor, TesseractOcrTextExtractor>();
         services.AddSingleton<IProposalDocumentParser, ProposalDocumentParser>();

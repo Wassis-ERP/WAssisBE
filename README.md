@@ -1,6 +1,6 @@
-﻿# W.Assis Insurance ERP
+# W.Assis Insurance ERP
 
-Plataforma e ERP digital da corretora W.Assis, construÃ­da como um monÃ³lito modular no estilo Equinox, com foco em `Clean Architecture`, `DDD`, `CQRS`, integraÃ§Ã£o por seguradora e separaÃ§Ã£o clara de responsabilidades entre domÃ­nio, aplicaÃ§Ã£o, infraestrutura e host.
+Plataforma e ERP digital da corretora W.Assis, construída como um monólito modular no estilo Equinox, com foco em `Clean Architecture`, `DDD`, `CQRS`, integração por seguradora e separação clara de responsabilidades entre domínio, aplicação, infraestrutura e host.
 
 ## Stack
 
@@ -13,7 +13,7 @@ Plataforma e ERP digital da corretora W.Assis, construÃ­da como um monÃ³lito
 - `Serilog + OpenTelemetry`
 - `Redis`
 
-## Estrutura da soluÃ§Ã£o
+## Estrutura da solução
 
 - `WAssis.Domain.Core`
 - `WAssis.Domain`
@@ -27,7 +27,7 @@ Plataforma e ERP digital da corretora W.Assis, construÃ­da como um monÃ³lito
 - `WAssis.UI.Web`
 - `WAssis.Tests`
 
-## MÃ³dulos do negÃ³cio
+## Módulos do negócio
 
 - `Identity`
 - `Customers`
@@ -40,22 +40,36 @@ Plataforma e ERP digital da corretora W.Assis, construÃ­da como um monÃ³lito
 - `Notifications`
 - `WhatsAppSupport`
 
-## O que jÃ¡ estÃ¡ implementado
+## O que já está implementado
 
-- esqueleto funcional de `Quotes` com persistÃªncia, request idempotente por `CorrelationId` e processamento assÃ­ncrono
-- provider real da `Justos` jÃ¡ integrado ao multicÃ¡lculo
-- catÃ¡logo operacional de providers em `GET /api/quotes/providers`
-- providers de `Bradesco Seguros` e `Icatu Seguros` jÃ¡ modelados com readiness, requisitos e documentaÃ§Ã£o oficial
-- `Documents` com upload de PDF de proposta, extraÃ§Ã£o textual e fallback de OCR configurÃ¡vel
+- esqueleto funcional de `Quotes` com persistência, request idempotente por `CorrelationId` e processamento assíncrono
+- provider real da `Justos` já integrado ao multicálculo
+- catálogo operacional de providers em `GET /api/quotes/providers`
+- providers de `Bradesco Seguros` e `Icatu Seguros` já modelados com readiness, requisitos e documentação oficial
+- `Documents` com upload de PDF de proposta, extração textual e fallback de OCR configurável
 - parser inicial de proposta com perfil por seguradora
-- `Policies` com `PolicyDraft`, progressÃ£o atÃ© emissÃ£o interna e `PolicyNumber`
+- `Policies` com `PolicyDraft`, progressão até emissão interna e `PolicyNumber`
 - `Financial` e `Documents` persistidos com `EF Core`
 - `Billing` preparado para assinatura e fatura das corretoras clientes do ERP
 - dashboard operacional e trilha de auditoria
-- base de identidade com `JWT`, `claims`, `roles` e polÃ­ticas
+- base de identidade com `JWT`, `claims`, `roles` e políticas
 - base de isolamento multi-tenant com `TenantId` nos agregados centrais e filtro por tenant no `DbContext`
 
-## Endpoints jÃ¡ disponÃ­veis
+## Regra de organização das seguradoras
+
+- cada seguradora deve ter um modulo proprio dentro de `src/WAssis.Infra.Data/Integrations/Modules/Quotes/Carriers`
+- dentro de cada seguradora, os ramos devem ser separados apenas quando existirem APIs distintas por ramo
+- nem toda seguradora precisa expor `Auto`, `Life`, `Residence` ou outros ramos
+- a prioridade atual de evolucao para novas integracoes e `auto`
+
+Exemplos:
+
+- `Carriers/Justos/Auto` concentra a integracao real atualmente implementada
+- `Carriers/Bradesco/Auto` representa o primeiro ramo documentado e preparado nessa seguradora
+- `Carriers/Liberty` ja esta organizado por ramos porque o OpenAPI recebido indica APIs separadas
+- seguradoras sem documentacao validada ainda nao devem ganhar submodulos artificiais so para manter simetria
+
+## Endpoints já disponíveis
 
 - `POST /api/billing/subscriptions`
 - `GET /api/billing/subscriptions/{id}`
@@ -92,16 +106,16 @@ Plataforma e ERP digital da corretora W.Assis, construÃ­da como um monÃ³lito
 ```mermaid
 flowchart TD
     A[Cliente ou corretor inicia fluxo] --> B[API recebe request com CorrelationId e TenantId]
-    B --> C[PersistÃªncia inicial no mÃ³dulo correto]
+    B --> C[Persistência inicial no módulo correto]
     C --> D{Tipo de fluxo}
     D -- Quotes --> E[BackgroundTasks aciona providers de seguradora]
     E --> F[Resultados normalizados em Quotes]
-    D -- Documents --> G[Upload, extraÃ§Ã£o textual e OCR]
+    D -- Documents --> G[Upload, extração textual e OCR]
     G --> H[Parser por seguradora]
     H --> I[PolicyDraft]
     I --> J[ReadyForIssuance / Issued]
     D -- Financial --> K[Registro de recebimento]
-    K --> L[ReconciliaÃ§Ã£o e divergÃªncia]
+    K --> L[Reconciliação e divergência]
     D -- WhatsApp --> M[Conversa bot ou handoff humano]
     F --> N[Dashboard e auditoria]
     J --> N
@@ -125,13 +139,13 @@ dotnet run --project src\WAssis.BackgroundTasks\WAssis.BackgroundTasks.csproj
 
 ### Infra local com Docker
 
-Melhor opÃ§Ã£o para agora: subir apenas a infraestrutura local via Docker e manter API/worker rodando por `dotnet run`.
+Melhor opção para agora: subir apenas a infraestrutura local via Docker e manter API/worker rodando por `dotnet run`.
 
 ```powershell
 docker compose -f docker/docker-compose.yml up -d
 ```
 
-ServiÃ§os locais:
+Serviços locais:
 
 - PostgreSQL em `localhost:5432`
 - RabbitMQ em `localhost:5672`
@@ -154,24 +168,42 @@ dotnet test WAssisInsurance.sln -p:UseSharedCompilation=false -nodeReuse:false
 
 ## CI
 
-O repositÃ³rio agora possui validaÃ§Ã£o automÃ¡tica no GitHub Actions em PRs e pushes para `main`, usando o workflow `.github/workflows/pr-validation.yml`.
+O repositório agora possui validação automática no GitHub Actions em PRs e pushes para `main`, usando o workflow `.github/workflows/pr-validation.yml`.
 
-## ConfiguraÃ§Ã£o
+## Configuração
 
-O projeto jÃ¡ possui seÃ§Ãµes de configuraÃ§Ã£o para:
+O projeto já possui seções de configuração para:
 
 - `Identity:Jwt`
 - `Ocr`
-- `Quotes:Providers:Justos`
-- `Quotes:Providers:BradescoSeguros`
+- `Quotes:Providers:Justos:Auto`
+- `Quotes:Providers:BradescoSeguros:Auto`
 - `Quotes:Providers:IcatuSeguros`
+- `Quotes:Providers:Liberty:Auto`
+- `Quotes:Providers:Liberty:Life`
+- `Quotes:Providers:Liberty:Residence`
+- `Quotes:Providers:Liberty:Business`
+- `Quotes:Providers:Liberty:Travel`
 
-As integraÃ§Ãµes reais por seguradora dependem das credenciais e do detalhamento do produto ou jornada liberado por cada parceiro.
-O modelo de dados tambÃ©m jÃ¡ comeÃ§ou a ser preparado para operaÃ§Ã£o multi-tenant entre corretoras.
+As integrações reais por seguradora dependem das credenciais e do detalhamento do produto ou jornada liberado por cada parceiro.
+O modelo de dados também já começou a ser preparado para operação multi-tenant entre corretoras.
 
-## DocumentaÃ§Ã£o
+## Documentação de seguradoras com acesso hoje
 
-DocumentaÃ§Ã£o tÃ©cnica no repositÃ³rio:
+- `Justos`: documentacao oficial acessivel e provider real de `auto` implementado
+- `Bradesco Seguros`: documentacao publica oficial acessivel
+- `Icatu Seguros`: portal oficial acessivel
+- `Liberty / Yelum`: OpenAPI recebido e analisado
+
+Sem documentacao validada no repositorio neste momento:
+
+- `Allianz`
+- `Porto`
+- `Tokio`
+
+## Documentação
+
+Documentação técnica no repositório:
 
 - `docs/architecture-overview.md`
 - `docs/identity-access-model.md`
@@ -179,12 +211,12 @@ DocumentaÃ§Ã£o tÃ©cnica no repositÃ³rio:
 - `docs/quotes-provider-justos.md`
 - `docs/quotes-provider-bradesco.md`
 - `docs/quotes-provider-icatu.md`
+- `docs/quotes-provider-liberty.md`
 - `docs/financial-documents-flows.md`
 - `docs/fluxos-mercado-mapeamento.md`
 - `docs/local-docker.md`
 
-DocumentaÃ§Ã£o executiva e de acompanhamento tambÃ©m estÃ¡ sendo mantida no Notion do projeto.
-
+Documentação executiva e de acompanhamento também está sendo mantida no Notion do projeto.
 
 Bootstrap para o frontend:
 

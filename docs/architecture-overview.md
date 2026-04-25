@@ -58,6 +58,35 @@
 - integracoes documentais automaticas por seguradora
 - emissao externa por seguradora
 
+## Arquitetura alvo para seguradoras
+
+- cada seguradora deve ter um modulo proprio dentro de `Quotes`
+- dentro do modulo da seguradora, os ramos devem ser separados apenas quando a seguradora realmente tiver APIs distintas para eles
+- nem toda seguradora precisa ter as mesmas subpastas ou os mesmos ramos
+- o contrato canonico de `Quotes` deve continuar enxuto; a variacao de ramo fica encapsulada no modulo da seguradora
+- a prioridade atual de integracao para novos provedores e `auto`
+
+Exemplo de desenho esperado:
+
+- `Carriers/SeguradoraX/Auto`
+- `Carriers/SeguradoraX/Life`
+- `Carriers/SeguradoraX/Residence`
+
+Se a seguradora nao oferecer um ramo, a pasta correspondente nao deve existir.
+
+## Documentacao acessivel hoje
+
+- `Justos`: documentacao oficial acessivel e integracao real de `auto` ja implementada
+- `Bradesco Seguros`: portal oficial e documentacao tecnica de credenciais acessiveis
+- `Icatu Seguros`: portal oficial de APIs acessivel
+- `Liberty / Yelum`: especificacao OpenAPI recebida localmente e convertida em modulo tecnico inicial
+
+Ainda sem documentacao validada no repositorio:
+
+- `Allianz`
+- `Porto`
+- `Tokio`
+
 ## Endpoints canonicos ja disponiveis
 
 - `POST /api/quotes/requests`

@@ -24,6 +24,11 @@ Endpoint integrado:
 
 - `POST /brokers/quote`
 
+Organizacao no ERP:
+
+- modulo `Justos/Auto` dentro de `Carriers`
+- provider real focado no ramo `auto`
+
 Campos atualmente mapeados no ERP:
 
 - `plate`
@@ -61,8 +66,8 @@ Campos atualmente mapeados no ERP:
 
 Seções de configuração adicionadas:
 
-- `Quotes:Providers:Justos:BaseUrl`
-- `Quotes:Providers:Justos:BrokerId`
-- `Quotes:Providers:Justos:Issuer`
-- `Quotes:Providers:Justos:PrivateKeyPemPath`
-- `Quotes:Providers:Justos:DefaultCommissionPercentage`
+- `Quotes:Providers:Justos:Auto:BaseUrl`
+- `Quotes:Providers:Justos:Auto:BrokerId`
+- `Quotes:Providers:Justos:Auto:Issuer`
+- `Quotes:Providers:Justos:Auto:PrivateKeyPemPath`
+- `Quotes:Providers:Justos:Auto:DefaultCommissionPercentage`
