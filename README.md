@@ -159,6 +159,27 @@ flowchart TD
 
 ## Como rodar localmente
 
+### Configuração para os frontends
+
+Por padrão a API libera CORS para:
+
+- `http://localhost:5173`
+- `http://localhost:5174`
+- `http://localhost:3000`
+
+Essas origens ficam em `Frontend:AllowedOrigins` no `src/WAssis.Services.Api/appsettings.json` e podem ser sobrescritas por variável de ambiente:
+
+```powershell
+$env:Frontend__AllowedOrigins__0="http://localhost:5173"
+$env:Frontend__AllowedOrigins__1="http://localhost:5174"
+```
+
+Nos frontends, configure:
+
+```env
+VITE_API_BASE_URL=https://localhost:54269
+```
+
 ### API
 
 ```powershell
@@ -208,6 +229,7 @@ O repositório agora possui validação automática no GitHub Actions em PRs e p
 
 O projeto já possui seções de configuração para:
 
+- `Frontend:AllowedOrigins`
 - `Identity:Jwt`
 - `Ocr`
 - `Quotes:Providers:Justos:Auto`
@@ -221,6 +243,17 @@ O projeto já possui seções de configuração para:
 
 As integrações reais por seguradora dependem das credenciais e do detalhamento do produto ou jornada liberado por cada parceiro.
 O modelo de dados também já começou a ser preparado para operação multi-tenant entre corretoras.
+
+## Segurança operacional
+
+- Nunca commitar chaves reais de seguradoras, certificados, JWT signing keys ou connection strings.
+- Usar `dotnet user-secrets` ou variáveis de ambiente para segredos locais.
+- `Identity:DevelopmentAuth` e credenciais de exemplo são apenas para desenvolvimento e ficam bloqueados fora de `Development`.
+- Validar dependências antes de release:
+
+```powershell
+dotnet list WAssisInsurance.sln package --vulnerable --include-transitive
+```
 
 ## Documentação de seguradoras com acesso hoje
 

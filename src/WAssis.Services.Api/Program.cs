@@ -6,6 +6,7 @@ using WAssis.Infra.Data.Context;
 using WAssis.Services.Api.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
+const string FrontendCorsPolicy = "FrontendCorsPolicy";
 
 builder.WebHost.ConfigureKestrel(options =>
 {
@@ -18,6 +19,20 @@ builder.Host.UseSerilog((context, configuration) =>
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy(FrontendCorsPolicy, policy =>
+    {
+        var allowedOrigins = builder.Configuration
+            .GetSection("Frontend:AllowedOrigins")
+            .Get<string[]>() ?? [];
+
+        policy
+            .WithOrigins(allowedOrigins)
+            .AllowAnyHeader()
+            .AllowAnyMethod();
+    });
+});
 builder.Services.Configure<ApiBehaviorOptions>(options =>
 {
     options.InvalidModelStateResponseFactory = context =>
@@ -41,6 +56,7 @@ else
 app.UseSerilogRequestLogging();
 app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseHttpsRedirection();
+app.UseCors(FrontendCorsPolicy);
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

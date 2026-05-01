@@ -16,11 +16,12 @@ Endpoint:
 - `POST /api/identity/login`
 
 Credenciais de desenvolvimento:
-- `broker.admin@wassis.local` / `WAssis.Dev.Admin!123`
-- `broker.seller@wassis.local` / `WAssis.Dev.Seller!123`
+- configurar em `Identity:DevelopmentAuth:Users` via `dotnet user-secrets`, variaveis de ambiente ou `appsettings.Development.json` local
+- usuarios sugeridos: `broker.admin@wassis.local` e `broker.seller@wassis.local`
 
 Observações:
 - esse login é apenas para ambiente de desenvolvimento
+- nao versionar senhas reais de desenvolvimento
 - após login, o frontend deve armazenar o `accessToken`
 - usar `Authorization: Bearer <token>` nas rotas protegidas
 

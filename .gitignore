@@ -2,7 +2,16 @@ bin/
 obj/
 .vs/
 .dotnet/
+.idea/
+.vscode/
 *.user
 *.suo
 *.swp
 *.zip
+*.log
+*.tmp
+appsettings.Development.json
+appsettings.Local.json
+*.db
+*.db-shm
+*.db-wal

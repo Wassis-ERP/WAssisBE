@@ -57,7 +57,7 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"username\": \"broker.admin@wassis.local\",\n  \"password\": \"WAssis.Dev.Admin!123\"\n}"
+              "raw": "{\n  \"username\": \"{{devUsername}}\",\n  \"password\": \"{{devPassword}}\"\n}"
             },
             "url": {
               "raw": "{{baseUrl}}/api/identity/login",

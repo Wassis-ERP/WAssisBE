@@ -6,6 +6,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.Bcl.Memory" Version="10.0.7" />
     <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="8.0.0" />
     <ProjectReference Include="../WAssis.Application/WAssis.Application.csproj" />
     <ProjectReference Include="../WAssis.Domain/WAssis.Domain.csproj" />
