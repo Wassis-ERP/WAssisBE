@@ -1,0 +1,33 @@
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
+
+COPY WAssisInsurance.sln ./
+COPY src/WAssis.Domain.Core/WAssis.Domain.Core.csproj src/WAssis.Domain.Core/
+COPY src/WAssis.Domain/WAssis.Domain.csproj src/WAssis.Domain/
+COPY src/WAssis.Application/WAssis.Application.csproj src/WAssis.Application/
+COPY src/WAssis.Infra.CrossCutting.Bus/WAssis.Infra.CrossCutting.Bus.csproj src/WAssis.Infra.CrossCutting.Bus/
+COPY src/WAssis.Infra.CrossCutting.Identity/WAssis.Infra.CrossCutting.Identity.csproj src/WAssis.Infra.CrossCutting.Identity/
+COPY src/WAssis.Infra.CrossCutting.IoC/WAssis.Infra.CrossCutting.IoC.csproj src/WAssis.Infra.CrossCutting.IoC/
+COPY src/WAssis.Infra.Data/WAssis.Infra.Data.csproj src/WAssis.Infra.Data/
+COPY src/WAssis.Services.Api/WAssis.Services.Api.csproj src/WAssis.Services.Api/
+COPY src/WAssis.BackgroundTasks/WAssis.BackgroundTasks.csproj src/WAssis.BackgroundTasks/
+COPY src/WAssis.UI.Web/WAssis.UI.Web.csproj src/WAssis.UI.Web/
+COPY tests/WAssis.Tests/WAssis.Tests.csproj tests/WAssis.Tests/
+
+RUN dotnet restore WAssisInsurance.sln
+
+COPY . .
+RUN dotnet publish src/WAssis.Services.Api/WAssis.Services.Api.csproj \
+    --configuration Release \
+    --no-restore \
+    --output /app/publish \
+    -p:UseAppHost=false
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+WORKDIR /app
+
+ENV ASPNETCORE_URLS=http://+:8080
+EXPOSE 8080
+
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "WAssis.Services.Api.dll"]

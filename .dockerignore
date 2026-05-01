@@ -1,0 +1,13 @@
+**/.git
+**/.vs
+**/bin
+**/obj
+**/TestResults
+**/node_modules
+**/dist
+**/appsettings.Development.json
+**/*.user
+**/*.suo
+docker/postgres_data
+docker/rabbitmq_data
+docker/redis_data
