@@ -49,6 +49,9 @@ jobs:
       - name: Publish API
         run: dotnet publish src/WAssis.Services.Api/WAssis.Services.Api.csproj --configuration Release --no-build --output ./artifacts/api -p:UseAppHost=false
 
+      - name: Build API Docker image
+        run: docker build -t wassisbe-api:${{ github.sha }} .
+
       - name: Upload API artifact
         uses: actions/upload-artifact@v4
         with:
