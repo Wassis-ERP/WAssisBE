@@ -38,6 +38,17 @@ public sealed class IdentityController(ICurrentUserContext currentUserContext, I
             currentUserContext.Roles));
     }
 
+    [Authorize(Policy = AccessPolicies.BrokerageAdmin)]
+    [HttpPost("users")]
+    [ProducesResponseType(StatusCodes.Status501NotImplemented)]
+    public IActionResult CreateUser()
+    {
+        return Problem(
+            title: "Cadastro de usuario em migracao para o WAssisBE",
+            detail: "O cadastro de usuarios internos deve ser implementado no modulo Identity do WAssisBE antes de substituir o fluxo legado.",
+            statusCode: StatusCodes.Status501NotImplemented);
+    }
+
     private static LoginResponseViewModel ToLoginViewModel(LoginResultDto result)
     {
         return new LoginResponseViewModel(

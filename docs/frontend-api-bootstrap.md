@@ -10,6 +10,8 @@ Dar ao frontend um ponto de partida claro para autenticação e consumo dos endp
 
 ## Fluxo inicial de autenticação
 
+Decisao atual: o `WAssisBE` emite o JWT usado para endpoints protegidos. Supabase pode continuar sustentando a sessao da UI enquanto a migracao acontece, mas chamadas para a API .NET devem usar `Authorization: Bearer <accessToken>`.
+
 ### Login local de desenvolvimento
 
 Endpoint:
@@ -24,6 +26,7 @@ Observações:
 - nao versionar senhas reais de desenvolvimento
 - após login, o frontend deve armazenar o `accessToken`
 - usar `Authorization: Bearer <token>` nas rotas protegidas
+- helper recomendado nos frontends: `loginToBackend`, `getBackendAccessToken`, `getBackendCurrentUser` e `clearBackendSession`
 
 ### Usuário autenticado
 
