@@ -274,6 +274,7 @@ Documentação técnica no repositório:
 
 - `docs/architecture-overview.md`
 - `docs/identity-access-model.md`
+- `docs/authentication-strategy.md`
 - `docs/billing-overview.md`
 - `docs/quotes-provider-justos.md`
 - `docs/quotes-provider-bradesco.md`
