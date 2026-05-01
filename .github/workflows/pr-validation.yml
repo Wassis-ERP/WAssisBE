@@ -42,3 +42,15 @@ jobs:
 
       - name: Test
         run: dotnet test WAssisInsurance.sln --configuration Release --no-build -p:UseSharedCompilation=false -nodeReuse:false
+
+      - name: Vulnerable package audit
+        run: dotnet list WAssisInsurance.sln package --vulnerable --include-transitive
+
+      - name: Publish API
+        run: dotnet publish src/WAssis.Services.Api/WAssis.Services.Api.csproj --configuration Release --no-build --output ./artifacts/api -p:UseAppHost=false
+
+      - name: Upload API artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wassisbe-api
+          path: ./artifacts/api
