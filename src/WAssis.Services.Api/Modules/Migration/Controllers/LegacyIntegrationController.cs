@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Services.Api.Modules.Migration;
 
 namespace WAssis.Services.Api.Modules.Migration.Controllers;
 
@@ -12,7 +13,9 @@ public sealed class LegacyIntegrationController : ControllerBase
     [ProducesResponseType(StatusCodes.Status501NotImplemented)]
     public IActionResult Storage(string bucket, string action, [FromBody] object? _)
     {
-        return MigrationPending(
+        return MigrationProblemDetailsFactory.Pending(
+            this,
+            FrontendContractCatalog.LegacyStorage,
             $"A chamada de storage '{bucket}/{action}' deve ser substituida por um endpoint de documentos/arquivos no WAssisBE.");
     }
 
@@ -20,15 +23,9 @@ public sealed class LegacyIntegrationController : ControllerBase
     [ProducesResponseType(StatusCodes.Status501NotImplemented)]
     public IActionResult Function(string name, [FromBody] object? _)
     {
-        return MigrationPending(
+        return MigrationProblemDetailsFactory.Pending(
+            this,
+            FrontendContractCatalog.LegacyFunction,
             $"A funcao legada '{name}' deve ser substituida por um endpoint ou worker do WAssisBE.");
-    }
-
-    private ObjectResult MigrationPending(string detail)
-    {
-        return Problem(
-            title: "Contrato em migracao para o WAssisBE",
-            detail: detail,
-            statusCode: StatusCodes.Status501NotImplemented);
     }
 }
