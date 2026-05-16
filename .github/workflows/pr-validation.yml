@@ -17,9 +17,20 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  direct-push-guard:
+    name: Block direct pushes to main
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    steps:
+      - name: Reject direct main update
+        run: |
+          echo "A main deve receber alteracoes somente via pull request."
+          exit 1
+
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
+    if: github.event_name != 'push' || github.ref != 'refs/heads/main'
 
     steps:
       - name: Checkout
@@ -34,17 +45,20 @@ jobs:
             **/*.csproj
             **/packages.lock.json
 
-      - name: Restore
-        run: dotnet restore WAssisInsurance.sln
+      - name: Restore API
+        run: dotnet restore src/WAssis.Services.Api/WAssis.Services.Api.csproj
 
-      - name: Build
-        run: dotnet build WAssisInsurance.sln --configuration Release --no-restore -p:UseSharedCompilation=false -nodeReuse:false
+      - name: Restore tests
+        run: dotnet restore tests/WAssis.Tests/WAssis.Tests.csproj
+
+      - name: Build API
+        run: dotnet build src/WAssis.Services.Api/WAssis.Services.Api.csproj --configuration Release --no-restore -p:UseSharedCompilation=false -nodeReuse:false
 
       - name: Test
-        run: dotnet test WAssisInsurance.sln --configuration Release --no-build -p:UseSharedCompilation=false -nodeReuse:false
+        run: dotnet test tests/WAssis.Tests/WAssis.Tests.csproj --configuration Release --no-restore -p:UseSharedCompilation=false -nodeReuse:false
 
       - name: Vulnerable package audit
-        run: dotnet list WAssisInsurance.sln package --vulnerable --include-transitive
+        run: dotnet list src/WAssis.Services.Api/WAssis.Services.Api.csproj package --vulnerable --include-transitive
 
       - name: Publish API
         run: dotnet publish src/WAssis.Services.Api/WAssis.Services.Api.csproj --configuration Release --no-build --output ./artifacts/api -p:UseAppHost=false
