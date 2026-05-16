@@ -4,6 +4,6 @@ namespace WAssis.Application.Modules.Quotes.Interfaces;
 
 public interface IQuoteProviderRegistry
 {
-    IReadOnlyCollection<IQuoteProvider> GetEnabledProviders();
-    IReadOnlyCollection<QuoteProviderDescriptorDto> DescribeProviders();
+    Task<IReadOnlyCollection<IQuoteProvider>> GetEnabledProvidersAsync(CancellationToken cancellationToken);
+    Task<IReadOnlyCollection<QuoteProviderDescriptorDto>> DescribeProvidersAsync(CancellationToken cancellationToken);
 }

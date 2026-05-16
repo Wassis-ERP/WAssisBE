@@ -16,12 +16,26 @@ public class QuoteRequest : AggregateRoot
     public string? PostalCode { get; private set; }
     public string? CustomerSurname { get; private set; }
     public string? CustomerGender { get; private set; }
+    public string? CustomerMaritalStatusCode { get; private set; }
     public DateTime? CustomerBirthDateUtc { get; private set; }
+    public int? DriverLicenseYears { get; private set; }
+    public string? DriverLicenseNumber { get; private set; }
+    public string? InsuredDriverRelationshipCode { get; private set; }
+    public string? VehicleChassisNumber { get; private set; }
     public string? VehiclePlate { get; private set; }
     public string? VehicleBrand { get; private set; }
     public string? VehicleModel { get; private set; }
     public string? VehicleFipeCode { get; private set; }
+    public int? VehicleManufactureYear { get; private set; }
     public int VehicleModelYear { get; private set; }
+    public bool? VehicleIsZeroKm { get; private set; }
+    public bool? VehicleHasTracker { get; private set; }
+    public bool? VehicleHasAntiTheft { get; private set; }
+    public bool? VehicleIsFinanced { get; private set; }
+    public bool? VehicleIsArmored { get; private set; }
+    public string? VehicleFuelTypeCode { get; private set; }
+    public string? VehicleOvernightPostalCode { get; private set; }
+    public bool? VehicleHasKitGas { get; private set; }
     public bool HasDriverUnder24 { get; private set; }
     public bool IsCurrentlyInsured { get; private set; }
     public string? PreviousBonus { get; private set; }
@@ -48,12 +62,26 @@ public class QuoteRequest : AggregateRoot
         string? postalCode,
         string? customerSurname,
         string? customerGender,
+        string? customerMaritalStatusCode,
         DateTime? customerBirthDateUtc,
+        int? driverLicenseYears,
+        string? driverLicenseNumber,
+        string? insuredDriverRelationshipCode,
+        string? vehicleChassisNumber,
         string? vehiclePlate,
         string? vehicleBrand,
         string? vehicleModel,
         string? vehicleFipeCode,
+        int? vehicleManufactureYear,
         int vehicleModelYear,
+        bool? vehicleIsZeroKm,
+        bool? vehicleHasTracker,
+        bool? vehicleHasAntiTheft,
+        bool? vehicleIsFinanced,
+        bool? vehicleIsArmored,
+        string? vehicleFuelTypeCode,
+        string? vehicleOvernightPostalCode,
+        bool? vehicleHasKitGas,
         bool hasDriverUnder24,
         bool isCurrentlyInsured,
         string? previousBonus,
@@ -70,12 +98,26 @@ public class QuoteRequest : AggregateRoot
         PostalCode = postalCode;
         CustomerSurname = customerSurname;
         CustomerGender = customerGender;
+        CustomerMaritalStatusCode = customerMaritalStatusCode;
         CustomerBirthDateUtc = customerBirthDateUtc;
+        DriverLicenseYears = driverLicenseYears;
+        DriverLicenseNumber = driverLicenseNumber;
+        InsuredDriverRelationshipCode = insuredDriverRelationshipCode;
+        VehicleChassisNumber = vehicleChassisNumber;
         VehiclePlate = vehiclePlate;
         VehicleBrand = vehicleBrand;
         VehicleModel = vehicleModel;
         VehicleFipeCode = vehicleFipeCode;
+        VehicleManufactureYear = vehicleManufactureYear;
         VehicleModelYear = vehicleModelYear;
+        VehicleIsZeroKm = vehicleIsZeroKm;
+        VehicleHasTracker = vehicleHasTracker;
+        VehicleHasAntiTheft = vehicleHasAntiTheft;
+        VehicleIsFinanced = vehicleIsFinanced;
+        VehicleIsArmored = vehicleIsArmored;
+        VehicleFuelTypeCode = vehicleFuelTypeCode;
+        VehicleOvernightPostalCode = vehicleOvernightPostalCode;
+        VehicleHasKitGas = vehicleHasKitGas;
         HasDriverUnder24 = hasDriverUnder24;
         IsCurrentlyInsured = isCurrentlyInsured;
         PreviousBonus = previousBonus;
@@ -97,12 +139,26 @@ public class QuoteRequest : AggregateRoot
         string? postalCode,
         string? customerSurname,
         string? customerGender,
+        string? customerMaritalStatusCode,
         DateTime? customerBirthDateUtc,
+        int? driverLicenseYears,
+        string? driverLicenseNumber,
+        string? insuredDriverRelationshipCode,
+        string? vehicleChassisNumber,
         string? vehiclePlate,
         string? vehicleBrand,
         string? vehicleModel,
         string? vehicleFipeCode,
+        int? vehicleManufactureYear,
         int vehicleModelYear,
+        bool? vehicleIsZeroKm,
+        bool? vehicleHasTracker,
+        bool? vehicleHasAntiTheft,
+        bool? vehicleIsFinanced,
+        bool? vehicleIsArmored,
+        string? vehicleFuelTypeCode,
+        string? vehicleOvernightPostalCode,
+        bool? vehicleHasKitGas,
         bool hasDriverUnder24,
         bool isCurrentlyInsured,
         string? previousBonus,
@@ -120,12 +176,26 @@ public class QuoteRequest : AggregateRoot
             postalCode,
             customerSurname,
             customerGender,
+            customerMaritalStatusCode,
             customerBirthDateUtc,
+            driverLicenseYears,
+            driverLicenseNumber,
+            insuredDriverRelationshipCode,
+            vehicleChassisNumber,
             vehiclePlate,
             vehicleBrand,
             vehicleModel,
             vehicleFipeCode,
+            vehicleManufactureYear,
             vehicleModelYear,
+            vehicleIsZeroKm,
+            vehicleHasTracker,
+            vehicleHasAntiTheft,
+            vehicleIsFinanced,
+            vehicleIsArmored,
+            vehicleFuelTypeCode,
+            vehicleOvernightPostalCode,
+            vehicleHasKitGas,
             hasDriverUnder24,
             isCurrentlyInsured,
             previousBonus,
