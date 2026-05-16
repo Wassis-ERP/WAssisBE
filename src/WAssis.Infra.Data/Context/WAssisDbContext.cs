@@ -32,6 +32,7 @@ public class WAssisDbContext : DbContext
     public DbSet<PolicyDraft> PolicyDrafts => Set<PolicyDraft>();
     public DbSet<QuoteRequest> QuoteRequests => Set<QuoteRequest>();
     public DbSet<QuoteOption> QuoteOptions => Set<QuoteOption>();
+    public DbSet<QuoteProviderActivationSetting> QuoteProviderActivationSettings => Set<QuoteProviderActivationSetting>();
     public DbSet<WhatsAppConversation> WhatsAppConversations => Set<WhatsAppConversation>();
     public DbSet<AuditEntry> AuditEntries => Set<AuditEntry>();
 

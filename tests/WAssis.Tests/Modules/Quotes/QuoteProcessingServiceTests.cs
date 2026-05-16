@@ -22,12 +22,26 @@ public sealed class QuoteProcessingServiceTests
             "05516020",
             "Silva",
             "M",
+            "1",
             new DateTime(1990, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            12,
+            "12345678901",
+            "0",
+            "9BWZZZ377VT004251",
             "ABC1D23",
             "Ford",
             "Ka",
             "023108-8",
+            2021,
             2022,
+            false,
+            false,
+            true,
+            false,
+            false,
+            "1",
+            "05516020",
+            false,
             false,
             false,
             "0",
@@ -122,11 +136,14 @@ public sealed class QuoteProcessingServiceTests
 
     private sealed class FakeQuoteProviderRegistry(IReadOnlyCollection<IQuoteProvider> providers) : IQuoteProviderRegistry
     {
-        public IReadOnlyCollection<IQuoteProvider> GetEnabledProviders() => providers;
-
-        public IReadOnlyCollection<QuoteProviderDescriptorDto> DescribeProviders()
+        public Task<IReadOnlyCollection<IQuoteProvider>> GetEnabledProvidersAsync(CancellationToken cancellationToken)
         {
-            return providers.Select(static provider => provider.Describe()).ToArray();
+            return Task.FromResult(providers);
+        }
+
+        public Task<IReadOnlyCollection<QuoteProviderDescriptorDto>> DescribeProvidersAsync(CancellationToken cancellationToken)
+        {
+            return Task.FromResult<IReadOnlyCollection<QuoteProviderDescriptorDto>>(providers.Select(static provider => provider.Describe()).ToArray());
         }
     }
 
