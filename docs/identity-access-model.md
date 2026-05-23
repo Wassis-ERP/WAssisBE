@@ -21,6 +21,9 @@ Preparar o ERP para operar em tres contextos sem misturar autorizacao e dados:
 - `sub`
 - `tenant_id`
 - `brokerage_id`
+- `branch_id`
+- `branch_ids`
+- `all_branches`
 - `seller_id`
 - `user_type`
 - `role`
@@ -64,6 +67,8 @@ Preparar o ERP para operar em tres contextos sem misturar autorizacao e dados:
 ## Como o isolamento funciona hoje
 
 - requests autenticados com `tenant_id` enxergam apenas os dados do proprio tenant
+- dentro do tenant, dados com `filial_id` ficam limitados pelas claims `branch_id`/`branch_ids`
+- usuarios com `all_branches=true` podem consultar todas as filiais da corretora
 - requests autenticados sem `tenant_id` nao recebem acesso implicito a dados de outros tenants
 - workers e processos sistemicos sem tenant autenticado continuam podendo processar filas multi-tenant
 - comandos de escrita passam a persistir `TenantId` nos agregados centrais
@@ -71,6 +76,7 @@ Preparar o ERP para operar em tres contextos sem misturar autorizacao e dados:
 ## Proximas etapas obrigatorias
 
 1. proteger endpoints internos com politicas por perfil e contexto
-2. evoluir a resolucao de conexao para suportar `shared` e `dedicated database`
-3. separar claramente rotas e experiencias de corretora e canal digital
-4. validar jornadas reais com o frontend consumindo claims e papeis corretos
+2. persistir cadastro de filiais e vinculos usuario-filial no modulo Identity
+3. evoluir a resolucao de conexao para suportar `shared` e `dedicated database`
+4. separar claramente rotas e experiencias de corretora e canal digital
+5. validar jornadas reais com o frontend consumindo claims, filiais e papeis corretos

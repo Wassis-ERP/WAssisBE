@@ -134,6 +134,15 @@ Trade-offs desta decisão:
 - `GET /api/whatsapp/conversations/{id}`
 - `POST /api/whatsapp/conversations/{id}/assign`
 - `POST /api/whatsapp/conversations/{id}/close`
+- `GET /api/segurados`
+- `GET /api/segurados/{id}`
+- `POST /api/segurados`
+- `PUT /api/segurados/{id}`
+- `GET /api/oportunidades`
+- `GET /api/oportunidades/{id}`
+- `POST /api/oportunidades`
+- `PUT /api/oportunidades/{id}`
+- `PATCH /api/oportunidades/{id}/stage`
 
 ## Fluxograma macro
 

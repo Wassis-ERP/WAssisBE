@@ -34,6 +34,9 @@ public sealed class IdentityController(ICurrentUserContext currentUserContext, I
             currentUserContext.UserId,
             currentUserContext.TenantId,
             currentUserContext.BrokerageId,
+            currentUserContext.BranchId,
+            currentUserContext.BranchIds,
+            currentUserContext.HasAllBranchesAccess,
             currentUserContext.SellerId,
             currentUserContext.UserType,
             currentUserContext.Roles));
@@ -58,6 +61,9 @@ public sealed class IdentityController(ICurrentUserContext currentUserContext, I
             result.UserId,
             result.TenantId,
             result.BrokerageId,
+            result.BranchId,
+            result.BranchIds,
+            result.HasAllBranchesAccess,
             result.SellerId,
             result.UserType,
             result.Roles);

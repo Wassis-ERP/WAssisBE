@@ -114,8 +114,11 @@ public sealed class FrontendContractMigrationTests
         public string? UserId => null;
         public string? TenantId => null;
         public string? BrokerageId => null;
+        public string? BranchId => null;
         public string? SellerId => null;
         public string? UserType => null;
+        public bool HasAllBranchesAccess => true;
+        public IReadOnlyCollection<string> BranchIds => [];
         public IReadOnlyCollection<string> Roles => [];
 
         public bool IsInRole(string role) => false;

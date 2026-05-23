@@ -13,8 +13,19 @@ public sealed class HttpContextCurrentUserContext(IHttpContextAccessor httpConte
     public string? UserId => Principal?.FindFirstValue(ClaimTypes.NameIdentifier) ?? Principal?.FindFirstValue("sub");
     public string? TenantId => Principal?.FindFirstValue(ClaimConstants.TenantId);
     public string? BrokerageId => Principal?.FindFirstValue(ClaimConstants.BrokerageId);
+    public string? BranchId => Principal?.FindFirstValue(ClaimConstants.BranchId);
     public string? SellerId => Principal?.FindFirstValue(ClaimConstants.SellerId);
     public string? UserType => Principal?.FindFirstValue(ClaimConstants.UserType);
+    public bool HasAllBranchesAccess => string.Equals(
+        Principal?.FindFirstValue(ClaimConstants.HasAllBranchesAccess),
+        bool.TrueString,
+        StringComparison.OrdinalIgnoreCase);
+    public IReadOnlyCollection<string> BranchIds => Principal?
+        .FindAll(ClaimConstants.BranchIds)
+        .Select(static x => x.Value)
+        .Where(static x => !string.IsNullOrWhiteSpace(x))
+        .Distinct(StringComparer.OrdinalIgnoreCase)
+        .ToArray() ?? [];
     public IReadOnlyCollection<string> Roles => Principal?.FindAll(ClaimTypes.Role).Select(static x => x.Value).ToArray() ?? [];
 
     public bool IsInRole(string role)
