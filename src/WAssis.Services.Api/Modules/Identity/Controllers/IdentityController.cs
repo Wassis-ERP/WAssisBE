@@ -8,6 +8,7 @@ using WAssis.Infra.CrossCutting.Identity.Authorization;
 using WAssis.Services.Api.Extensions;
 using WAssis.Services.Api.Modules.Identity.Contracts;
 using WAssis.Services.Api.Modules.Identity.ViewModels;
+using WAssis.Services.Api.Modules.Migration;
 
 namespace WAssis.Services.Api.Modules.Identity.Controllers;
 
@@ -46,10 +47,10 @@ public sealed class IdentityController(ICurrentUserContext currentUserContext, I
     [ProducesResponseType(StatusCodes.Status501NotImplemented)]
     public IActionResult CreateUser()
     {
-        return Problem(
-            title: "Cadastro de usuario em migracao para o WAssisBE",
-            detail: "O cadastro de usuarios internos deve ser implementado no modulo Identity do WAssisBE antes de substituir o fluxo legado.",
-            statusCode: StatusCodes.Status501NotImplemented);
+        return MigrationProblemDetailsFactory.Pending(
+            this,
+            FrontendContractCatalog.IdentityUsers,
+            "O cadastro de usuarios internos deve ser implementado no modulo Identity do WAssisBE antes de substituir o fluxo legado.");
     }
 
     private static LoginResponseViewModel ToLoginViewModel(LoginResultDto result)

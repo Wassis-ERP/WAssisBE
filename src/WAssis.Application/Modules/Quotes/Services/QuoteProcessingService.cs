@@ -16,7 +16,7 @@ public sealed class QuoteProcessingService(
     public async Task<int> ProcessPendingBatchAsync(int batchSize, CancellationToken cancellationToken)
     {
         var pendingQuotes = await repository.GetPendingDispatchBatchAsync(batchSize, cancellationToken);
-        var providers = providerRegistry.GetEnabledProviders();
+        var providers = await providerRegistry.GetEnabledProvidersAsync(cancellationToken);
         var processedCount = 0;
 
         foreach (var pendingQuote in pendingQuotes)
@@ -87,15 +87,30 @@ public sealed class QuoteProcessingService(
             quoteRequest.CorrelationId,
             quoteRequest.CustomerName,
             quoteRequest.DocumentNumber,
+            quoteRequest.PhoneNumber,
             quoteRequest.PostalCode,
             quoteRequest.CustomerSurname,
             quoteRequest.CustomerGender,
+            quoteRequest.CustomerMaritalStatusCode,
             quoteRequest.CustomerBirthDateUtc,
+            quoteRequest.DriverLicenseYears,
+            quoteRequest.DriverLicenseNumber,
+            quoteRequest.InsuredDriverRelationshipCode,
+            quoteRequest.VehicleChassisNumber,
             quoteRequest.VehiclePlate,
             quoteRequest.VehicleBrand,
             quoteRequest.VehicleModel,
             quoteRequest.VehicleFipeCode,
+            quoteRequest.VehicleManufactureYear,
             quoteRequest.VehicleModelYear,
+            quoteRequest.VehicleIsZeroKm,
+            quoteRequest.VehicleHasTracker,
+            quoteRequest.VehicleHasAntiTheft,
+            quoteRequest.VehicleIsFinanced,
+            quoteRequest.VehicleIsArmored,
+            quoteRequest.VehicleFuelTypeCode,
+            quoteRequest.VehicleOvernightPostalCode,
+            quoteRequest.VehicleHasKitGas,
             quoteRequest.HasDriverUnder24,
             quoteRequest.IsCurrentlyInsured,
             quoteRequest.PreviousBonus,

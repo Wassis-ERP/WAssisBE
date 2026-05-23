@@ -15,11 +15,19 @@ public sealed class CreateQuoteRequestCommandValidator : AbstractValidator<Creat
         RuleFor(x => x.PostalCode).MaximumLength(16);
         RuleFor(x => x.CustomerSurname).MaximumLength(120);
         RuleFor(x => x.CustomerGender).MaximumLength(1);
+        RuleFor(x => x.CustomerMaritalStatusCode).MaximumLength(4);
+        RuleFor(x => x.DriverLicenseYears).InclusiveBetween(0, 80).When(x => x.DriverLicenseYears.HasValue);
+        RuleFor(x => x.DriverLicenseNumber).MaximumLength(32);
+        RuleFor(x => x.InsuredDriverRelationshipCode).MaximumLength(4);
+        RuleFor(x => x.VehicleChassisNumber).MaximumLength(32);
         RuleFor(x => x.VehiclePlate).MaximumLength(16);
         RuleFor(x => x.VehicleBrand).MaximumLength(100);
         RuleFor(x => x.VehicleModel).MaximumLength(100);
         RuleFor(x => x.VehicleFipeCode).MaximumLength(32);
+        RuleFor(x => x.VehicleManufactureYear).InclusiveBetween(1900, 2100).When(x => x.VehicleManufactureYear.HasValue);
         RuleFor(x => x.VehicleModelYear).InclusiveBetween(1900, 2100);
+        RuleFor(x => x.VehicleFuelTypeCode).MaximumLength(4);
+        RuleFor(x => x.VehicleOvernightPostalCode).MaximumLength(16);
         RuleFor(x => x.PreviousBonus).MaximumLength(4);
         RuleFor(x => x.BrokerCommissionPercentage)
             .InclusiveBetween(10, 25)

@@ -65,5 +65,8 @@ Os frontends nao devem mais importar SDK, URL ou chave do Supabase. Durante a mi
 - `POST /api/data-gateway/rpc/{name}`
 - `POST /api/storage/{bucket}/{action}`
 - `POST /api/functions/{name}`
+- `GET /api/migration/frontend-contracts`
 
 Esses endpoints existem para tornar a dependencia do backend explicita e retornar `501 Not Implemented` ate que cada fluxo ganhe um contrato dedicado. Eles nao devem virar um clone permanente da API do Supabase.
+
+Toda resposta pendente deve retornar `ProblemDetails` com `code`, `contractKey`, `ownerIssue`, `nextStep` e, quando existir, `replacementEndpoint`. Isso evita pontas soltas no frontend: cada chamada legada tem dono, issue e proximo passo rastreavel.

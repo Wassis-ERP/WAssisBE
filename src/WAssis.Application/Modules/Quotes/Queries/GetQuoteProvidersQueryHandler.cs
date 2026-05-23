@@ -11,6 +11,6 @@ public sealed class GetQuoteProvidersQueryHandler(IQuoteProviderRegistry provide
         GetQuoteProvidersQuery request,
         CancellationToken cancellationToken)
     {
-        return Task.FromResult(providerRegistry.DescribeProviders());
+        return providerRegistry.DescribeProvidersAsync(cancellationToken);
     }
 }

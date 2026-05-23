@@ -14,6 +14,8 @@ using WAssis.Application.Modules.WhatsAppSupport.Interfaces;
 using WAssis.Application.Abstractions;
 using WAssis.Infra.Data.Configuration;
 using WAssis.Infra.Data.Context;
+using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Aggilizador.Auto;
+using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Aggilizador.Auto.Clients;
 using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Bradesco.Auto;
 using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Icatu;
 using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Justos.Auto;
@@ -53,6 +55,8 @@ public static class InfraDataServiceCollectionExtensions
 
         services.Configure<TesseractOcrOptions>(options =>
             configuration.GetSection(TesseractOcrOptions.SectionName).Bind(options));
+        services.Configure<AggilizadorAutoQuoteOptions>(options =>
+            configuration.GetSection(AggilizadorAutoQuoteOptions.SectionName).Bind(options));
         services.Configure<BradescoAutoQuoteOptions>(options =>
             configuration.GetSection(BradescoAutoQuoteOptions.SectionName).Bind(options));
         services.Configure<IcatuQuoteOptions>(options =>
@@ -78,9 +82,19 @@ public static class InfraDataServiceCollectionExtensions
         services.AddSingleton<ICommissionStatementParser, CommissionStatementParser>();
         services.AddScoped<IOperationsDashboardReadRepository, OperationsDashboardReadRepository>();
         services.AddScoped<IPolicyDraftRepository, PolicyDraftRepository>();
+        services.AddScoped<IQuoteProviderActivationRepository, QuoteProviderActivationRepository>();
         services.AddScoped<IQuoteRequestRepository, QuoteRequestRepository>();
         services.AddScoped<IWhatsAppConversationRepository, WhatsAppConversationRepository>();
         services.AddScoped<IAuditTrailWriter, AuditTrailWriter>();
+        services.AddHttpClient<AggilizadorAutoQuoteClient>((serviceProvider, client) =>
+        {
+            var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<AggilizadorAutoQuoteOptions>>().Value;
+            if (!string.IsNullOrWhiteSpace(options.BaseUrl))
+            {
+                client.BaseAddress = new Uri(options.BaseUrl);
+            }
+        })
+        .AddStandardResilienceHandler(ConfigureExternalResilience);
         services.AddHttpClient<JustosBrokerAuthClient>((serviceProvider, client) =>
         {
             var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<JustosAutoQuoteOptions>>().Value;
@@ -93,6 +107,7 @@ public static class InfraDataServiceCollectionExtensions
             client.BaseAddress = new Uri(options.BaseUrl);
         })
         .AddStandardResilienceHandler(ConfigureExternalResilience);
+        services.AddScoped<IQuoteProvider, AggilizadorAutoQuoteProvider>();
         services.AddScoped<IQuoteProvider, BradescoAutoQuoteProvider>();
         services.AddScoped<IQuoteProvider, IcatuQuoteProvider>();
         services.AddScoped<IQuoteProvider, LibertyAutoQuoteProvider>();
