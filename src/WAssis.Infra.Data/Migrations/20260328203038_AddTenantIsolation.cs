@@ -10,20 +10,9 @@ namespace WAssis.Infra.Data.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DropIndex(
-                name: "IX_quote_requests_CorrelationId",
-                schema: "quotes",
-                table: "quote_requests");
-
-            migrationBuilder.DropIndex(
-                name: "IX_policy_drafts_PolicyNumber",
-                schema: "policies",
-                table: "policy_drafts");
-
-            migrationBuilder.DropIndex(
-                name: "IX_document_searches_CorrelationId",
-                schema: "documents",
-                table: "document_searches");
+            migrationBuilder.Sql("DROP INDEX IF EXISTS quotes.\"IX_quote_requests_CorrelationId\";");
+            migrationBuilder.Sql("DROP INDEX IF EXISTS policies.\"IX_policy_drafts_PolicyNumber\";");
+            migrationBuilder.Sql("DROP INDEX IF EXISTS documents.\"IX_document_searches_CorrelationId\";");
 
             migrationBuilder.AddColumn<string>(
                 name: "TenantId",
