@@ -1,8 +1,13 @@
 using System;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using WAssis.Infra.Data.Context;
 
 namespace WAssis.Infra.Data.Migrations;
 
+[DbContext(typeof(WAssisDbContext))]
+[Migration("20260328150000_InitialQuotesSchema")]
 public partial class InitialQuotesSchema : Migration
 {
     protected override void Up(MigrationBuilder migrationBuilder)
