@@ -204,6 +204,174 @@ namespace WAssis.Infra.Data.Migrations
                     b.ToTable("billing_subscriptions", "billing");
                 });
 
+            modelBuilder.Entity("WAssis.Domain.Modules.Customers.Entities.InsuredPerson", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTime?>("BirthDateUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("data_nascimento");
+
+                    b.Property<string>("ChatwootId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("chatwoot_id");
+
+                    b.Property<string>("City")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("cidade");
+
+                    b.Property<string>("Cnae")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("cnae");
+
+                    b.Property<string>("CompanySize")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("porte");
+
+                    b.Property<string>("Complement")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("complemento");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("CreatedBy")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("created_by");
+
+                    b.Property<string>("DocumentNumber")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("cpf_cnpj");
+
+                    b.Property<string>("Email")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("email");
+
+                    b.Property<string>("Gender")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("sexo");
+
+                    b.Property<bool>("LgpdAuthorized")
+                        .HasColumnType("boolean")
+                        .HasColumnName("lgpd_autorizado");
+
+                    b.Property<string>("ManagerId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("gerente_id");
+
+                    b.Property<string>("MaritalStatus")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("estado_civil");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("nome");
+
+                    b.Property<string>("Neighborhood")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("bairro");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("observacoes");
+
+                    b.Property<string>("Number")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("numero");
+
+                    b.Property<string>("OfficeBranchId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("filial_id");
+
+                    b.Property<string>("PersonType")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("tipo");
+
+                    b.Property<string>("PhoneNumber")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("telefone");
+
+                    b.Property<string>("PostalCode")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("cep");
+
+                    b.Property<string>("ProducerId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("produtor_id");
+
+                    b.Property<string>("State")
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasColumnName("estado");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("Street")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("logradouro");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<string>("TradeName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("nome_fantasia");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Website")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("site");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "DocumentNumber");
+
+                    b.HasIndex("TenantId", "Name");
+
+                    b.HasIndex("TenantId", "OfficeBranchId");
+
+                    b.ToTable("segurados", "public");
+                });
+
             modelBuilder.Entity("WAssis.Domain.Modules.Documents.Entities.DocumentSearch", b =>
                 {
                     b.Property<Guid>("Id")
@@ -434,6 +602,159 @@ namespace WAssis.Infra.Data.Migrations
                     b.HasIndex("CommissionReceiptId");
 
                     b.ToTable("commission_reconciliations", "financial");
+                });
+
+            modelBuilder.Entity("WAssis.Domain.Modules.Opportunities.Entities.Opportunity", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<decimal?>("AgencyPercentage")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("numeric(9,4)")
+                        .HasColumnName("agenciamento");
+
+                    b.Property<string>("BusinessType")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("tipo_negocio");
+
+                    b.Property<decimal?>("CommissionPercentage")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("numeric(9,4)")
+                        .HasColumnName("comissao_percentual");
+
+                    b.Property<DateTime?>("ConcludedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("concluded_at");
+
+                    b.Property<bool?>("ContactType")
+                        .HasColumnType("boolean")
+                        .HasColumnName("tipo_contato");
+
+                    b.Property<DateTime>("CreatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("InsuranceLineId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("ramo_id");
+
+                    b.Property<Guid?>("InsuredPersonId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("segurado_id");
+
+                    b.Property<string>("InsurerId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("seguradora_id");
+
+                    b.Property<string>("LossReasonId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("motivo_perda_id");
+
+                    b.Property<string>("MetadataJson")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasDefaultValue("{}")
+                        .HasColumnName("metadata");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("nome");
+
+                    b.Property<decimal?>("NetPremium")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("premio_liquido");
+
+                    b.Property<DateTime?>("NextFollowUpUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("proximo_followup");
+
+                    b.Property<string>("Notes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("observacoes");
+
+                    b.Property<string>("OfficeBranchId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("filial_id");
+
+                    b.Property<string>("OriginId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("origem_id");
+
+                    b.Property<string>("PipelineId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("pipeline_id");
+
+                    b.Property<decimal?>("ProductionAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("producao");
+
+                    b.Property<string>("Referrer")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("indicador");
+
+                    b.Property<string>("ResponsibleId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("responsavel_id");
+
+                    b.Property<string>("StageId")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("stage_id");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("status");
+
+                    b.Property<string>("TenantId")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("tenant_id");
+
+                    b.Property<DateTime>("UpdatedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<DateTime?>("ValidityEndUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("vigencia_fim");
+
+                    b.Property<DateTime?>("ValidityStartUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("vigencia_inicio");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("InsuredPersonId");
+
+                    b.HasIndex("TenantId", "OfficeBranchId");
+
+                    b.HasIndex("TenantId", "Status");
+
+                    b.HasIndex("TenantId", "PipelineId", "StageId");
+
+                    b.ToTable("oportunidades", "public");
                 });
 
             modelBuilder.Entity("WAssis.Domain.Modules.Policies.Entities.PolicyDraft", b =>
@@ -743,6 +1064,14 @@ namespace WAssis.Infra.Data.Migrations
                         .HasForeignKey("CommissionReceiptId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
+                });
+
+            modelBuilder.Entity("WAssis.Domain.Modules.Opportunities.Entities.Opportunity", b =>
+                {
+                    b.HasOne("WAssis.Domain.Modules.Customers.Entities.InsuredPerson", null)
+                        .WithMany()
+                        .HasForeignKey("InsuredPersonId")
+                        .OnDelete(DeleteBehavior.Restrict);
                 });
 
             modelBuilder.Entity("WAssis.Domain.Modules.Quotes.Entities.QuoteOption", b =>

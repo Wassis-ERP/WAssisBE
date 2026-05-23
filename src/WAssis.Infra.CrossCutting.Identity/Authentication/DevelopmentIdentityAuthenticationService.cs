@@ -50,6 +50,9 @@ public sealed class DevelopmentIdentityAuthenticationService(
             user.UserId,
             user.TenantId,
             user.BrokerageId,
+            user.BranchId,
+            user.BranchIds,
+            user.HasAllBranchesAccess,
             user.SellerId,
             user.UserType,
             user.Roles)));
@@ -74,6 +77,18 @@ public sealed class DevelopmentIdentityAuthenticationService(
         {
             claims.Add(new Claim(ClaimConstants.BrokerageId, user.BrokerageId));
         }
+
+        if (!string.IsNullOrWhiteSpace(user.BranchId))
+        {
+            claims.Add(new Claim(ClaimConstants.BranchId, user.BranchId));
+        }
+
+        foreach (var branchId in user.BranchIds.Where(static x => !string.IsNullOrWhiteSpace(x)).Distinct(StringComparer.OrdinalIgnoreCase))
+        {
+            claims.Add(new Claim(ClaimConstants.BranchIds, branchId.Trim()));
+        }
+
+        claims.Add(new Claim(ClaimConstants.HasAllBranchesAccess, user.HasAllBranchesAccess.ToString()));
 
         if (!string.IsNullOrWhiteSpace(user.SellerId))
         {

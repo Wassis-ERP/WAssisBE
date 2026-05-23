@@ -17,6 +17,9 @@ public sealed class DevelopmentAuthUserOptions
     public string UserId { get; set; } = string.Empty;
     public string? TenantId { get; set; }
     public string? BrokerageId { get; set; }
+    public string? BranchId { get; set; }
+    public List<string> BranchIds { get; set; } = [];
+    public bool HasAllBranchesAccess { get; set; }
     public string? SellerId { get; set; }
     public string UserType { get; set; } = string.Empty;
     public List<string> Roles { get; set; } = [];
