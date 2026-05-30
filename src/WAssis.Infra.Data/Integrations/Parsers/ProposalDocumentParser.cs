@@ -110,16 +110,11 @@ public sealed class ProposalDocumentParser : IProposalDocumentParser
 
     private static string? MatchValue(string text, IReadOnlyCollection<Regex> patterns)
     {
-        foreach (var pattern in patterns)
-        {
-            var match = pattern.Match(text);
-            if (match.Success)
-            {
-                return match.Groups["value"].Value.Trim();
-            }
-        }
+        var match = patterns
+            .Select(pattern => pattern.Match(text))
+            .FirstOrDefault(static match => match.Success);
 
-        return null;
+        return match?.Groups["value"].Value.Trim();
     }
 
     private static DateTime? MatchDate(string text, IReadOnlyCollection<Regex> patterns)

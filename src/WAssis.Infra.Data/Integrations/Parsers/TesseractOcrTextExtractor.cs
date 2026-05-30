@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using Docnet.Core;
 using Docnet.Core.Models;
@@ -21,7 +22,7 @@ public sealed class TesseractOcrTextExtractor(IOptions<TesseractOcrOptions> opti
             return null;
         }
 
-        var workingDirectory = Path.Combine(Path.GetTempPath(), "wassis-ocr", Guid.NewGuid().ToString("N"));
+        var workingDirectory = Path.Join(Path.GetTempPath(), "wassis-ocr", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(workingDirectory);
 
         try
@@ -47,8 +48,8 @@ public sealed class TesseractOcrTextExtractor(IOptions<TesseractOcrOptions> opti
                     continue;
                 }
 
-                var imagePath = Path.Combine(workingDirectory, $"page-{pageIndex + 1:D2}.png");
-                var outputBasePath = Path.Combine(workingDirectory, $"page-{pageIndex + 1:D2}");
+                var imagePath = Path.Join(workingDirectory, $"page-{pageIndex + 1:D2}.png");
+                var outputBasePath = Path.Join(workingDirectory, $"page-{pageIndex + 1:D2}");
 
                 using (var image = Image.LoadPixelData<Bgra32>(rawBytes, width, height))
                 {
@@ -137,16 +138,10 @@ public sealed class TesseractOcrTextExtractor(IOptions<TesseractOcrOptions> opti
             return null;
         }
 
-        foreach (var segment in environmentPath.Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries))
-        {
-            var candidate = Path.Combine(segment.Trim(), fileName);
-            if (File.Exists(candidate))
-            {
-                return candidate;
-            }
-        }
-
-        return null;
+        return environmentPath
+            .Split(Path.PathSeparator, StringSplitOptions.RemoveEmptyEntries)
+            .Select(segment => Path.Join(segment.Trim(), fileName))
+            .FirstOrDefault(File.Exists);
     }
 
     private static void TryKill(Process process)
@@ -158,7 +153,15 @@ public sealed class TesseractOcrTextExtractor(IOptions<TesseractOcrOptions> opti
                 process.Kill(entireProcessTree: true);
             }
         }
-        catch
+        catch (InvalidOperationException)
+        {
+            // Intentionally swallow cleanup failures in OCR helper.
+        }
+        catch (Win32Exception)
+        {
+            // Intentionally swallow cleanup failures in OCR helper.
+        }
+        catch (NotSupportedException)
         {
             // Intentionally swallow cleanup failures in OCR helper.
         }
@@ -173,7 +176,23 @@ public sealed class TesseractOcrTextExtractor(IOptions<TesseractOcrOptions> opti
                 Directory.Delete(directory, recursive: true);
             }
         }
-        catch
+        catch (DirectoryNotFoundException)
+        {
+            // Intentionally swallow temp cleanup failures.
+        }
+        catch (IOException)
+        {
+            // Intentionally swallow temp cleanup failures.
+        }
+        catch (UnauthorizedAccessException)
+        {
+            // Intentionally swallow temp cleanup failures.
+        }
+        catch (ArgumentException)
+        {
+            // Intentionally swallow temp cleanup failures.
+        }
+        catch (NotSupportedException)
         {
             // Intentionally swallow temp cleanup failures.
         }

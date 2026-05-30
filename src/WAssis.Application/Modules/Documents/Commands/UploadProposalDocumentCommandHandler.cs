@@ -72,7 +72,23 @@ public sealed class UploadProposalDocumentCommandHandler(
                 parsingResult.RequiresHumanReview,
                 parsingNotes);
         }
-        catch (Exception ex)
+        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
+        {
+            throw;
+        }
+        catch (InvalidDataException ex)
+        {
+            document.MarkAsFailed($"PDF parsing failed: {ex.Message}");
+        }
+        catch (IOException ex)
+        {
+            document.MarkAsFailed($"PDF parsing failed: {ex.Message}");
+        }
+        catch (ArgumentException ex)
+        {
+            document.MarkAsFailed($"PDF parsing failed: {ex.Message}");
+        }
+        catch (FormatException ex)
         {
             document.MarkAsFailed($"PDF parsing failed: {ex.Message}");
         }

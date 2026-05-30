@@ -175,12 +175,13 @@ public sealed class JustosAutoQuoteProvider(
 
     private static bool TryGetFirstArray(JsonElement root, out JsonElement arrayElement)
     {
-        foreach (var propertyName in new[] { "coverages", "coverage_options", "options", "quotes" })
+        var matchingPropertyName = new[] { "coverages", "coverage_options", "options", "quotes" }
+            .Where(propertyName => root.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.Array)
+            .FirstOrDefault();
+
+        if (matchingPropertyName is not null && root.TryGetProperty(matchingPropertyName, out arrayElement))
         {
-            if (root.TryGetProperty(propertyName, out arrayElement) && arrayElement.ValueKind == JsonValueKind.Array)
-            {
-                return true;
-            }
+            return true;
         }
 
         arrayElement = default;
@@ -233,15 +234,10 @@ public sealed class JustosAutoQuoteProvider(
 
     private static string? ExtractString(JsonElement element, params string[] propertyNames)
     {
-        foreach (var propertyName in propertyNames)
-        {
-            if (element.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.String)
-            {
-                return property.GetString();
-            }
-        }
-
-        return null;
+        return propertyNames
+            .Where(propertyName => element.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.String)
+            .Select(propertyName => element.GetProperty(propertyName).GetString())
+            .FirstOrDefault();
     }
 
     private static QuoteProviderResultDto CreateSingleResult(

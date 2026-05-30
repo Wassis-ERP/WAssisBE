@@ -1,3 +1,4 @@
+using System.Text.Json;
 using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Quotes.Dtos;
 using WAssis.Application.Modules.Quotes.Interfaces;
@@ -40,21 +41,29 @@ public sealed class QuoteProcessingService(
                 {
                     results = await provider.StartQuoteAsync(request, cancellationToken);
                 }
-                catch (Exception ex)
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
-                    results =
-                    [
-                        new QuoteProviderResultDto(
-                            provider.ProviderCode,
-                            provider.ProviderName,
-                            QuoteOptionStatus.Failure,
-                            $"{provider.ProviderCode}-{quoteRequest.Id:N}",
-                            null,
-                            null,
-                            [],
-                            [],
-                            [new QuoteStatusMessageDto("provider_failure", ex.Message)])
-                    ];
+                    throw;
+                }
+                catch (HttpRequestException ex)
+                {
+                    results = CreateProviderFailureResult(provider, quoteRequest, ex.Message);
+                }
+                catch (JsonException ex)
+                {
+                    results = CreateProviderFailureResult(provider, quoteRequest, ex.Message);
+                }
+                catch (InvalidOperationException ex)
+                {
+                    results = CreateProviderFailureResult(provider, quoteRequest, ex.Message);
+                }
+                catch (TimeoutException ex)
+                {
+                    results = CreateProviderFailureResult(provider, quoteRequest, ex.Message);
+                }
+                catch (TaskCanceledException ex)
+                {
+                    results = CreateProviderFailureResult(provider, quoteRequest, ex.Message);
                 }
 
                 foreach (var result in results)
@@ -116,6 +125,26 @@ public sealed class QuoteProcessingService(
             quoteRequest.PreviousBonus,
             quoteRequest.BrokerCommissionPercentage,
             quoteRequest.RenewalInsurerCode);
+    }
+
+    private static QuoteProviderResultDto[] CreateProviderFailureResult(
+        IQuoteProvider provider,
+        QuoteRequest quoteRequest,
+        string message)
+    {
+        return
+        [
+            new QuoteProviderResultDto(
+                provider.ProviderCode,
+                provider.ProviderName,
+                QuoteOptionStatus.Failure,
+                $"{provider.ProviderCode}-{quoteRequest.Id:N}",
+                null,
+                null,
+                [],
+                [],
+                [new QuoteStatusMessageDto("provider_failure", message)])
+        ];
     }
 
     private static QuoteOption ToEntity(QuoteRequest quoteRequest, QuoteProviderResultDto result)
