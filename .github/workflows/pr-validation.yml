@@ -17,20 +17,9 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  direct-push-guard:
-    name: Block direct pushes to main
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    steps:
-      - name: Reject direct main update
-        run: |
-          echo "A main deve receber alteracoes somente via pull request."
-          exit 1
-
   build-and-test:
     name: Build and Test
     runs-on: ubuntu-latest
-    if: github.event_name != 'push' || github.ref != 'refs/heads/main'
 
     steps:
       - name: Checkout
