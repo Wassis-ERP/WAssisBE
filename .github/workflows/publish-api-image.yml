@@ -6,10 +6,14 @@ on:
       - main
   workflow_dispatch:
     inputs:
-      tag:
-        description: "Container image tag"
+      environment:
+        description: "Target environment"
         required: true
         default: "hml"
+        type: choice
+        options:
+          - hml
+          - prod
 
 permissions:
   contents: read
@@ -20,7 +24,7 @@ env:
 
 jobs:
   publish:
-    name: Build and Push API Image
+    name: Build, Push and Redeploy API Image
     runs-on: ubuntu-latest
 
     steps:
@@ -29,11 +33,21 @@ jobs:
 
       - name: Set image tag
         id: meta
+        env:
+          HML_WEBHOOK_URL: ${{ secrets.PORTAINER_API_HML_WEBHOOK_URL }}
+          PROD_WEBHOOK_URL: ${{ secrets.PORTAINER_API_PROD_WEBHOOK_URL }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            echo "tag=${{ inputs.tag }}" >> "$GITHUB_OUTPUT"
+            if [ "${{ inputs.environment }}" = "prod" ]; then
+              echo "tag=latest" >> "$GITHUB_OUTPUT"
+              echo "webhook_url=${PROD_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
+            else
+              echo "tag=hml" >> "$GITHUB_OUTPUT"
+              echo "webhook_url=${HML_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
+            fi
           else
             echo "tag=hml" >> "$GITHUB_OUTPUT"
+            echo "webhook_url=${HML_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Set up Docker Buildx
@@ -55,3 +69,7 @@ jobs:
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
+
+      - name: Trigger Portainer redeploy
+        if: steps.meta.outputs.webhook_url != ''
+        run: curl -fsSL -X POST "${{ steps.meta.outputs.webhook_url }}"
