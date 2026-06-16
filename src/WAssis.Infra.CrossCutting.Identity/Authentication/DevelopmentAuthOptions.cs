@@ -6,7 +6,7 @@ public sealed class DevelopmentAuthOptions
 
     public bool Enabled { get; set; } = true;
     public bool AllowOutsideDevelopment { get; set; }
-    public int TokenExpirationMinutes { get; set; } = 120;
+    public int TokenExpirationMinutes { get; set; } = 480;
     public List<DevelopmentAuthUserOptions> Users { get; set; } = [];
 }
 
