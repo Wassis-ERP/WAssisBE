@@ -4,6 +4,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 using WAssis.Application.Modules.Billing.Interfaces;
 using WAssis.Application.Modules.Customers.Interfaces;
+using WAssis.Application.Modules.Core.Interfaces;
 using WAssis.Application.Modules.Documents.Interfaces;
 using WAssis.Application.Modules.Financial.Interfaces;
 using WAssis.Application.Modules.Notifications.Interfaces;
@@ -28,6 +29,7 @@ using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Liberty.Travel;
 using WAssis.Infra.Data.Integrations.Parsers;
 using WAssis.Infra.Data.Modules.Billing.Repositories;
 using WAssis.Infra.Data.Modules.Customers.Repositories;
+using WAssis.Infra.Data.Modules.Core.Queries;
 using WAssis.Infra.Data.Modules.Documents.Repositories;
 using WAssis.Infra.Data.Modules.Financial.Repositories;
 using WAssis.Infra.Data.Modules.Notifications.Queries;
@@ -74,6 +76,7 @@ public static class InfraDataServiceCollectionExtensions
         services.Configure<JustosAutoQuoteOptions>(options =>
             configuration.GetSection(JustosAutoQuoteOptions.SectionName).Bind(options));
         services.AddScoped<IBillingRepository, BillingRepository>();
+        services.AddScoped<ICoreBranchReadRepository, CoreBranchReadRepository>();
         services.AddScoped<IInsuredPersonRepository, InsuredPersonRepository>();
         services.AddScoped<IOpportunityRepository, OpportunityRepository>();
         services.AddScoped<IDocumentSearchRepository, DocumentSearchRepository>();
