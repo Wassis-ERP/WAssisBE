@@ -25,8 +25,10 @@ Observações:
 - esse login é apenas para ambiente de desenvolvimento
 - nao versionar senhas reais de desenvolvimento
 - após login, o frontend deve armazenar o `accessToken`
+- o access token do backend expira em 8 horas
+- o CRM deve limpar a sessão após 2 horas sem atividade local
 - usar `Authorization: Bearer <token>` nas rotas protegidas
-- helper recomendado nos frontends: `loginToBackend`, `getBackendAccessToken`, `getBackendCurrentUser` e `clearBackendSession`
+- helper recomendado nos frontends: `loginToBackend`, `getBackendAccessToken`, `getBackendCurrentUser`, `getBackendSessionSnapshot`, `markBackendActivity` e `clearBackendSession`
 
 ### Usuário autenticado
 

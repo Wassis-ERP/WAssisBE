@@ -45,6 +45,14 @@ public sealed class DevelopmentIdentityAuthenticationServiceTests
         Assert.Equal("identity.login.disabled", result.Error?.Code);
     }
 
+    [Fact]
+    public void DevelopmentAuthOptions_ShouldDefaultTokenExpirationToEightHours()
+    {
+        var options = new DevelopmentAuthOptions();
+
+        Assert.Equal(480, options.TokenExpirationMinutes);
+    }
+
     private static DevelopmentIdentityAuthenticationService CreateService(
         string environmentName,
         bool enabled,

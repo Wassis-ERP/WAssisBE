@@ -18,6 +18,12 @@ Authorization: Bearer <accessToken>
 
 O login local fica habilitado apenas em `Development`, salvo configuracao explicita em `Identity:DevelopmentAuth:AllowOutsideDevelopment`.
 
+Politica de tempo atual:
+
+- validade absoluta do access token emitido pelo backend: 8 horas (`Identity:DevelopmentAuth:TokenExpirationMinutes = 480`);
+- timeout por inatividade no CRM: 2 horas sem atividade local, limpando a sessao e exigindo novo login;
+- sem rotacao obrigatoria periodica de senha nesta etapa.
+
 ## Fluxo de producao desejado
 
 O backend deve validar o contexto de negocio antes de emitir ou aceitar acesso aos modulos internos. A decisao recomendada para a proxima etapa e implementar uma troca controlada de identidade:
@@ -45,6 +51,8 @@ Os frontends devem centralizar a sessao da API em um helper proprio:
 - `loginToBackend(username, password)`
 - `getBackendAccessToken()`
 - `getBackendCurrentUser()`
+- `getBackendSessionSnapshot()`
+- `markBackendActivity()`
 - `clearBackendSession()`
 
 Esse helper nao substitui imediatamente o Supabase Auth; ele apenas padroniza as chamadas para a API .NET durante a migracao.
