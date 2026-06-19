@@ -26,4 +26,8 @@
     <ProjectReference Include="../WAssis.Domain/WAssis.Domain.csproj" />
     <ProjectReference Include="../WAssis.Domain.Core/WAssis.Domain.Core.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations/Sql/*.sql" />
+  </ItemGroup>
 </Project>
