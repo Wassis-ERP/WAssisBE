@@ -67,6 +67,38 @@ public sealed class TenantIsolationTests
         Assert.Equal(1, overview.PendingQuotes);
     }
 
+    [Fact]
+    public async Task QuoteRequestRepository_ShouldOnlyReturnAuthorizedBranches()
+    {
+        var databaseName = $"branch-quotes-{Guid.NewGuid():N}";
+
+        await using (var seedContext = CreateContext(databaseName, new FakeCurrentUserContext()))
+        {
+            seedContext.QuoteRequests.AddRange(
+                CreateQuoteRequest("tenant-a", "corr-a", "branch-a"),
+                CreateQuoteRequest("tenant-a", "corr-b", "branch-b"),
+                CreateQuoteRequest("tenant-a", "corr-unscoped"));
+            await seedContext.SaveChangesAsync();
+        }
+
+        await using var branchContext = CreateContext(
+            databaseName,
+            new FakeCurrentUserContext
+            {
+                IsAuthenticated = true,
+                TenantId = "tenant-a",
+                BranchId = "branch-a",
+                BranchIds = ["branch-a"],
+                HasAllBranchesAccess = false,
+            });
+
+        var repository = new QuoteRequestRepository(branchContext);
+
+        Assert.NotNull(await repository.GetByCorrelationIdAsync("corr-a", CancellationToken.None));
+        Assert.Null(await repository.GetByCorrelationIdAsync("corr-b", CancellationToken.None));
+        Assert.Null(await repository.GetByCorrelationIdAsync("corr-unscoped", CancellationToken.None));
+    }
+
     private static WAssisDbContext CreateContext(string databaseName, FakeCurrentUserContext currentUserContext)
     {
         var options = new DbContextOptionsBuilder<WAssisDbContext>()
@@ -76,7 +108,7 @@ public sealed class TenantIsolationTests
         return new WAssisDbContext(options, currentUserContext);
     }
 
-    private static QuoteRequest CreateQuoteRequest(string tenantId, string correlationId)
+    private static QuoteRequest CreateQuoteRequest(string tenantId, string correlationId, string? officeBranchId = null)
     {
         return QuoteRequest.Create(
             tenantId,
@@ -112,6 +144,7 @@ public sealed class TenantIsolationTests
             false,
             "0",
             15,
-            null);
+            null,
+            officeBranchId);
     }
 }

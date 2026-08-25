@@ -148,6 +148,7 @@ for (const current of tables) {
 
   for (const column of current.columns.filter((item) => item.reference)) {
     if (indexedKeys.has(column.name) || column.primaryKey || column.unique) continue
+    indexedKeys.add(column.name)
     statements.push(
       `CREATE INDEX ${quote(indexName('ix', current.name, [column.name]))} ` +
       `ON erp.${quote(current.name)} (${quote(column.name)});`,

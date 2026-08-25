@@ -37,7 +37,7 @@ public sealed class DevelopmentIdentityAuthenticationServiceTests
     [Fact]
     public async Task AuthenticateAsync_ShouldBeDisabledOutsideDevelopmentByDefault()
     {
-        var service = CreateService("Production", enabled: true, allowOutsideDevelopment: false);
+        var service = CreateService("Production", enabled: true);
 
         var result = await service.AuthenticateAsync("broker.admin@wassis.local", "secret", CancellationToken.None);
 
@@ -55,13 +55,11 @@ public sealed class DevelopmentIdentityAuthenticationServiceTests
 
     private static DevelopmentIdentityAuthenticationService CreateService(
         string environmentName,
-        bool enabled,
-        bool allowOutsideDevelopment = false)
+        bool enabled)
     {
         var developmentOptions = Options.Create(new DevelopmentAuthOptions
         {
             Enabled = enabled,
-            AllowOutsideDevelopment = allowOutsideDevelopment,
             TokenExpirationMinutes = 30,
             Users =
             [

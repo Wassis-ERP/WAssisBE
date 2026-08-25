@@ -37,6 +37,29 @@ public sealed class CoreSchemaContractTests
         Assert.Contains("enforce_profile_filial_tenant_match", sql, StringComparison.Ordinal);
         Assert.Contains("ux_profile_filiais_profile_filial", sql, StringComparison.Ordinal);
         Assert.Contains("VALUES ('1.0.0'", sql, StringComparison.Ordinal);
+        Assert.Empty(FindDuplicateIndexNames(sql));
+    }
+
+    [Fact]
+    public void FrontendContractMigration_ShouldExpandCatalogsAndMultiCalculationWithoutBusinessJson()
+    {
+        var assembly = typeof(WAssisDbContext).Assembly;
+        var resourceName = assembly.GetManifestResourceNames().Single(name =>
+            name.EndsWith("Migrations.Sql.20260825000800_ExpandErpFrontendContract.sql", StringComparison.Ordinal));
+
+        using var stream = assembly.GetManifestResourceStream(resourceName)!;
+        using var reader = new StreamReader(stream);
+        var sql = reader.ReadToEnd();
+
+        Assert.Contains("CREATE TABLE erp.perfis", sql, StringComparison.Ordinal);
+        Assert.Contains("ALTER TABLE erp.calculos", sql, StringComparison.Ordinal);
+        Assert.Contains("ALTER TABLE erp.calc_auto", sql, StringComparison.Ordinal);
+        Assert.Contains("ALTER TABLE erp.recebimento_grades", sql, StringComparison.Ordinal);
+        Assert.Contains("enforce_profile_filial_perfil_tenant", sql, StringComparison.Ordinal);
+        Assert.Contains("enforce_calculo_scope", sql, StringComparison.Ordinal);
+        Assert.Contains("enforce_repasse_regra_scope", sql, StringComparison.Ordinal);
+        Assert.Contains("VALUES ('1.1.0'", sql, StringComparison.Ordinal);
+        Assert.DoesNotContain("ADD COLUMN dados jsonb", sql, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string ReadMigrationSql()
@@ -48,5 +71,16 @@ public sealed class CoreSchemaContractTests
         using var stream = assembly.GetManifestResourceStream(resourceName)!;
         using var reader = new StreamReader(stream);
         return reader.ReadToEnd();
+    }
+
+    private static IReadOnlyCollection<string> FindDuplicateIndexNames(string sql)
+    {
+        return System.Text.RegularExpressions.Regex
+            .Matches(sql, "CREATE(?: UNIQUE)? INDEX \\\"?([^\\\"\\s]+)\\\"?", System.Text.RegularExpressions.RegexOptions.IgnoreCase)
+            .Select(static match => match.Groups[1].Value)
+            .GroupBy(static name => name, StringComparer.OrdinalIgnoreCase)
+            .Where(static group => group.Count() > 1)
+            .Select(static group => group.Key)
+            .ToArray();
     }
 }

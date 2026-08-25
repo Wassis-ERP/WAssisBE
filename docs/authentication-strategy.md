@@ -16,7 +16,7 @@ Authorization: Bearer <accessToken>
 4. O frontend guarda esse token em uma sessao local do cliente.
 5. Chamadas protegidas usam o token contra `GET /api/identity/me` e demais endpoints.
 
-O login local fica habilitado apenas em `Development`, salvo configuracao explicita em `Identity:DevelopmentAuth:AllowOutsideDevelopment`.
+O login local fica habilitado exclusivamente em `Development`; nao existe chave para libera-lo em ambientes compartilhados.
 
 Politica de tempo atual:
 

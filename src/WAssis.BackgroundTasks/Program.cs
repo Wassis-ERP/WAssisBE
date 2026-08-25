@@ -9,7 +9,7 @@ var builder = Host.CreateApplicationBuilder(args);
 builder.Services.AddSerilog((services, configuration) =>
     configuration.ReadFrom.Configuration(builder.Configuration));
 
-NativeInjectorBootStrapper.RegisterServices(builder.Services, builder.Configuration);
+NativeInjectorBootStrapper.RegisterServices(builder.Services, builder.Configuration, builder.Environment);
 builder.Services.AddHostedService<Worker>();
 builder.Services.AddHostedService<QuoteQuoteRequestDispatcherPlaceholder>();
 builder.Services.AddHostedService<DocumentSearchDispatcherPlaceholder>();

@@ -12,13 +12,18 @@ public sealed class CreateQuoteRequestCommandHandlerTests
     [Fact]
     public async Task Handle_ShouldCreatePendingQuoteRequest()
     {
+        var opportunityId = Guid.NewGuid();
+        var insuranceBranchId = Guid.NewGuid();
+        var insuredPersonId = Guid.NewGuid();
         var repository = new InMemoryQuoteRequestRepository();
         var handler = new CreateQuoteRequestCommandHandler(
             repository,
             new FakeCurrentUserContext
             {
                 IsAuthenticated = true,
-                TenantId = "tenant-alpha"
+                TenantId = "tenant-alpha",
+                BranchId = "branch-a",
+                BranchIds = ["branch-a"]
             });
 
         var result = await handler.Handle(
@@ -55,7 +60,14 @@ public sealed class CreateQuoteRequestCommandHandlerTests
                 false,
                 "0",
                 15,
-                null),
+                null,
+                "branch-a",
+                opportunityId,
+                insuranceBranchId,
+                insuredPersonId,
+                "auto",
+                "aggilizador",
+                "Versao 2"),
             CancellationToken.None);
 
         Assert.Equal("corr-123", result.CorrelationId);
@@ -65,6 +77,13 @@ public sealed class CreateQuoteRequestCommandHandlerTests
         Assert.NotEqual(Guid.Empty, result.Id);
         Assert.Single(repository.Items);
         Assert.Equal("tenant-alpha", repository.Items.Single().TenantId);
+        Assert.Equal("branch-a", result.OfficeBranchId);
+        Assert.Equal(opportunityId, result.OpportunityId);
+        Assert.Equal(insuranceBranchId, result.InsuranceBranchId);
+        Assert.Equal(insuredPersonId, result.InsuredPersonId);
+        Assert.Equal("AUTO", result.CalculationType);
+        Assert.Equal("AGGILIZADOR", result.CalculationOrigin);
+        Assert.Equal("Versao 2", result.VersionLabel);
     }
 
     private sealed class InMemoryQuoteRequestRepository : IQuoteRequestRepository
@@ -85,6 +104,15 @@ public sealed class CreateQuoteRequestCommandHandlerTests
         public Task<QuoteRequest?> GetByCorrelationIdAsync(string correlationId, CancellationToken cancellationToken)
         {
             return Task.FromResult(Items.SingleOrDefault(x => x.CorrelationId == correlationId));
+        }
+
+        public Task<IReadOnlyCollection<QuoteRequest>> ListAsync(Guid? opportunityId, string? officeBranchId, CancellationToken cancellationToken)
+        {
+            IReadOnlyCollection<QuoteRequest> items = Items
+                .Where(x => !opportunityId.HasValue || x.OpportunityId == opportunityId)
+                .Where(x => string.IsNullOrWhiteSpace(officeBranchId) || x.OfficeBranchId == officeBranchId)
+                .ToArray();
+            return Task.FromResult(items);
         }
 
         public Task<IReadOnlyCollection<QuotePendingDispatchDto>> GetPendingDispatchBatchAsync(int batchSize, CancellationToken cancellationToken)

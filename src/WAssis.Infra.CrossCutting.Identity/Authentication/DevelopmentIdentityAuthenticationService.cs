@@ -22,7 +22,7 @@ public sealed class DevelopmentIdentityAuthenticationService(
 
     public Task<Result<LoginResultDto>> AuthenticateAsync(string username, string password, CancellationToken cancellationToken)
     {
-        if ((!hostEnvironment.IsDevelopment() && !_developmentAuthOptions.AllowOutsideDevelopment) || !_developmentAuthOptions.Enabled)
+        if (!hostEnvironment.IsDevelopment() || !_developmentAuthOptions.Enabled)
         {
             return Task.FromResult(Result<LoginResultDto>.Failure(new Error(
                 "identity.login.disabled",
@@ -38,7 +38,7 @@ public sealed class DevelopmentIdentityAuthenticationService(
             return Task.FromResult(Result<LoginResultDto>.Failure(new Error(
                 "identity.login.invalid_credentials",
                 "Usuário ou senha inválidos.",
-                ErrorType.Validation)));
+                ErrorType.Unauthorized)));
         }
 
         var expiresAtUtc = DateTime.UtcNow.AddMinutes(_developmentAuthOptions.TokenExpirationMinutes);

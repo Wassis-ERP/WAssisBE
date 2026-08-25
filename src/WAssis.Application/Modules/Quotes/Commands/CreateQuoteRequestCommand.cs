@@ -36,4 +36,11 @@ public sealed record CreateQuoteRequestCommand(
     bool IsCurrentlyInsured,
     string? PreviousBonus,
     int? BrokerCommissionPercentage,
-    int? RenewalInsurerCode) : IRequest<QuoteRequestDto>;
+    int? RenewalInsurerCode,
+    string? OfficeBranchId = null,
+    Guid? OpportunityId = null,
+    Guid? InsuranceBranchId = null,
+    Guid? InsuredPersonId = null,
+    string CalculationType = "AUTO",
+    string CalculationOrigin = "PROPRIO",
+    string? VersionLabel = null) : IRequest<QuoteRequestDto>;

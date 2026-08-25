@@ -53,7 +53,14 @@ public sealed class CreateQuoteRequestCommandHandler(
             request.IsCurrentlyInsured,
             request.PreviousBonus,
             request.BrokerCommissionPercentage,
-            request.RenewalInsurerCode);
+            request.RenewalInsurerCode,
+            currentUserContext.ResolveBranchIdForWrite(request.OfficeBranchId),
+            request.OpportunityId,
+            request.InsuranceBranchId,
+            request.InsuredPersonId,
+            request.CalculationType,
+            request.CalculationOrigin,
+            request.VersionLabel);
 
         await repository.AddAsync(quoteRequest, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);

@@ -26,6 +26,7 @@ public static class ResultExtensions
             ErrorType.NotFound => controller.NotFound(payload),
             ErrorType.Conflict => controller.Conflict(payload),
             ErrorType.Validation => controller.BadRequest(payload),
+            ErrorType.Unauthorized => controller.Unauthorized(payload),
             _ => controller.BadRequest(payload)
         };
     }

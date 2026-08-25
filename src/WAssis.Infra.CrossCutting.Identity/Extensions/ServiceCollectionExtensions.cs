@@ -1,5 +1,6 @@
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
@@ -58,6 +59,10 @@ public static class ServiceCollectionExtensions
 
         services.AddAuthorization(options =>
         {
+            options.FallbackPolicy = new AuthorizationPolicyBuilder()
+                .RequireAuthenticatedUser()
+                .Build();
+
             options.AddPolicy(AccessPolicies.AuthenticatedUser, policy =>
                 policy.RequireAuthenticatedUser());
 

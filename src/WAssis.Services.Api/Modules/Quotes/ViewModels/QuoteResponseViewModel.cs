@@ -4,6 +4,13 @@ namespace WAssis.Services.Api.Modules.Quotes.ViewModels;
 
 public sealed record QuoteResponseViewModel(
     Guid Id,
+    string? OfficeBranchId,
+    Guid? OpportunityId,
+    Guid? InsuranceBranchId,
+    Guid? InsuredPersonId,
+    string CalculationType,
+    string CalculationOrigin,
+    string? VersionLabel,
     string CorrelationId,
     string CustomerName,
     string DocumentNumber,
