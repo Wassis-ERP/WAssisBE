@@ -375,11 +375,7 @@ CREATE INDEX "ix_filiais_tenant_id" ON erp."filiais" ("tenant_id");
 
 CREATE INDEX "ix_filiais_matriz_id" ON erp."filiais" ("matriz_id");
 
-CREATE INDEX "ix_filiais_tenant_id" ON erp."filiais" ("tenant_id");
-
 ALTER TABLE erp."profiles" ADD CONSTRAINT "fk_profiles_tenant_id" FOREIGN KEY ("tenant_id") REFERENCES erp."tenants" ("id") ON DELETE RESTRICT;
-
-CREATE INDEX "ix_profiles_tenant_id" ON erp."profiles" ("tenant_id");
 
 CREATE INDEX "ix_profiles_tenant_id" ON erp."profiles" ("tenant_id");
 
@@ -391,8 +387,6 @@ CREATE INDEX "ix_profile_filiais_profile_id" ON erp."profile_filiais" ("profile_
 
 CREATE INDEX "ix_profile_filiais_filial_id" ON erp."profile_filiais" ("filial_id");
 
-CREATE INDEX "ix_profile_filiais_filial_id" ON erp."profile_filiais" ("filial_id");
-
 ALTER TABLE erp."produtores" ADD CONSTRAINT "fk_produtores_tenant_id" FOREIGN KEY ("tenant_id") REFERENCES erp."tenants" ("id") ON DELETE RESTRICT;
 
 ALTER TABLE erp."produtores" ADD CONSTRAINT "fk_produtores_profile_id" FOREIGN KEY ("profile_id") REFERENCES erp."profiles" ("id") ON DELETE RESTRICT;
@@ -400,8 +394,6 @@ ALTER TABLE erp."produtores" ADD CONSTRAINT "fk_produtores_profile_id" FOREIGN K
 CREATE INDEX "ix_produtores_tenant_id" ON erp."produtores" ("tenant_id");
 
 CREATE INDEX "ix_produtores_profile_id" ON erp."produtores" ("profile_id");
-
-CREATE INDEX "ix_produtores_tenant_id" ON erp."produtores" ("tenant_id");
 
 ALTER TABLE erp."segurados" ADD CONSTRAINT "fk_segurados_tenant_id" FOREIGN KEY ("tenant_id") REFERENCES erp."tenants" ("id") ON DELETE RESTRICT;
 
@@ -423,10 +415,6 @@ CREATE INDEX "ix_segurados_produtor_id" ON erp."segurados" ("produtor_id");
 
 CREATE INDEX "ix_segurados_gerente_id" ON erp."segurados" ("gerente_id");
 
-CREATE INDEX "ix_segurados_tenant_id" ON erp."segurados" ("tenant_id");
-
-CREATE INDEX "ix_segurados_filial_id" ON erp."segurados" ("filial_id");
-
 ALTER TABLE erp."pessoa_contato" ADD CONSTRAINT "fk_pessoa_contato_pj_id" FOREIGN KEY ("pj_id") REFERENCES erp."segurados" ("id") ON DELETE RESTRICT;
 
 ALTER TABLE erp."pessoa_contato" ADD CONSTRAINT "fk_pessoa_contato_pf_id" FOREIGN KEY ("pf_id") REFERENCES erp."segurados" ("id") ON DELETE RESTRICT;
@@ -439,11 +427,7 @@ ALTER TABLE erp."seguradoras" ADD CONSTRAINT "fk_seguradoras_tenant_id" FOREIGN 
 
 CREATE INDEX "ix_seguradoras_tenant_id" ON erp."seguradoras" ("tenant_id");
 
-CREATE INDEX "ix_seguradoras_tenant_id" ON erp."seguradoras" ("tenant_id");
-
 ALTER TABLE erp."ramos" ADD CONSTRAINT "fk_ramos_tenant_id" FOREIGN KEY ("tenant_id") REFERENCES erp."tenants" ("id") ON DELETE RESTRICT;
-
-CREATE INDEX "ix_ramos_tenant_id" ON erp."ramos" ("tenant_id");
 
 CREATE INDEX "ix_ramos_tenant_id" ON erp."ramos" ("tenant_id");
 
@@ -451,11 +435,7 @@ ALTER TABLE erp."origens" ADD CONSTRAINT "fk_origens_tenant_id" FOREIGN KEY ("te
 
 CREATE INDEX "ix_origens_tenant_id" ON erp."origens" ("tenant_id");
 
-CREATE INDEX "ix_origens_tenant_id" ON erp."origens" ("tenant_id");
-
 ALTER TABLE erp."motivos_perda" ADD CONSTRAINT "fk_motivos_perda_tenant_id" FOREIGN KEY ("tenant_id") REFERENCES erp."tenants" ("id") ON DELETE RESTRICT;
-
-CREATE INDEX "ix_motivos_perda_tenant_id" ON erp."motivos_perda" ("tenant_id");
 
 CREATE INDEX "ix_motivos_perda_tenant_id" ON erp."motivos_perda" ("tenant_id");
 
@@ -466,10 +446,6 @@ CREATE INDEX "ix_coberturas_catalogo_ramo_id" ON erp."coberturas_catalogo" ("ram
 ALTER TABLE erp."pipelines" ADD CONSTRAINT "fk_pipelines_tenant_id" FOREIGN KEY ("tenant_id") REFERENCES erp."tenants" ("id") ON DELETE RESTRICT;
 
 ALTER TABLE erp."pipelines" ADD CONSTRAINT "fk_pipelines_filial_id" FOREIGN KEY ("filial_id") REFERENCES erp."filiais" ("id") ON DELETE RESTRICT;
-
-CREATE INDEX "ix_pipelines_tenant_id" ON erp."pipelines" ("tenant_id");
-
-CREATE INDEX "ix_pipelines_filial_id" ON erp."pipelines" ("filial_id");
 
 CREATE INDEX "ix_pipelines_tenant_id" ON erp."pipelines" ("tenant_id");
 
@@ -514,10 +490,6 @@ CREATE INDEX "ix_oportunidades_responsavel_id" ON erp."oportunidades" ("responsa
 CREATE INDEX "ix_oportunidades_stage_id" ON erp."oportunidades" ("stage_id");
 
 CREATE INDEX "ix_oportunidades_motivo_perda_id" ON erp."oportunidades" ("motivo_perda_id");
-
-CREATE INDEX "ix_oportunidades_tenant_id" ON erp."oportunidades" ("tenant_id");
-
-CREATE INDEX "ix_oportunidades_filial_id" ON erp."oportunidades" ("filial_id");
 
 ALTER TABLE erp."calculos" ADD CONSTRAINT "fk_calculos_oportunidade_id" FOREIGN KEY ("oportunidade_id") REFERENCES erp."oportunidades" ("id") ON DELETE RESTRICT;
 
@@ -701,10 +673,6 @@ CREATE INDEX "ix_repasse_regras_produtor_id" ON erp."repasse_regras" ("produtor_
 
 CREATE INDEX "ix_repasse_regras_ramo_id" ON erp."repasse_regras" ("ramo_id");
 
-CREATE INDEX "ix_repasse_regras_tenant_id" ON erp."repasse_regras" ("tenant_id");
-
-CREATE INDEX "ix_repasse_regras_filial_id" ON erp."repasse_regras" ("filial_id");
-
 ALTER TABLE erp."parcelas" ADD CONSTRAINT "fk_parcelas_proposta_id" FOREIGN KEY ("proposta_id") REFERENCES erp."propostas" ("id") ON DELETE RESTRICT;
 
 CREATE INDEX "ix_parcelas_proposta_id" ON erp."parcelas" ("proposta_id");
@@ -757,10 +725,6 @@ CREATE INDEX "ix_atividades_filial_id" ON erp."atividades" ("filial_id");
 
 CREATE INDEX "ix_atividades_responsavel_id" ON erp."atividades" ("responsavel_id");
 
-CREATE INDEX "ix_atividades_tenant_id" ON erp."atividades" ("tenant_id");
-
-CREATE INDEX "ix_atividades_filial_id" ON erp."atividades" ("filial_id");
-
 ALTER TABLE erp."atividade_mencoes" ADD CONSTRAINT "fk_atividade_mencoes_atividade_id" FOREIGN KEY ("atividade_id") REFERENCES erp."atividades" ("id") ON DELETE RESTRICT;
 
 ALTER TABLE erp."atividade_mencoes" ADD CONSTRAINT "fk_atividade_mencoes_profile_id" FOREIGN KEY ("profile_id") REFERENCES erp."profiles" ("id") ON DELETE RESTRICT;
@@ -777,10 +741,6 @@ CREATE INDEX "ix_anexos_tenant_id" ON erp."anexos" ("tenant_id");
 
 CREATE INDEX "ix_anexos_filial_id" ON erp."anexos" ("filial_id");
 
-CREATE INDEX "ix_anexos_tenant_id" ON erp."anexos" ("tenant_id");
-
-CREATE INDEX "ix_anexos_filial_id" ON erp."anexos" ("filial_id");
-
 ALTER TABLE erp."audit_logs" ADD CONSTRAINT "fk_audit_logs_tenant_id" FOREIGN KEY ("tenant_id") REFERENCES erp."tenants" ("id") ON DELETE RESTRICT;
 
 ALTER TABLE erp."audit_logs" ADD CONSTRAINT "fk_audit_logs_user_id" FOREIGN KEY ("user_id") REFERENCES erp."profiles" ("id") ON DELETE RESTRICT;
@@ -789,11 +749,7 @@ CREATE INDEX "ix_audit_logs_tenant_id" ON erp."audit_logs" ("tenant_id");
 
 CREATE INDEX "ix_audit_logs_user_id" ON erp."audit_logs" ("user_id");
 
-CREATE INDEX "ix_audit_logs_tenant_id" ON erp."audit_logs" ("tenant_id");
-
 ALTER TABLE erp."integracao_logs" ADD CONSTRAINT "fk_integracao_logs_tenant_id" FOREIGN KEY ("tenant_id") REFERENCES erp."tenants" ("id") ON DELETE RESTRICT;
-
-CREATE INDEX "ix_integracao_logs_tenant_id" ON erp."integracao_logs" ("tenant_id");
 
 CREATE INDEX "ix_integracao_logs_tenant_id" ON erp."integracao_logs" ("tenant_id");
 
@@ -802,10 +758,6 @@ ALTER TABLE erp."campo_definicoes" ADD CONSTRAINT "fk_campo_definicoes_tenant_id
 ALTER TABLE erp."campo_definicoes" ADD CONSTRAINT "fk_campo_definicoes_filial_id" FOREIGN KEY ("filial_id") REFERENCES erp."filiais" ("id") ON DELETE RESTRICT;
 
 CREATE UNIQUE INDEX "ux_campo_definicoes_tenant_id_entidade_tipo_chave" ON erp."campo_definicoes" ("tenant_id", "entidade_tipo", "chave");
-
-CREATE INDEX "ix_campo_definicoes_tenant_id" ON erp."campo_definicoes" ("tenant_id");
-
-CREATE INDEX "ix_campo_definicoes_filial_id" ON erp."campo_definicoes" ("filial_id");
 
 CREATE INDEX "ix_campo_definicoes_tenant_id" ON erp."campo_definicoes" ("tenant_id");
 

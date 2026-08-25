@@ -62,7 +62,9 @@ public class WAssisDbContext : DbContext
         modelBuilder.Entity<CommissionReceipt>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
         modelBuilder.Entity<CommissionReconciliation>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
         modelBuilder.Entity<PolicyDraft>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
-        modelBuilder.Entity<QuoteRequest>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
+        modelBuilder.Entity<QuoteRequest>().HasQueryFilter(x =>
+            (_currentTenantId == null || x.TenantId == _currentTenantId) &&
+            (_currentTenantId == null || _hasAllBranchesAccess || (x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId))));
         modelBuilder.Entity<QuoteOption>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
         modelBuilder.Entity<WhatsAppConversation>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
         modelBuilder.Entity<AuditEntry>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);

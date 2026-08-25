@@ -9,6 +9,13 @@ internal static class QuoteRequestMappings
     {
         return new QuoteRequestDto(
             quoteRequest.Id,
+            quoteRequest.OfficeBranchId,
+            quoteRequest.OpportunityId,
+            quoteRequest.InsuranceBranchId,
+            quoteRequest.InsuredPersonId,
+            quoteRequest.CalculationType,
+            quoteRequest.CalculationOrigin,
+            quoteRequest.VersionLabel,
             quoteRequest.CorrelationId,
             quoteRequest.CustomerName,
             quoteRequest.DocumentNumber,

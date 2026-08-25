@@ -33,4 +33,11 @@ public sealed record CreateQuoteRequestRequest(
     bool IsCurrentlyInsured,
     string? PreviousBonus,
     int? BrokerCommissionPercentage,
-    int? RenewalInsurerCode);
+    int? RenewalInsurerCode,
+    string? OfficeBranchId = null,
+    Guid? OpportunityId = null,
+    Guid? InsuranceBranchId = null,
+    Guid? InsuredPersonId = null,
+    string CalculationType = "AUTO",
+    string CalculationOrigin = "PROPRIO",
+    string? VersionLabel = null);

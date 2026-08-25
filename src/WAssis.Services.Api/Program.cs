@@ -1,6 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
+using System.Threading.RateLimiting;
 using WAssis.Infra.CrossCutting.IoC;
 using WAssis.Infra.Data.Context;
 using WAssis.Services.Api.Infrastructure;
@@ -17,6 +19,22 @@ builder.Host.UseSerilog((context, configuration) =>
     configuration.ReadFrom.Configuration(context.Configuration));
 
 builder.Services.AddControllers();
+builder.Services.AddProblemDetails();
+builder.Services.AddExceptionHandler<ApiExceptionHandler>();
+builder.Services.AddRateLimiter(options =>
+{
+    options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+    options.AddPolicy("login", context =>
+        RateLimitPartition.GetFixedWindowLimiter(
+            partitionKey: context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+            factory: _ => new FixedWindowRateLimiterOptions
+            {
+                PermitLimit = 5,
+                Window = TimeSpan.FromMinutes(1),
+                QueueLimit = 0,
+                AutoReplenishment = true,
+            }));
+});
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 builder.Services.AddCors(options =>
@@ -39,7 +57,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
         new BadRequestObjectResult(context.ModelState);
 });
 
-NativeInjectorBootStrapper.RegisterServices(builder.Services, builder.Configuration);
+NativeInjectorBootStrapper.RegisterServices(builder.Services, builder.Configuration, builder.Environment);
 
 var app = builder.Build();
 
@@ -55,18 +73,20 @@ else
 
 app.UseSerilogRequestLogging();
 app.UseMiddleware<SecurityHeadersMiddleware>();
+app.UseExceptionHandler();
 app.UseHttpsRedirection();
 app.UseCors(FrontendCorsPolicy);
+app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapGet("/health", () => Results.Ok(new { service = "WAssis.Services.Api", status = "ok" }));
+app.MapGet("/health", () => Results.Ok(new { service = "WAssis.Services.Api", status = "ok" })).AllowAnonymous();
 app.MapGet("/health/ready", async (WAssisDbContext dbContext, CancellationToken cancellationToken) =>
 {
     var canConnect = await dbContext.Database.CanConnectAsync(cancellationToken);
     return canConnect
         ? Results.Ok(new { status = "ready" })
         : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
-});
+}).AllowAnonymous();
 
 app.Run();

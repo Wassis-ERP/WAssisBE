@@ -28,6 +28,31 @@ public sealed class QuoteRequestRepository(WAssisDbContext dbContext) : IQuoteRe
             .SingleOrDefaultAsync(x => x.CorrelationId == correlationId, cancellationToken);
     }
 
+    public async Task<IReadOnlyCollection<QuoteRequest>> ListAsync(
+        Guid? opportunityId,
+        string? officeBranchId,
+        CancellationToken cancellationToken)
+    {
+        var query = dbContext.QuoteRequests
+            .AsNoTracking()
+            .Include(x => x.Options)
+            .AsQueryable();
+
+        if (opportunityId.HasValue)
+        {
+            query = query.Where(x => x.OpportunityId == opportunityId.Value);
+        }
+
+        if (!string.IsNullOrWhiteSpace(officeBranchId))
+        {
+            query = query.Where(x => x.OfficeBranchId == officeBranchId);
+        }
+
+        return await query
+            .OrderByDescending(x => x.CreatedAtUtc)
+            .ToArrayAsync(cancellationToken);
+    }
+
     public async Task<IReadOnlyCollection<QuotePendingDispatchDto>> GetPendingDispatchBatchAsync(int batchSize, CancellationToken cancellationToken)
     {
         return await dbContext.QuoteRequests

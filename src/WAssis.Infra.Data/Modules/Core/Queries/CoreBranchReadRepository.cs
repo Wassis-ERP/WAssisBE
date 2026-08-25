@@ -18,13 +18,13 @@ public sealed class CoreBranchReadRepository(WAssisDbContext dbContext) : ICoreB
             SELECT
                 f.id AS Id,
                 f.matriz_id AS ParentBranchId,
-                f.nome AS Name,
-                f.cnpj AS DocumentNumber,
+                COALESCE(f.razao_social, f.fantasia, f.nome) AS Name,
+                COALESCE(f.cnpj_cpf, f.cnpj) AS DocumentNumber,
                 f.ativo AS IsActive
             FROM erp.filiais f
             WHERE f.tenant_id = @TenantId
               AND (@HasAllBranchesAccess OR f.id = ANY(@AllowedBranchIds))
-            ORDER BY f.nome NULLS LAST, f.id
+            ORDER BY COALESCE(f.razao_social, f.fantasia, f.nome) NULLS LAST, f.id
             """;
 
         var connection = dbContext.Database.GetDbConnection();

@@ -4,6 +4,13 @@ namespace WAssis.Application.Modules.Quotes.Dtos;
 
 public sealed record QuoteRequestDto(
     Guid Id,
+    string? OfficeBranchId,
+    Guid? OpportunityId,
+    Guid? InsuranceBranchId,
+    Guid? InsuredPersonId,
+    string CalculationType,
+    string CalculationOrigin,
+    string? VersionLabel,
     string CorrelationId,
     string CustomerName,
     string DocumentNumber,

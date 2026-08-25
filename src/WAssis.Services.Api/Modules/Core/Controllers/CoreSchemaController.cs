@@ -16,7 +16,7 @@ public sealed class CoreSchemaController(
 {
     private static readonly CoreSchemaModuleViewModel[] Modules =
     [
-        new("plataforma", ["tenants", "filiais", "profiles", "profile_filiais", "role_permissions"]),
+        new("plataforma", ["tenants", "filiais", "profiles", "perfis", "profile_filiais", "role_permissions"]),
         new("cadastros", ["produtores", "segurados", "pessoa_contato", "seguradoras", "ramos", "origens", "motivos_perda", "coberturas_catalogo"]),
         new("kanban", ["pipelines", "pipeline_stages"]),
         new("comercial", ["oportunidades", "calculos", "calc_auto", "calc_residencia", "calc_condominio", "calc_vida", "calc_empresa", "calc_diversos", "calculo_coberturas", "cotacoes"]),
@@ -49,7 +49,7 @@ public sealed class CoreSchemaController(
             .ToArray();
 
         return Ok(new CoreSchemaViewModel(
-            "1.0.0",
+            "1.1.0",
             "erp",
             tenantId,
             currentUserContext.BranchId,

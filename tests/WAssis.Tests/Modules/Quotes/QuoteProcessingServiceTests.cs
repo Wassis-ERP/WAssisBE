@@ -76,6 +76,12 @@ public sealed class QuoteProcessingServiceTests
             return Task.FromResult(correlationId == quoteRequest.CorrelationId ? quoteRequest : null);
         }
 
+        public Task<IReadOnlyCollection<QuoteRequest>> ListAsync(Guid? opportunityId, string? officeBranchId, CancellationToken cancellationToken)
+        {
+            IReadOnlyCollection<QuoteRequest> items = [quoteRequest];
+            return Task.FromResult(items);
+        }
+
         public Task<IReadOnlyCollection<QuotePendingDispatchDto>> GetPendingDispatchBatchAsync(int batchSize, CancellationToken cancellationToken)
         {
             IReadOnlyCollection<QuotePendingDispatchDto> items =

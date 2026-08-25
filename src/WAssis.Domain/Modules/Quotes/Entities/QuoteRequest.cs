@@ -8,6 +8,13 @@ public class QuoteRequest : AggregateRoot
     private readonly List<QuoteOption> _options = [];
 
     public string TenantId { get; private set; } = string.Empty;
+    public string? OfficeBranchId { get; private set; }
+    public Guid? OpportunityId { get; private set; }
+    public Guid? InsuranceBranchId { get; private set; }
+    public Guid? InsuredPersonId { get; private set; }
+    public string CalculationType { get; private set; } = "AUTO";
+    public string CalculationOrigin { get; private set; } = "PROPRIO";
+    public string? VersionLabel { get; private set; }
     public string CorrelationId { get; private set; } = string.Empty;
     public string CustomerName { get; private set; } = string.Empty;
     public string DocumentNumber { get; private set; } = string.Empty;
@@ -86,10 +93,24 @@ public class QuoteRequest : AggregateRoot
         bool isCurrentlyInsured,
         string? previousBonus,
         int? brokerCommissionPercentage,
-        int? renewalInsurerCode)
+        int? renewalInsurerCode,
+        string? officeBranchId,
+        Guid? opportunityId,
+        Guid? insuranceBranchId,
+        Guid? insuredPersonId,
+        string calculationType,
+        string calculationOrigin,
+        string? versionLabel)
     {
         Id = id;
         TenantId = tenantId;
+        OfficeBranchId = NormalizeOptional(officeBranchId);
+        OpportunityId = opportunityId;
+        InsuranceBranchId = insuranceBranchId;
+        InsuredPersonId = insuredPersonId;
+        CalculationType = NormalizeRequired(calculationType, "AUTO");
+        CalculationOrigin = NormalizeRequired(calculationOrigin, "PROPRIO");
+        VersionLabel = NormalizeOptional(versionLabel);
         CorrelationId = correlationId;
         CustomerName = customerName;
         DocumentNumber = documentNumber;
@@ -163,7 +184,14 @@ public class QuoteRequest : AggregateRoot
         bool isCurrentlyInsured,
         string? previousBonus,
         int? brokerCommissionPercentage,
-        int? renewalInsurerCode)
+        int? renewalInsurerCode,
+        string? officeBranchId = null,
+        Guid? opportunityId = null,
+        Guid? insuranceBranchId = null,
+        Guid? insuredPersonId = null,
+        string calculationType = "AUTO",
+        string calculationOrigin = "PROPRIO",
+        string? versionLabel = null)
     {
         return new QuoteRequest(
             Guid.NewGuid(),
@@ -200,7 +228,24 @@ public class QuoteRequest : AggregateRoot
             isCurrentlyInsured,
             previousBonus,
             brokerCommissionPercentage,
-            renewalInsurerCode);
+            renewalInsurerCode,
+            officeBranchId,
+            opportunityId,
+            insuranceBranchId,
+            insuredPersonId,
+            calculationType,
+            calculationOrigin,
+            versionLabel);
+    }
+
+    private static string NormalizeRequired(string? value, string fallback)
+    {
+        return string.IsNullOrWhiteSpace(value) ? fallback : value.Trim().ToUpperInvariant();
+    }
+
+    private static string? NormalizeOptional(string? value)
+    {
+        return string.IsNullOrWhiteSpace(value) ? null : value.Trim();
     }
 
     public void MarkAsProcessing()

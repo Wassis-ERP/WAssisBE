@@ -15,6 +15,20 @@ namespace WAssis.Services.Api.Modules.Quotes.Controllers;
 [Authorize(Policy = AccessPolicies.BrokerageStaff)]
 public sealed class QuoteRequestsController(IMediator mediator) : ControllerBase
 {
+    [HttpGet]
+    [ProducesResponseType(typeof(IReadOnlyCollection<QuoteResponseViewModel>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> List(
+        [FromQuery] Guid? opportunityId,
+        [FromQuery] string? officeBranchId,
+        CancellationToken cancellationToken)
+    {
+        var response = await mediator.Send(
+            new ListQuoteCalculationsQuery(opportunityId, officeBranchId),
+            cancellationToken);
+
+        return Ok(response.Select(ToViewModel));
+    }
+
     [HttpPost]
     [ProducesResponseType(typeof(QuoteResponseViewModel), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create(
@@ -54,7 +68,14 @@ public sealed class QuoteRequestsController(IMediator mediator) : ControllerBase
             request.IsCurrentlyInsured,
             request.PreviousBonus,
             request.BrokerCommissionPercentage,
-            request.RenewalInsurerCode);
+            request.RenewalInsurerCode,
+            request.OfficeBranchId,
+            request.OpportunityId,
+            request.InsuranceBranchId,
+            request.InsuredPersonId,
+            request.CalculationType,
+            request.CalculationOrigin,
+            request.VersionLabel);
 
         var response = await mediator.Send(command, cancellationToken);
 
@@ -112,6 +133,13 @@ public sealed class QuoteRequestsController(IMediator mediator) : ControllerBase
     {
         return new QuoteResponseViewModel(
             response.Id,
+            response.OfficeBranchId,
+            response.OpportunityId,
+            response.InsuranceBranchId,
+            response.InsuredPersonId,
+            response.CalculationType,
+            response.CalculationOrigin,
+            response.VersionLabel,
             response.CorrelationId,
             response.CustomerName,
             response.DocumentNumber,

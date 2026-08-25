@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
+using Microsoft.Extensions.Hosting;
 using WAssis.Application.Modules.Billing.Interfaces;
 using WAssis.Application.Modules.Customers.Interfaces;
 using WAssis.Application.Modules.Core.Interfaces;
@@ -46,10 +47,22 @@ public static class InfraDataServiceCollectionExtensions
     private static readonly TimeSpan ExternalAttemptTimeout = TimeSpan.FromSeconds(15);
     private static readonly TimeSpan ExternalRequestTimeout = TimeSpan.FromSeconds(45);
 
-    public static IServiceCollection AddInfraDataServices(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddInfraDataServices(
+        this IServiceCollection services,
+        IConfiguration configuration,
+        IHostEnvironment hostEnvironment)
     {
-        var connectionString = configuration.GetConnectionString("DefaultConnection")
-            ?? "Host=localhost;Port=5432;Database=wassis;Username=postgres;Password=postgres";
+        var connectionString = configuration.GetConnectionString("DefaultConnection");
+        if (string.IsNullOrWhiteSpace(connectionString))
+        {
+            if (!hostEnvironment.IsDevelopment())
+            {
+                throw new InvalidOperationException(
+                    "ConnectionStrings:DefaultConnection must be configured outside Development.");
+            }
+
+            connectionString = "Host=localhost;Port=5432;Database=wassis;Username=postgres;Password=postgres";
+        }
 
         services.AddDbContext<WAssisDbContext>(options =>
             options.UseNpgsql(connectionString, npgsqlOptions =>
@@ -77,6 +90,7 @@ public static class InfraDataServiceCollectionExtensions
             configuration.GetSection(JustosAutoQuoteOptions.SectionName).Bind(options));
         services.AddScoped<IBillingRepository, BillingRepository>();
         services.AddScoped<ICoreBranchReadRepository, CoreBranchReadRepository>();
+        services.AddScoped<ICoreCatalogReadRepository, CoreCatalogReadRepository>();
         services.AddScoped<IInsuredPersonRepository, InsuredPersonRepository>();
         services.AddScoped<IOpportunityRepository, OpportunityRepository>();
         services.AddScoped<IDocumentSearchRepository, DocumentSearchRepository>();

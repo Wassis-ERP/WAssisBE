@@ -1,6 +1,7 @@
 ﻿using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.RateLimiting;
 using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Identity.Commands;
 using WAssis.Application.Modules.Identity.Dtos;
@@ -17,6 +18,7 @@ namespace WAssis.Services.Api.Modules.Identity.Controllers;
 public sealed class IdentityController(ICurrentUserContext currentUserContext, IMediator mediator) : ControllerBase
 {
     [AllowAnonymous]
+    [EnableRateLimiting("login")]
     [HttpPost("login")]
     [ProducesResponseType(typeof(LoginResponseViewModel), StatusCodes.Status200OK)]
     public async Task<IActionResult> Login([FromBody] LoginRequest request, CancellationToken cancellationToken)

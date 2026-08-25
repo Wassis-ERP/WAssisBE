@@ -13,6 +13,10 @@ public sealed class QuoteRequestMap : IEntityTypeConfiguration<QuoteRequest>
         builder.HasKey(x => x.Id);
 
         builder.Property(x => x.TenantId).HasMaxLength(64).IsRequired();
+        builder.Property(x => x.OfficeBranchId).HasMaxLength(64);
+        builder.Property(x => x.CalculationType).HasMaxLength(32).HasDefaultValue("AUTO").IsRequired();
+        builder.Property(x => x.CalculationOrigin).HasMaxLength(32).HasDefaultValue("PROPRIO").IsRequired();
+        builder.Property(x => x.VersionLabel).HasMaxLength(200);
         builder.Property(x => x.CorrelationId).HasMaxLength(64).IsRequired();
         builder.Property(x => x.CustomerName).HasMaxLength(200).IsRequired();
         builder.Property(x => x.DocumentNumber).HasMaxLength(32).IsRequired();
@@ -36,6 +40,7 @@ public sealed class QuoteRequestMap : IEntityTypeConfiguration<QuoteRequest>
         builder.Property(x => x.Status).HasConversion<int>().IsRequired();
         builder.Property(x => x.CreatedAtUtc).IsRequired();
         builder.HasIndex(x => new { x.TenantId, x.CorrelationId }).IsUnique();
+        builder.HasIndex(x => new { x.TenantId, x.OfficeBranchId, x.OpportunityId });
 
         builder.HasMany(x => x.Options)
             .WithOne()
