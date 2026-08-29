@@ -26,6 +26,8 @@ RUN dotnet publish src/WAssis.Services.Api/WAssis.Services.Api.csproj \
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
 WORKDIR /app
 
+ARG BUILD_SHA=local
+ENV BUILD_SHA=$BUILD_SHA
 ENV ASPNETCORE_URLS=http://+:8080
 EXPOSE 8080
 

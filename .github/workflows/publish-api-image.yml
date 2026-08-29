@@ -21,6 +21,8 @@ permissions:
 
 env:
   IMAGE_NAME: ghcr.io/wassis-erp/wassisbe-api
+  HML_API_BASE_URL: https://api20-hml.wassis.com.br
+  PROD_API_BASE_URL: https://api20.wassis.com.br
 
 jobs:
   publish:
@@ -40,13 +42,16 @@ jobs:
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             if [ "${{ inputs.environment }}" = "prod" ]; then
               echo "tag=latest" >> "$GITHUB_OUTPUT"
+              echo "health_url=${PROD_API_BASE_URL}/health/ready" >> "$GITHUB_OUTPUT"
               echo "webhook_url=${PROD_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
             else
               echo "tag=hml" >> "$GITHUB_OUTPUT"
+              echo "health_url=${HML_API_BASE_URL}/health/ready" >> "$GITHUB_OUTPUT"
               echo "webhook_url=${HML_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
             fi
           else
             echo "tag=hml" >> "$GITHUB_OUTPUT"
+            echo "health_url=${{ env.HML_API_BASE_URL }}/health/ready" >> "$GITHUB_OUTPUT"
             echo "webhook_url=${HML_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
           fi
 
@@ -67,6 +72,8 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          build-args: |
+            BUILD_SHA=${{ github.sha }}
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
@@ -121,3 +128,22 @@ jobs:
             echo "- Digest: \`${{ steps.build.outputs.digest }}\`"
             echo "- Webhook response: HTTP ${status_code}"
           } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Verify deployed API and database
+        env:
+          HEALTH_URL: ${{ steps.meta.outputs.health_url }}
+        run: |
+          for attempt in $(seq 1 18); do
+            response_file="$(mktemp)"
+            status_code="$(curl --silent --show-error --location --max-time 10 --output "$response_file" --write-out '%{http_code}' "$HEALTH_URL" || true)"
+            response_body="$(cat "$response_file")"
+            rm -f "$response_file"
+            if [ "$status_code" = "200" ] && printf '%s' "$response_body" | grep --fixed-strings --quiet "\"buildSha\":\"${GITHUB_SHA}\""; then
+              printf '%s\n' "$response_body"
+              exit 0
+            fi
+            echo "Waiting for API and migrations (${attempt}/18): HTTP ${status_code} ${response_body}"
+            sleep 5
+          done
+          echo "::error::API/database readiness did not become healthy after the Portainer redeploy."
+          exit 1
