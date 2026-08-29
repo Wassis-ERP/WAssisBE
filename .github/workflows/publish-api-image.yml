@@ -72,6 +72,8 @@ jobs:
           context: .
           file: ./Dockerfile
           push: true
+          build-args: |
+            BUILD_SHA=${{ github.sha }}
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
@@ -136,7 +138,7 @@ jobs:
             status_code="$(curl --silent --show-error --location --max-time 10 --output "$response_file" --write-out '%{http_code}' "$HEALTH_URL" || true)"
             response_body="$(cat "$response_file")"
             rm -f "$response_file"
-            if [ "$status_code" = "200" ]; then
+            if [ "$status_code" = "200" ] && printf '%s' "$response_body" | grep --fixed-strings --quiet "\"buildSha\":\"${GITHUB_SHA}\""; then
               printf '%s\n' "$response_body"
               exit 0
             fi

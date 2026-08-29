@@ -60,6 +60,7 @@ builder.Services.Configure<ApiBehaviorOptions>(options =>
 NativeInjectorBootStrapper.RegisterServices(builder.Services, builder.Configuration, builder.Environment);
 
 var app = builder.Build();
+var buildSha = app.Configuration["BUILD_SHA"] ?? "local";
 
 if (app.Configuration.GetValue<bool>("Database:AutoMigrate"))
 {
@@ -89,7 +90,7 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapGet("/health", () => Results.Ok(new { service = "WAssis.Services.Api", status = "ok" })).AllowAnonymous();
+app.MapGet("/health", () => Results.Ok(new { service = "WAssis.Services.Api", status = "ok", buildSha })).AllowAnonymous();
 app.MapGet("/health/ready", async (WAssisDbContext dbContext, CancellationToken cancellationToken) =>
 {
     try
@@ -106,7 +107,7 @@ app.MapGet("/health/ready", async (WAssisDbContext dbContext, CancellationToken 
             .ToArray();
 
         return pendingMigrations.Length == 0
-            ? Results.Ok(new { status = "ready" })
+            ? Results.Ok(new { status = "ready", buildSha })
             : Results.Json(
                 new { status = "migrations_pending", pendingMigrations },
                 statusCode: StatusCodes.Status503ServiceUnavailable);
