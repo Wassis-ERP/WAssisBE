@@ -61,6 +61,15 @@ NativeInjectorBootStrapper.RegisterServices(builder.Services, builder.Configurat
 
 var app = builder.Build();
 
+if (app.Configuration.GetValue<bool>("Database:AutoMigrate"))
+{
+    await using var scope = app.Services.CreateAsyncScope();
+    var dbContext = scope.ServiceProvider.GetRequiredService<WAssisDbContext>();
+    Log.Information("Applying pending database migrations before the API starts");
+    await dbContext.Database.MigrateAsync();
+    Log.Information("Database migrations are up to date");
+}
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -83,10 +92,32 @@ app.MapControllers();
 app.MapGet("/health", () => Results.Ok(new { service = "WAssis.Services.Api", status = "ok" })).AllowAnonymous();
 app.MapGet("/health/ready", async (WAssisDbContext dbContext, CancellationToken cancellationToken) =>
 {
-    var canConnect = await dbContext.Database.CanConnectAsync(cancellationToken);
-    return canConnect
-        ? Results.Ok(new { status = "ready" })
-        : Results.StatusCode(StatusCodes.Status503ServiceUnavailable);
+    try
+    {
+        if (!await dbContext.Database.CanConnectAsync(cancellationToken))
+        {
+            return Results.Json(
+                new { status = "database_unavailable" },
+                statusCode: StatusCodes.Status503ServiceUnavailable);
+        }
+
+        var pendingMigrations = (await dbContext.Database
+            .GetPendingMigrationsAsync(cancellationToken))
+            .ToArray();
+
+        return pendingMigrations.Length == 0
+            ? Results.Ok(new { status = "ready" })
+            : Results.Json(
+                new { status = "migrations_pending", pendingMigrations },
+                statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
+    catch (Exception exception)
+    {
+        Log.Warning(exception, "Database readiness check failed");
+        return Results.Json(
+            new { status = "database_unavailable" },
+            statusCode: StatusCodes.Status503ServiceUnavailable);
+    }
 }).AllowAnonymous();
 
 app.Run();
