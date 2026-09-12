@@ -256,7 +256,7 @@ ALTER TABLE erp.pipeline_stages
 ALTER TABLE erp.oportunidades
   ADD COLUMN nome text,
   ADD COLUMN status text NOT NULL DEFAULT 'ABERTA',
-  ADD COLUMN responsavel_id uuid,
+  ADD COLUMN IF NOT EXISTS responsavel_id uuid,
   ADD COLUMN created_at timestamp with time zone NOT NULL DEFAULT now(),
   ADD COLUMN updated_at timestamp with time zone NOT NULL DEFAULT now();
 
