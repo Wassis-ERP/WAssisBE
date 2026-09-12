@@ -1,4 +1,4 @@
-using MediatR;
+using WAssis.Application.Abstractions.Messaging;
 using WAssis.Application.Modules.Opportunities.Dtos;
 
 namespace WAssis.Application.Modules.Opportunities.Commands;
@@ -24,4 +24,22 @@ public sealed record CreateOpportunityCommand(
     DateTime? NextFollowUpUtc,
     string? Referrer,
     string? Notes,
-    string? MetadataJson) : IRequest<OpportunityDto>;
+    string? MetadataJson,
+    Guid? OriginPolicyId = null,
+    string? LeadName = null,
+    string? LeadDocumentNumber = null,
+    string? LeadEmail = null,
+    string? LeadPhoneNumber = null,
+    string? Title = null,
+    string? Description = null,
+    string? Priority = null,
+    decimal? EstimatedPremiumAmount = null,
+    decimal? EstimatedCommissionAmount = null,
+    decimal? EstimatedCommissionPercentage = null,
+    DateOnly? OpenedOn = null,
+    DateOnly? ExpectedCloseDate = null,
+    DateTime? WonAtUtc = null,
+    DateTime? LostAtUtc = null,
+    string? LossReasonNotes = null,
+    string? Campaign = null,
+    string? InternalNotes = null) : ICommand<OpportunityDto>;

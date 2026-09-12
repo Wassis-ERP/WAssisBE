@@ -22,17 +22,17 @@ dotnet run --project src\WAssis.Services.Api\WAssis.Services.Api.csproj
 
 ### Homologacao
 
-- PostgreSQL gerenciado, separado de producao
+- PostgreSQL gerenciado e exclusivo de homologacao
 - API em container
 - frontends apontando para a URL publica da API
-- migrations aplicadas antes do deploy da API
+- migrations aplicadas por tarefa singleton antes do deploy da API
 
 ### Producao
 
 - PostgreSQL gerenciado com backup automatico e PITR quando disponivel
 - API em container com health check em `/health/ready`
 - segredos somente no provedor de deploy
-- migrations aplicadas em etapa controlada; homologacao pode habilitar o modo opt-in de startup depois da revisao
+- migrations aplicadas por tarefa singleton em etapa controlada
 
 ## Connection string
 
@@ -47,7 +47,7 @@ Em producao, nao usar usuario `postgres` como usuario da aplicacao. Criar um usu
 ## Segredos obrigatorios
 
 - `ConnectionStrings__DefaultConnection`
-- `Database__AutoMigrate` (`true` somente no servico de homologacao quando o deploy deve aplicar migrations antes de servir trafego)
+- `Database__AutoMigrate=false` em HML e PRD
 - `Identity__Jwt__SigningKey`
 - `Identity__Jwt__RequireHttpsMetadata=true`
 - `Frontend__AllowedOrigins__0=https://...`
@@ -73,7 +73,17 @@ docker run --rm -p 8080:8080 `
 
 1. Build e testes passam no GitHub Actions.
 2. Backup do banco de destino.
-3. Aplicar migrations EF.
+3. Executar uma tarefa única usando a mesma imagem da release:
+
+```text
+dotnet WAssis.Services.Api.dll --migrate
+```
+
+4. Confirmar o término bem-sucedido da tarefa de migration.
+5. Publicar/atualizar as réplicas da API.
+6. Verificar `/health` e `/health/ready`, conferindo `buildSha` e `instance`.
+7. Atualizar `VITE_API_BASE_URL` nos frontends se a URL da API mudar.
+8. Validar login e `/api/identity/me`.
 
 ## Banco limpo de homologacao
 
@@ -81,15 +91,14 @@ Use um nome PostgreSQL simples, sem ponto, para evitar identificadores que exige
 
 1. Crie o database vazio no mesmo servidor PostgreSQL: `CREATE DATABASE wassis_hml;`.
 2. No servico HML da API no Portainer, altere `ConnectionStrings__DefaultConnection` para usar `Database=wassis_hml`.
-3. Ainda somente no servico HML, configure `Database__AutoMigrate=true`.
-4. Force o redeploy da imagem `hml`. A API aplica todas as migrations pendentes antes de abrir para trafego.
-5. Confirme `GET /health/ready`: HTTP 200 significa conexao valida e nenhuma migration pendente.
+3. Mantenha `Database__AutoMigrate=false` no serviço HML.
+4. Execute uma tarefa única da imagem `hml` com o argumento `--migrate` e aguarde código de saída zero.
+5. Force o redeploy da API somente depois da migration.
+6. Confirme `GET /health/ready`: HTTP 200 significa conexão válida e nenhuma migration pendente.
 
 O workflow de publicacao consulta `/health/ready` depois do webhook e falha caso o container, o banco ou as migrations nao fiquem prontos.
-4. Publicar nova imagem da API.
-5. Verificar `/health` e `/health/ready`.
-6. Atualizar `VITE_API_BASE_URL` nos frontends se a URL da API mudar.
-7. Validar login e `/api/identity/me`.
+
+Não escale a API para duas réplicas enquanto HML e PRD não tiverem bancos e identidade próprios. Consulte [`scalability-cqrs-roadmap.md`](scalability-cqrs-roadmap.md).
 
 ## Pendencias da migracao Supabase -> WAssisBE
 

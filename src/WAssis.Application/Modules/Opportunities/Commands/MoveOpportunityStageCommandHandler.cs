@@ -9,7 +9,7 @@ public sealed class MoveOpportunityStageCommandHandler(IOpportunityRepository re
 {
     public async Task<OpportunityDto?> Handle(MoveOpportunityStageCommand request, CancellationToken cancellationToken)
     {
-        var opportunity = await repository.GetByIdAsync(request.Id, cancellationToken);
+        var opportunity = await repository.GetForUpdateAsync(request.Id, cancellationToken);
         if (opportunity is null)
         {
             return null;

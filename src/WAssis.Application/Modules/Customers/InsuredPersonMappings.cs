@@ -37,6 +37,21 @@ internal static class InsuredPersonMappings
             insuredPerson.LgpdAuthorized,
             insuredPerson.CreatedBy,
             insuredPerson.CreatedAtUtc,
-            insuredPerson.UpdatedAtUtc);
+            insuredPerson.UpdatedAtUtc,
+            insuredPerson.SocialName,
+            insuredPerson.IdentityDocument,
+            insuredPerson.MunicipalRegistration,
+            insuredPerson.EconomicActivity,
+            insuredPerson.Profession,
+            insuredPerson.MonthlyIncome,
+            insuredPerson.DriverLicenseNumber,
+            insuredPerson.DriverLicenseCategory,
+            insuredPerson.DriverLicenseExpirationDate,
+            insuredPerson.MobilePhoneNumber,
+            insuredPerson.SecondaryPhoneNumber,
+            insuredPerson.WhatsAppNumber,
+            insuredPerson.Country,
+            insuredPerson.LgpdAuthorizedAtUtc,
+            insuredPerson.ImportOrigin);
     }
 }

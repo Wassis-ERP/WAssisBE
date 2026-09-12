@@ -6,6 +6,7 @@ using System.Threading.RateLimiting;
 using WAssis.Infra.CrossCutting.IoC;
 using WAssis.Infra.Data.Context;
 using WAssis.Services.Api.Infrastructure;
+using WAssis.Services.Api.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
 const string FrontendCorsPolicy = "FrontendCorsPolicy";
@@ -17,8 +18,10 @@ builder.WebHost.ConfigureKestrel(options =>
 
 builder.Host.UseSerilog((context, configuration) =>
     configuration.ReadFrom.Configuration(context.Configuration));
+builder.Host.ConfigureHostOptions(options => options.ShutdownTimeout = TimeSpan.FromSeconds(30));
 
 builder.Services.AddControllers();
+builder.Services.AddConfiguredForwardedHeaders(builder.Configuration);
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddRateLimiter(options =>
@@ -61,15 +64,35 @@ NativeInjectorBootStrapper.RegisterServices(builder.Services, builder.Configurat
 
 var app = builder.Build();
 var buildSha = app.Configuration["BUILD_SHA"] ?? "local";
+var instance = Environment.GetEnvironmentVariable("HOSTNAME") ?? Environment.MachineName;
+var migrateOnly = args.Contains("--migrate", StringComparer.OrdinalIgnoreCase);
+
+if (migrateOnly)
+{
+    await using var migrationScope = app.Services.CreateAsyncScope();
+    var migrationDbContext = migrationScope.ServiceProvider.GetRequiredService<WAssisDbContext>();
+    Log.Information("Applying pending database migrations in one-shot mode");
+    await migrationDbContext.Database.MigrateAsync();
+    Log.Information("Database migrations are up to date");
+    return;
+}
 
 if (app.Configuration.GetValue<bool>("Database:AutoMigrate"))
 {
+    if (!app.Environment.IsDevelopment())
+    {
+        throw new InvalidOperationException(
+            "Database:AutoMigrate is restricted to Development. Run this image once with --migrate before deploying replicas.");
+    }
+
     await using var scope = app.Services.CreateAsyncScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<WAssisDbContext>();
     Log.Information("Applying pending database migrations before the API starts");
     await dbContext.Database.MigrateAsync();
     Log.Information("Database migrations are up to date");
 }
+
+app.UseForwardedHeaders();
 
 if (app.Environment.IsDevelopment())
 {
@@ -90,7 +113,7 @@ app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
-app.MapGet("/health", () => Results.Ok(new { service = "WAssis.Services.Api", status = "ok", buildSha })).AllowAnonymous();
+app.MapGet("/health", () => Results.Ok(new { service = "WAssis.Services.Api", status = "ok", buildSha, instance })).AllowAnonymous();
 app.MapGet("/health/ready", async (WAssisDbContext dbContext, CancellationToken cancellationToken) =>
 {
     try
@@ -107,7 +130,7 @@ app.MapGet("/health/ready", async (WAssisDbContext dbContext, CancellationToken 
             .ToArray();
 
         return pendingMigrations.Length == 0
-            ? Results.Ok(new { status = "ready", buildSha })
+            ? Results.Ok(new { status = "ready", buildSha, instance })
             : Results.Json(
                 new { status = "migrations_pending", pendingMigrations },
                 statusCode: StatusCodes.Status503ServiceUnavailable);

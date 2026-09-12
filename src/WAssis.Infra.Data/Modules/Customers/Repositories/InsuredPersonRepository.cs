@@ -5,16 +5,24 @@ using WAssis.Infra.Data.Context;
 
 namespace WAssis.Infra.Data.Modules.Customers.Repositories;
 
-public sealed class InsuredPersonRepository(WAssisDbContext dbContext) : IInsuredPersonRepository
+public sealed class InsuredPersonRepository(WAssisDbContext dbContext)
+    : IInsuredPersonRepository, IInsuredPersonReadRepository
 {
     public async Task AddAsync(InsuredPerson insuredPerson, CancellationToken cancellationToken)
     {
         await dbContext.InsuredPeople.AddAsync(insuredPerson, cancellationToken);
     }
 
-    public Task<InsuredPerson?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    public Task<InsuredPerson?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken)
     {
         return dbContext.InsuredPeople.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+    }
+
+    public Task<InsuredPerson?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return dbContext.InsuredPeople
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<InsuredPerson>> ListAsync(string? search, string? status, CancellationToken cancellationToken)

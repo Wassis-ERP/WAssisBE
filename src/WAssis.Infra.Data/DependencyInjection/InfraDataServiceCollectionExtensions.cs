@@ -39,6 +39,7 @@ using WAssis.Infra.Data.Modules.Opportunities.Repositories;
 using WAssis.Infra.Data.Modules.Policies.Repositories;
 using WAssis.Infra.Data.Modules.Quotes.Repositories;
 using WAssis.Infra.Data.Modules.WhatsAppSupport.Repositories;
+using WAssis.Infra.Data.Transactions;
 
 namespace WAssis.Infra.Data.DependencyInjection;
 
@@ -92,7 +93,9 @@ public static class InfraDataServiceCollectionExtensions
         services.AddScoped<ICoreBranchReadRepository, CoreBranchReadRepository>();
         services.AddScoped<ICoreCatalogReadRepository, CoreCatalogReadRepository>();
         services.AddScoped<IInsuredPersonRepository, InsuredPersonRepository>();
+        services.AddScoped<IInsuredPersonReadRepository, InsuredPersonRepository>();
         services.AddScoped<IOpportunityRepository, OpportunityRepository>();
+        services.AddScoped<IOpportunityReadRepository, OpportunityRepository>();
         services.AddScoped<IDocumentSearchRepository, DocumentSearchRepository>();
         services.AddScoped<IImportedDocumentRepository, ImportedDocumentRepository>();
         services.AddScoped<ICommissionReceiptRepository, CommissionReceiptRepository>();
@@ -103,6 +106,7 @@ public static class InfraDataServiceCollectionExtensions
         services.AddScoped<IQuoteRequestRepository, QuoteRequestRepository>();
         services.AddScoped<IWhatsAppConversationRepository, WhatsAppConversationRepository>();
         services.AddScoped<IAuditTrailWriter, AuditTrailWriter>();
+        services.AddScoped<IApplicationTransaction, EfApplicationTransaction>();
         services.AddHttpClient<AggilizadorAutoQuoteClient>((serviceProvider, client) =>
         {
             var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<AggilizadorAutoQuoteOptions>>().Value;

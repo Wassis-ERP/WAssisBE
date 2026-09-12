@@ -35,7 +35,25 @@ public sealed class CreateOpportunityCommandHandler(
             request.NextFollowUpUtc,
             request.Referrer,
             request.Notes,
-            request.MetadataJson);
+            request.MetadataJson,
+            request.OriginPolicyId,
+            request.LeadName,
+            request.LeadDocumentNumber,
+            request.LeadEmail,
+            request.LeadPhoneNumber,
+            request.Title,
+            request.Description,
+            request.Priority,
+            request.EstimatedPremiumAmount,
+            request.EstimatedCommissionAmount,
+            request.EstimatedCommissionPercentage,
+            request.OpenedOn,
+            request.ExpectedCloseDate,
+            request.WonAtUtc,
+            request.LostAtUtc,
+            request.LossReasonNotes,
+            request.Campaign,
+            request.InternalNotes);
 
         await repository.AddAsync(opportunity, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);

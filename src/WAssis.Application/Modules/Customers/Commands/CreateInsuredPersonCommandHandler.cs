@@ -41,7 +41,22 @@ public sealed class CreateInsuredPersonCommandHandler(
             request.ManagerId,
             request.ChatwootId,
             request.LgpdAuthorized,
-            currentUserContext.UserId);
+            currentUserContext.UserId,
+            request.SocialName,
+            request.IdentityDocument,
+            request.MunicipalRegistration,
+            request.EconomicActivity,
+            request.Profession,
+            request.MonthlyIncome,
+            request.DriverLicenseNumber,
+            request.DriverLicenseCategory,
+            request.DriverLicenseExpirationDate,
+            request.MobilePhoneNumber,
+            request.SecondaryPhoneNumber,
+            request.WhatsAppNumber,
+            request.Country,
+            request.LgpdAuthorizedAtUtc,
+            request.ImportOrigin);
 
         await repository.AddAsync(insuredPerson, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);

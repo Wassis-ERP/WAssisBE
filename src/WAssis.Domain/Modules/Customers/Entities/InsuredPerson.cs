@@ -7,17 +7,29 @@ public class InsuredPerson : AggregateRoot
     public string TenantId { get; private set; } = string.Empty;
     public string? OfficeBranchId { get; private set; }
     public string Name { get; private set; } = string.Empty;
+    public string? SocialName { get; private set; }
     public string PersonType { get; private set; } = "PF";
     public string Status { get; private set; } = "Ativo";
     public string? DocumentNumber { get; private set; }
+    public string? IdentityDocument { get; private set; }
+    public string? MunicipalRegistration { get; private set; }
     public string? Email { get; private set; }
     public string? PhoneNumber { get; private set; }
+    public string? MobilePhoneNumber { get; private set; }
+    public string? SecondaryPhoneNumber { get; private set; }
+    public string? WhatsAppNumber { get; private set; }
     public DateTime? BirthDateUtc { get; private set; }
     public string? TradeName { get; private set; }
     public string? Gender { get; private set; }
     public string? MaritalStatus { get; private set; }
     public string? CompanySize { get; private set; }
     public string? Cnae { get; private set; }
+    public string? EconomicActivity { get; private set; }
+    public string? Profession { get; private set; }
+    public decimal? MonthlyIncome { get; private set; }
+    public string? DriverLicenseNumber { get; private set; }
+    public string? DriverLicenseCategory { get; private set; }
+    public DateTime? DriverLicenseExpirationDate { get; private set; }
     public string? Website { get; private set; }
     public string? PostalCode { get; private set; }
     public string? Street { get; private set; }
@@ -26,11 +38,14 @@ public class InsuredPerson : AggregateRoot
     public string? Neighborhood { get; private set; }
     public string? City { get; private set; }
     public string? State { get; private set; }
+    public string? Country { get; private set; }
     public string? Notes { get; private set; }
     public string? ProducerId { get; private set; }
     public string? ManagerId { get; private set; }
     public string? ChatwootId { get; private set; }
     public bool LgpdAuthorized { get; private set; }
+    public DateTime? LgpdAuthorizedAtUtc { get; private set; }
+    public string? ImportOrigin { get; private set; }
     public string? CreatedBy { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime UpdatedAtUtc { get; private set; }
@@ -68,7 +83,22 @@ public class InsuredPerson : AggregateRoot
         string? managerId,
         string? chatwootId,
         bool lgpdAuthorized,
-        string? createdBy)
+        string? createdBy,
+        string? socialName,
+        string? identityDocument,
+        string? municipalRegistration,
+        string? economicActivity,
+        string? profession,
+        decimal? monthlyIncome,
+        string? driverLicenseNumber,
+        string? driverLicenseCategory,
+        DateTime? driverLicenseExpirationDate,
+        string? mobilePhoneNumber,
+        string? secondaryPhoneNumber,
+        string? whatsAppNumber,
+        string? country,
+        DateTime? lgpdAuthorizedAtUtc,
+        string? importOrigin)
     {
         Id = id;
         TenantId = tenantId;
@@ -101,7 +131,22 @@ public class InsuredPerson : AggregateRoot
             producerId,
             managerId,
             chatwootId,
-            lgpdAuthorized);
+            lgpdAuthorized,
+            socialName,
+            identityDocument,
+            municipalRegistration,
+            economicActivity,
+            profession,
+            monthlyIncome,
+            driverLicenseNumber,
+            driverLicenseCategory,
+            driverLicenseExpirationDate,
+            mobilePhoneNumber,
+            secondaryPhoneNumber,
+            whatsAppNumber,
+            country,
+            lgpdAuthorizedAtUtc,
+            importOrigin);
         UpdatedAtUtc = CreatedAtUtc;
     }
 
@@ -133,7 +178,22 @@ public class InsuredPerson : AggregateRoot
         string? managerId,
         string? chatwootId,
         bool lgpdAuthorized,
-        string? createdBy)
+        string? createdBy,
+        string? socialName = null,
+        string? identityDocument = null,
+        string? municipalRegistration = null,
+        string? economicActivity = null,
+        string? profession = null,
+        decimal? monthlyIncome = null,
+        string? driverLicenseNumber = null,
+        string? driverLicenseCategory = null,
+        DateTime? driverLicenseExpirationDate = null,
+        string? mobilePhoneNumber = null,
+        string? secondaryPhoneNumber = null,
+        string? whatsAppNumber = null,
+        string? country = null,
+        DateTime? lgpdAuthorizedAtUtc = null,
+        string? importOrigin = null)
     {
         return new InsuredPerson(
             Guid.NewGuid(),
@@ -164,7 +224,22 @@ public class InsuredPerson : AggregateRoot
             managerId,
             chatwootId,
             lgpdAuthorized,
-            createdBy);
+            createdBy,
+            socialName,
+            identityDocument,
+            municipalRegistration,
+            economicActivity,
+            profession,
+            monthlyIncome,
+            driverLicenseNumber,
+            driverLicenseCategory,
+            driverLicenseExpirationDate,
+            mobilePhoneNumber,
+            secondaryPhoneNumber,
+            whatsAppNumber,
+            country,
+            lgpdAuthorizedAtUtc,
+            importOrigin);
     }
 
     public void Update(
@@ -193,21 +268,48 @@ public class InsuredPerson : AggregateRoot
         string? producerId,
         string? managerId,
         string? chatwootId,
-        bool lgpdAuthorized)
+        bool lgpdAuthorized,
+        string? socialName = null,
+        string? identityDocument = null,
+        string? municipalRegistration = null,
+        string? economicActivity = null,
+        string? profession = null,
+        decimal? monthlyIncome = null,
+        string? driverLicenseNumber = null,
+        string? driverLicenseCategory = null,
+        DateTime? driverLicenseExpirationDate = null,
+        string? mobilePhoneNumber = null,
+        string? secondaryPhoneNumber = null,
+        string? whatsAppNumber = null,
+        string? country = null,
+        DateTime? lgpdAuthorizedAtUtc = null,
+        string? importOrigin = null)
     {
         OfficeBranchId = Normalize(officeBranchId);
         Name = name.Trim();
+        SocialName = Normalize(socialName);
         PersonType = string.IsNullOrWhiteSpace(personType) ? "PF" : personType.Trim();
         Status = string.IsNullOrWhiteSpace(status) ? "Ativo" : status.Trim();
         DocumentNumber = Normalize(documentNumber);
+        IdentityDocument = Normalize(identityDocument);
+        MunicipalRegistration = Normalize(municipalRegistration);
         Email = Normalize(email);
         PhoneNumber = Normalize(phoneNumber);
+        MobilePhoneNumber = Normalize(mobilePhoneNumber);
+        SecondaryPhoneNumber = Normalize(secondaryPhoneNumber);
+        WhatsAppNumber = Normalize(whatsAppNumber);
         BirthDateUtc = birthDateUtc;
         TradeName = Normalize(tradeName);
         Gender = Normalize(gender);
         MaritalStatus = Normalize(maritalStatus);
         CompanySize = Normalize(companySize);
         Cnae = Normalize(cnae);
+        EconomicActivity = Normalize(economicActivity);
+        Profession = Normalize(profession);
+        MonthlyIncome = monthlyIncome;
+        DriverLicenseNumber = Normalize(driverLicenseNumber);
+        DriverLicenseCategory = Normalize(driverLicenseCategory);
+        DriverLicenseExpirationDate = driverLicenseExpirationDate?.Date;
         Website = Normalize(website);
         PostalCode = Normalize(postalCode);
         Street = Normalize(street);
@@ -216,11 +318,14 @@ public class InsuredPerson : AggregateRoot
         Neighborhood = Normalize(neighborhood);
         City = Normalize(city);
         State = Normalize(state);
+        Country = Normalize(country);
         Notes = Normalize(notes);
         ProducerId = Normalize(producerId);
         ManagerId = Normalize(managerId);
         ChatwootId = Normalize(chatwootId);
         LgpdAuthorized = lgpdAuthorized;
+        LgpdAuthorizedAtUtc = lgpdAuthorizedAtUtc;
+        ImportOrigin = Normalize(importOrigin);
         UpdatedAtUtc = DateTime.UtcNow;
     }
 

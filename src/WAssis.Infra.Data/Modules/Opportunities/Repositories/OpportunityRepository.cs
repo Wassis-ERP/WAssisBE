@@ -5,16 +5,24 @@ using WAssis.Infra.Data.Context;
 
 namespace WAssis.Infra.Data.Modules.Opportunities.Repositories;
 
-public sealed class OpportunityRepository(WAssisDbContext dbContext) : IOpportunityRepository
+public sealed class OpportunityRepository(WAssisDbContext dbContext)
+    : IOpportunityRepository, IOpportunityReadRepository
 {
     public async Task AddAsync(Opportunity opportunity, CancellationToken cancellationToken)
     {
         await dbContext.Opportunities.AddAsync(opportunity, cancellationToken);
     }
 
-    public Task<Opportunity?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    public Task<Opportunity?> GetForUpdateAsync(Guid id, CancellationToken cancellationToken)
     {
         return dbContext.Opportunities.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
+    }
+
+    public Task<Opportunity?> GetByIdAsync(Guid id, CancellationToken cancellationToken)
+    {
+        return dbContext.Opportunities
+            .AsNoTracking()
+            .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
     public async Task<IReadOnlyCollection<Opportunity>> ListAsync(string? pipelineId, string? stageId, string? status, CancellationToken cancellationToken)

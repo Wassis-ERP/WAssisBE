@@ -16,4 +16,14 @@ Do not use the webhook from a Git-backed stack. That endpoint only redeploys whe
 
 The workflow requires HTTP `202`, which is the service-webhook success response. A missing secret or a stack webhook now fails the workflow explicitly.
 
+## Migration and replicas
+
+Keep `Database__AutoMigrate=false` on the API service. Before updating replicas, run the target image once with:
+
+```text
+dotnet WAssis.Services.Api.dll --migrate
+```
+
+Only start the rollout after this task exits successfully. `/health` and `/health/ready` expose `buildSha` and `instance`; use both values to verify every task, not only one response routed by Traefik. Keep the background worker at one replica until durable claim/lease and idempotency are implemented.
+
 If the webhook returns `Error pulling image with the specified tag` and `unauthorized`, the image was built and pushed successfully. Configure `ghcr.io` under Portainer Registries with a GitHub user and a token containing `read:packages`, then associate that registry credential with the service/stack. Recreating the webhook alone does not fix registry authentication.

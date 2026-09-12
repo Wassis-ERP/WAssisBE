@@ -240,6 +240,11 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("character varying(120)")
                         .HasColumnName("complemento");
 
+                    b.Property<string>("Country")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("pais");
+
                     b.Property<DateTime>("CreatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
@@ -254,6 +259,25 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("character varying(32)")
                         .HasColumnName("cpf_cnpj");
 
+                    b.Property<string>("DriverLicenseCategory")
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("cnh_categoria");
+
+                    b.Property<DateTime?>("DriverLicenseExpirationDate")
+                        .HasColumnType("date")
+                        .HasColumnName("cnh_vencimento");
+
+                    b.Property<string>("DriverLicenseNumber")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("cnh_numero");
+
+                    b.Property<string>("EconomicActivity")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("atividade_economica");
+
                     b.Property<string>("Email")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
@@ -264,9 +288,23 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("character varying(16)")
                         .HasColumnName("sexo");
 
+                    b.Property<string>("IdentityDocument")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("rg_ie");
+
+                    b.Property<string>("ImportOrigin")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("origem_importacao");
+
                     b.Property<bool>("LgpdAuthorized")
                         .HasColumnType("boolean")
                         .HasColumnName("lgpd_autorizado");
+
+                    b.Property<DateTime?>("LgpdAuthorizedAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("lgpd_autorizado_em");
 
                     b.Property<string>("ManagerId")
                         .HasMaxLength(64)
@@ -277,6 +315,21 @@ namespace WAssis.Infra.Data.Migrations
                         .HasMaxLength(32)
                         .HasColumnType("character varying(32)")
                         .HasColumnName("estado_civil");
+
+                    b.Property<string>("MobilePhoneNumber")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("celular");
+
+                    b.Property<decimal?>("MonthlyIncome")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("renda_mensal");
+
+                    b.Property<string>("MunicipalRegistration")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("inscricao_municipal");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -325,6 +378,21 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("produtor_id");
 
+                    b.Property<string>("Profession")
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("profissao");
+
+                    b.Property<string>("SecondaryPhoneNumber")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("telefone2");
+
+                    b.Property<string>("SocialName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("nome_social");
+
                     b.Property<string>("State")
                         .HasMaxLength(2)
                         .HasColumnType("character varying(2)")
@@ -360,6 +428,11 @@ namespace WAssis.Infra.Data.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("site");
+
+                    b.Property<string>("WhatsAppNumber")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("whatsapp");
 
                     b.HasKey("Id");
 
@@ -621,6 +694,11 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("character varying(32)")
                         .HasColumnName("tipo_negocio");
 
+                    b.Property<string>("Campaign")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("campanha");
+
                     b.Property<decimal?>("CommissionPercentage")
                         .HasPrecision(9, 4)
                         .HasColumnType("numeric(9,4)")
@@ -638,6 +716,30 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<string>("Description")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("descricao");
+
+                    b.Property<decimal?>("EstimatedCommissionAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("valor_comissao_estimada");
+
+                    b.Property<decimal?>("EstimatedCommissionPercentage")
+                        .HasPrecision(9, 4)
+                        .HasColumnType("numeric(9,4)")
+                        .HasColumnName("comissao_estimada_pct");
+
+                    b.Property<decimal?>("EstimatedPremiumAmount")
+                        .HasPrecision(18, 2)
+                        .HasColumnType("numeric(18,2)")
+                        .HasColumnName("valor_premio_estimado");
+
+                    b.Property<DateOnly?>("ExpectedCloseDate")
+                        .HasColumnType("date")
+                        .HasColumnName("data_fechamento_prevista");
+
                     b.Property<string>("InsuranceLineId")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
@@ -652,10 +754,44 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("seguradora_id");
 
+                    b.Property<string>("InternalNotes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("observacoes_internas");
+
+                    b.Property<string>("LeadDocumentNumber")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("lead_documento");
+
+                    b.Property<string>("LeadEmail")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("lead_email");
+
+                    b.Property<string>("LeadName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("lead_nome");
+
+                    b.Property<string>("LeadPhoneNumber")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("lead_telefone");
+
                     b.Property<string>("LossReasonId")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("motivo_perda_id");
+
+                    b.Property<string>("LossReasonNotes")
+                        .HasMaxLength(2000)
+                        .HasColumnType("character varying(2000)")
+                        .HasColumnName("motivo_perda_observacao");
+
+                    b.Property<DateTime?>("LostAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("perdida_em");
 
                     b.Property<string>("MetadataJson")
                         .IsRequired()
@@ -689,15 +825,28 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("filial_id");
 
+                    b.Property<DateOnly?>("OpenedOn")
+                        .HasColumnType("date")
+                        .HasColumnName("data_abertura");
+
                     b.Property<string>("OriginId")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("origem_id");
 
+                    b.Property<Guid?>("OriginPolicyId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("apolice_origem_id");
+
                     b.Property<string>("PipelineId")
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("pipeline_id");
+
+                    b.Property<string>("Priority")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("prioridade");
 
                     b.Property<decimal?>("ProductionAmount")
                         .HasPrecision(18, 2)
@@ -732,6 +881,11 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("character varying(64)")
                         .HasColumnName("tenant_id");
 
+                    b.Property<string>("Title")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("titulo");
+
                     b.Property<DateTime>("UpdatedAtUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
@@ -743,6 +897,10 @@ namespace WAssis.Infra.Data.Migrations
                     b.Property<DateTime?>("ValidityStartUtc")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("vigencia_inicio");
+
+                    b.Property<DateTime?>("WonAtUtc")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("ganha_em");
 
                     b.HasKey("Id");
 

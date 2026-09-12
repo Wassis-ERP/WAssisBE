@@ -62,7 +62,22 @@ public sealed class InsuredPeopleController(IMediator mediator) : ControllerBase
             request.ProducerId,
             request.ManagerId,
             request.ChatwootId,
-            request.LgpdAuthorized ?? false), cancellationToken);
+            request.LgpdAuthorized ?? false,
+            request.SocialName,
+            request.IdentityDocument,
+            request.MunicipalRegistration,
+            request.EconomicActivity,
+            request.Profession,
+            request.MonthlyIncome,
+            request.DriverLicenseNumber,
+            request.DriverLicenseCategory,
+            request.DriverLicenseExpirationDate,
+            request.MobilePhoneNumber,
+            request.SecondaryPhoneNumber,
+            request.WhatsAppNumber,
+            request.Country,
+            request.LgpdAuthorizedAtUtc,
+            request.ImportOrigin), cancellationToken);
 
         return CreatedAtAction(nameof(GetById), new { id = response.Id }, ToViewModel(response));
     }
@@ -99,7 +114,22 @@ public sealed class InsuredPeopleController(IMediator mediator) : ControllerBase
             request.ProducerId,
             request.ManagerId,
             request.ChatwootId,
-            request.LgpdAuthorized ?? false), cancellationToken);
+            request.LgpdAuthorized ?? false,
+            request.SocialName,
+            request.IdentityDocument,
+            request.MunicipalRegistration,
+            request.EconomicActivity,
+            request.Profession,
+            request.MonthlyIncome,
+            request.DriverLicenseNumber,
+            request.DriverLicenseCategory,
+            request.DriverLicenseExpirationDate,
+            request.MobilePhoneNumber,
+            request.SecondaryPhoneNumber,
+            request.WhatsAppNumber,
+            request.Country,
+            request.LgpdAuthorizedAtUtc,
+            request.ImportOrigin), cancellationToken);
 
         return response is null ? NotFound() : Ok(ToViewModel(response));
     }
@@ -136,6 +166,21 @@ public sealed class InsuredPeopleController(IMediator mediator) : ControllerBase
             response.LgpdAuthorized,
             response.CreatedBy,
             response.CreatedAtUtc,
-            response.UpdatedAtUtc);
+            response.UpdatedAtUtc,
+            response.SocialName,
+            response.IdentityDocument,
+            response.MunicipalRegistration,
+            response.EconomicActivity,
+            response.Profession,
+            response.MonthlyIncome,
+            response.DriverLicenseNumber,
+            response.DriverLicenseCategory,
+            response.DriverLicenseExpirationDate,
+            response.MobilePhoneNumber,
+            response.SecondaryPhoneNumber,
+            response.WhatsAppNumber,
+            response.Country,
+            response.LgpdAuthorizedAtUtc,
+            response.ImportOrigin);
     }
 }

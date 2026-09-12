@@ -1,4 +1,4 @@
-using MediatR;
+using WAssis.Application.Abstractions.Messaging;
 using WAssis.Application.Modules.Customers.Dtos;
 
 namespace WAssis.Application.Modules.Customers.Commands;
@@ -29,4 +29,19 @@ public sealed record CreateInsuredPersonCommand(
     string? ProducerId,
     string? ManagerId,
     string? ChatwootId,
-    bool LgpdAuthorized) : IRequest<InsuredPersonDto>;
+    bool LgpdAuthorized,
+    string? SocialName = null,
+    string? IdentityDocument = null,
+    string? MunicipalRegistration = null,
+    string? EconomicActivity = null,
+    string? Profession = null,
+    decimal? MonthlyIncome = null,
+    string? DriverLicenseNumber = null,
+    string? DriverLicenseCategory = null,
+    DateTime? DriverLicenseExpirationDate = null,
+    string? MobilePhoneNumber = null,
+    string? SecondaryPhoneNumber = null,
+    string? WhatsAppNumber = null,
+    string? Country = null,
+    DateTime? LgpdAuthorizedAtUtc = null,
+    string? ImportOrigin = null) : ICommand<InsuredPersonDto>;

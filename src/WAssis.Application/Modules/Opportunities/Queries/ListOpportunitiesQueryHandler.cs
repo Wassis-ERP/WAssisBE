@@ -4,7 +4,7 @@ using WAssis.Application.Modules.Opportunities.Interfaces;
 
 namespace WAssis.Application.Modules.Opportunities.Queries;
 
-public sealed class ListOpportunitiesQueryHandler(IOpportunityRepository repository)
+public sealed class ListOpportunitiesQueryHandler(IOpportunityReadRepository repository)
     : IRequestHandler<ListOpportunitiesQuery, IReadOnlyCollection<OpportunityDto>>
 {
     public async Task<IReadOnlyCollection<OpportunityDto>> Handle(ListOpportunitiesQuery request, CancellationToken cancellationToken)

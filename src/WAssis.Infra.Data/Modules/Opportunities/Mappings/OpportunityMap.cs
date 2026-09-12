@@ -39,6 +39,24 @@ public sealed class OpportunityMap : IEntityTypeConfiguration<Opportunity>
         builder.Property(x => x.Referrer).HasColumnName("indicador").HasMaxLength(200);
         builder.Property(x => x.Notes).HasColumnName("observacoes").HasMaxLength(2000);
         builder.Property(x => x.MetadataJson).HasColumnName("metadata").HasColumnType("jsonb").HasDefaultValue("{}").IsRequired();
+        builder.Property(x => x.OriginPolicyId).HasColumnName("apolice_origem_id");
+        builder.Property(x => x.LeadName).HasColumnName("lead_nome").HasMaxLength(200);
+        builder.Property(x => x.LeadDocumentNumber).HasColumnName("lead_documento").HasMaxLength(32);
+        builder.Property(x => x.LeadEmail).HasColumnName("lead_email").HasMaxLength(200);
+        builder.Property(x => x.LeadPhoneNumber).HasColumnName("lead_telefone").HasMaxLength(32);
+        builder.Property(x => x.Title).HasColumnName("titulo").HasMaxLength(200);
+        builder.Property(x => x.Description).HasColumnName("descricao").HasMaxLength(2000);
+        builder.Property(x => x.Priority).HasColumnName("prioridade").HasMaxLength(32);
+        builder.Property(x => x.EstimatedPremiumAmount).HasColumnName("valor_premio_estimado").HasPrecision(18, 2);
+        builder.Property(x => x.EstimatedCommissionAmount).HasColumnName("valor_comissao_estimada").HasPrecision(18, 2);
+        builder.Property(x => x.EstimatedCommissionPercentage).HasColumnName("comissao_estimada_pct").HasPrecision(9, 4);
+        builder.Property(x => x.OpenedOn).HasColumnName("data_abertura").HasColumnType("date");
+        builder.Property(x => x.ExpectedCloseDate).HasColumnName("data_fechamento_prevista").HasColumnType("date");
+        builder.Property(x => x.WonAtUtc).HasColumnName("ganha_em");
+        builder.Property(x => x.LostAtUtc).HasColumnName("perdida_em");
+        builder.Property(x => x.LossReasonNotes).HasColumnName("motivo_perda_observacao").HasMaxLength(2000);
+        builder.Property(x => x.Campaign).HasColumnName("campanha").HasMaxLength(200);
+        builder.Property(x => x.InternalNotes).HasColumnName("observacoes_internas").HasMaxLength(2000);
         builder.Property(x => x.CreatedAtUtc).HasColumnName("created_at").IsRequired();
         builder.Property(x => x.UpdatedAtUtc).HasColumnName("updated_at").IsRequired();
 
