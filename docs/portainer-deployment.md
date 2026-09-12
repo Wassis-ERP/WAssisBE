@@ -14,7 +14,7 @@ Create the webhook from the running Docker service in Portainer. The workflow ap
 
 Do not use the webhook from a Git-backed stack. That endpoint only redeploys when the stack repository content changes, so publishing a new image under the same tag can return success without replacing the running task.
 
-The workflow requires HTTP `202`, which is the service-webhook success response. A missing secret or a stack webhook now fails the workflow explicitly.
+The workflow accepts any HTTP `2xx` response from the service webhook. Portainer versions can return `202 Accepted` or `204 No Content` for a successful service update. Connection failures are retried and reported separately from registry or webhook errors. A missing secret or a non-success HTTP response fails the workflow explicitly.
 
 ## Migration and replicas
 
