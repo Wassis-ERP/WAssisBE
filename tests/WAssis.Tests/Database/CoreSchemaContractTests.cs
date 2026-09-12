@@ -75,6 +75,7 @@ public sealed class CoreSchemaContractTests
         Assert.Contains("enforce_calculo_scope", sql, StringComparison.Ordinal);
         Assert.Contains("enforce_repasse_regra_scope", sql, StringComparison.Ordinal);
         Assert.Contains("VALUES ('1.1.0'", sql, StringComparison.Ordinal);
+        Assert.Contains("ADD COLUMN IF NOT EXISTS responsavel_id uuid", sql, StringComparison.Ordinal);
         Assert.DoesNotContain("ADD COLUMN dados jsonb", sql, StringComparison.OrdinalIgnoreCase);
     }
 
