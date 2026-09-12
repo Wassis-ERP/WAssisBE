@@ -3,11 +3,10 @@
 ## Stack base
 
 - `.NET 8`
-- `Clean Architecture + DDD + CQRS`
+- `Clean Architecture + DDD + CQRS logico incremental`
 - `EF Core + PostgreSQL`
-- `MassTransit + RabbitMQ`
 - `MediatR + FluentValidation`
-- `Serilog + OpenTelemetry`
+- `Serilog`
 
 ## Solucao
 
@@ -31,6 +30,14 @@
 - auditoria por modulo e acao
 - sem logar PII em claro
 - isolamento multi-tenant nos agregados centrais
+- uma base PostgreSQL exclusiva por ambiente antes de escalar horizontalmente
+- migrations executadas por tarefa singleton antes do rollout
+
+## Escalabilidade e CQRS
+
+A primeira fase de preparação para load balance e CQRS lógico está implementada. Ela inclui forwarded headers restritos às redes confiáveis, identificação de instância nos health checks, modo one-shot de migration, contratos explícitos de command/query, leituras sem tracking e transações opt-in para estado + auditoria.
+
+O roadmap, os bloqueios de HML/PRD e os critérios para ativar duas réplicas estão em [`scalability-cqrs-roadmap.md`](scalability-cqrs-roadmap.md).
 
 ## Estado atual
 

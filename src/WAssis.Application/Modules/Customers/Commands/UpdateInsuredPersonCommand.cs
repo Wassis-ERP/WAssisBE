@@ -1,4 +1,4 @@
-using MediatR;
+using WAssis.Application.Abstractions.Messaging;
 using WAssis.Application.Modules.Customers.Dtos;
 
 namespace WAssis.Application.Modules.Customers.Commands;
@@ -45,4 +45,4 @@ public sealed record UpdateInsuredPersonCommand(
     string? WhatsAppNumber = null,
     string? Country = null,
     DateTime? LgpdAuthorizedAtUtc = null,
-    string? ImportOrigin = null) : IRequest<InsuredPersonDto?>;
+    string? ImportOrigin = null) : ICommand<InsuredPersonDto?>;

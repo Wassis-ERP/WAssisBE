@@ -1,4 +1,4 @@
-using MediatR;
+using WAssis.Application.Abstractions.Messaging;
 using WAssis.Application.Modules.WhatsAppSupport.Dtos;
 using WAssis.Domain.Modules.WhatsAppSupport.Enums;
 
@@ -9,4 +9,4 @@ public sealed record RegisterWhatsAppInboundMessageCommand(
     string CustomerIdentifier,
     string MessagePreview,
     bool RequestHumanHandoff,
-    WhatsAppConversationPriority Priority) : IRequest<WhatsAppConversationDto>;
+    WhatsAppConversationPriority Priority) : ITransactionalCommand<WhatsAppConversationDto>;

@@ -12,7 +12,7 @@ public sealed class UpdateOpportunityCommandHandler(
 {
     public async Task<OpportunityDto?> Handle(UpdateOpportunityCommand request, CancellationToken cancellationToken)
     {
-        var opportunity = await repository.GetByIdAsync(request.Id, cancellationToken);
+        var opportunity = await repository.GetForUpdateAsync(request.Id, cancellationToken);
         if (opportunity is null)
         {
             return null;

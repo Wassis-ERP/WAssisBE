@@ -1,4 +1,4 @@
-using MediatR;
+using WAssis.Application.Abstractions.Messaging;
 using WAssis.Application.Modules.Opportunities.Dtos;
 
 namespace WAssis.Application.Modules.Opportunities.Commands;
@@ -42,4 +42,4 @@ public sealed record CreateOpportunityCommand(
     DateTime? LostAtUtc = null,
     string? LossReasonNotes = null,
     string? Campaign = null,
-    string? InternalNotes = null) : IRequest<OpportunityDto>;
+    string? InternalNotes = null) : ICommand<OpportunityDto>;

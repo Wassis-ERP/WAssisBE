@@ -12,7 +12,7 @@ public sealed class UpdateInsuredPersonCommandHandler(
 {
     public async Task<InsuredPersonDto?> Handle(UpdateInsuredPersonCommand request, CancellationToken cancellationToken)
     {
-        var insuredPerson = await repository.GetByIdAsync(request.Id, cancellationToken);
+        var insuredPerson = await repository.GetForUpdateAsync(request.Id, cancellationToken);
         if (insuredPerson is null)
         {
             return null;
