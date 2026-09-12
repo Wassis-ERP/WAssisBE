@@ -29,6 +29,24 @@ public class Opportunity : AggregateRoot
     public string? Referrer { get; private set; }
     public string? Notes { get; private set; }
     public string MetadataJson { get; private set; } = "{}";
+    public Guid? OriginPolicyId { get; private set; }
+    public string? LeadName { get; private set; }
+    public string? LeadDocumentNumber { get; private set; }
+    public string? LeadEmail { get; private set; }
+    public string? LeadPhoneNumber { get; private set; }
+    public string? Title { get; private set; }
+    public string? Description { get; private set; }
+    public string? Priority { get; private set; }
+    public decimal? EstimatedPremiumAmount { get; private set; }
+    public decimal? EstimatedCommissionAmount { get; private set; }
+    public decimal? EstimatedCommissionPercentage { get; private set; }
+    public DateOnly? OpenedOn { get; private set; }
+    public DateOnly? ExpectedCloseDate { get; private set; }
+    public DateTime? WonAtUtc { get; private set; }
+    public DateTime? LostAtUtc { get; private set; }
+    public string? LossReasonNotes { get; private set; }
+    public string? Campaign { get; private set; }
+    public string? InternalNotes { get; private set; }
     public DateTime CreatedAtUtc { get; private set; }
     public DateTime UpdatedAtUtc { get; private set; }
 
@@ -59,7 +77,25 @@ public class Opportunity : AggregateRoot
         DateTime? nextFollowUpUtc,
         string? referrer,
         string? notes,
-        string? metadataJson)
+        string? metadataJson,
+        Guid? originPolicyId,
+        string? leadName,
+        string? leadDocumentNumber,
+        string? leadEmail,
+        string? leadPhoneNumber,
+        string? title,
+        string? description,
+        string? priority,
+        decimal? estimatedPremiumAmount,
+        decimal? estimatedCommissionAmount,
+        decimal? estimatedCommissionPercentage,
+        DateOnly? openedOn,
+        DateOnly? expectedCloseDate,
+        DateTime? wonAtUtc,
+        DateTime? lostAtUtc,
+        string? lossReasonNotes,
+        string? campaign,
+        string? internalNotes)
     {
         Id = id;
         TenantId = tenantId;
@@ -89,7 +125,25 @@ public class Opportunity : AggregateRoot
             null,
             referrer,
             notes,
-            metadataJson);
+            metadataJson,
+            originPolicyId,
+            leadName,
+            leadDocumentNumber,
+            leadEmail,
+            leadPhoneNumber,
+            title,
+            description,
+            priority,
+            estimatedPremiumAmount,
+            estimatedCommissionAmount,
+            estimatedCommissionPercentage,
+            openedOn,
+            expectedCloseDate,
+            wonAtUtc,
+            lostAtUtc,
+            lossReasonNotes,
+            campaign,
+            internalNotes);
         UpdatedAtUtc = CreatedAtUtc;
     }
 
@@ -115,7 +169,25 @@ public class Opportunity : AggregateRoot
         DateTime? nextFollowUpUtc,
         string? referrer,
         string? notes,
-        string? metadataJson)
+        string? metadataJson,
+        Guid? originPolicyId = null,
+        string? leadName = null,
+        string? leadDocumentNumber = null,
+        string? leadEmail = null,
+        string? leadPhoneNumber = null,
+        string? title = null,
+        string? description = null,
+        string? priority = null,
+        decimal? estimatedPremiumAmount = null,
+        decimal? estimatedCommissionAmount = null,
+        decimal? estimatedCommissionPercentage = null,
+        DateOnly? openedOn = null,
+        DateOnly? expectedCloseDate = null,
+        DateTime? wonAtUtc = null,
+        DateTime? lostAtUtc = null,
+        string? lossReasonNotes = null,
+        string? campaign = null,
+        string? internalNotes = null)
     {
         return new Opportunity(
             Guid.NewGuid(),
@@ -140,7 +212,25 @@ public class Opportunity : AggregateRoot
             nextFollowUpUtc,
             referrer,
             notes,
-            metadataJson);
+            metadataJson,
+            originPolicyId,
+            leadName,
+            leadDocumentNumber,
+            leadEmail,
+            leadPhoneNumber,
+            title,
+            description,
+            priority,
+            estimatedPremiumAmount,
+            estimatedCommissionAmount,
+            estimatedCommissionPercentage,
+            openedOn,
+            expectedCloseDate,
+            wonAtUtc,
+            lostAtUtc,
+            lossReasonNotes,
+            campaign,
+            internalNotes);
     }
 
     public void Update(
@@ -167,7 +257,25 @@ public class Opportunity : AggregateRoot
         DateTime? concludedAtUtc,
         string? referrer,
         string? notes,
-        string? metadataJson)
+        string? metadataJson,
+        Guid? originPolicyId = null,
+        string? leadName = null,
+        string? leadDocumentNumber = null,
+        string? leadEmail = null,
+        string? leadPhoneNumber = null,
+        string? title = null,
+        string? description = null,
+        string? priority = null,
+        decimal? estimatedPremiumAmount = null,
+        decimal? estimatedCommissionAmount = null,
+        decimal? estimatedCommissionPercentage = null,
+        DateOnly? openedOn = null,
+        DateOnly? expectedCloseDate = null,
+        DateTime? wonAtUtc = null,
+        DateTime? lostAtUtc = null,
+        string? lossReasonNotes = null,
+        string? campaign = null,
+        string? internalNotes = null)
     {
         OfficeBranchId = Normalize(officeBranchId);
         Name = name.Trim();
@@ -179,7 +287,7 @@ public class Opportunity : AggregateRoot
         InsurerId = Normalize(insurerId);
         OriginId = Normalize(originId);
         LossReasonId = Normalize(lossReasonId);
-        Status = string.IsNullOrWhiteSpace(status) ? "pending" : status.Trim();
+        Status = string.IsNullOrWhiteSpace(status) ? "pending" : status.Trim().ToLowerInvariant();
         BusinessType = Normalize(businessType);
         ContactType = contactType;
         NetPremium = netPremium;
@@ -189,10 +297,43 @@ public class Opportunity : AggregateRoot
         ValidityStartUtc = validityStartUtc;
         ValidityEndUtc = validityEndUtc;
         NextFollowUpUtc = nextFollowUpUtc;
-        ConcludedAtUtc = concludedAtUtc;
         Referrer = Normalize(referrer);
         Notes = Normalize(notes);
         MetadataJson = string.IsNullOrWhiteSpace(metadataJson) ? "{}" : metadataJson;
+        OriginPolicyId = originPolicyId;
+        LeadName = insuredPersonId.HasValue ? null : Normalize(leadName) ?? Name;
+        LeadDocumentNumber = insuredPersonId.HasValue ? null : Normalize(leadDocumentNumber);
+        LeadEmail = insuredPersonId.HasValue ? null : Normalize(leadEmail);
+        LeadPhoneNumber = insuredPersonId.HasValue ? null : Normalize(leadPhoneNumber);
+        Title = Normalize(title) ?? Name;
+        Description = Normalize(description) ?? Notes;
+        Priority = Normalize(priority);
+        EstimatedPremiumAmount = estimatedPremiumAmount ?? netPremium;
+        EstimatedCommissionAmount = estimatedCommissionAmount;
+        EstimatedCommissionPercentage = estimatedCommissionPercentage ?? commissionPercentage;
+        OpenedOn = openedOn ?? DateOnly.FromDateTime(CreatedAtUtc);
+        ExpectedCloseDate = expectedCloseDate;
+        if (Status == "won")
+        {
+            WonAtUtc = wonAtUtc ?? concludedAtUtc;
+            LostAtUtc = null;
+            ConcludedAtUtc = concludedAtUtc ?? WonAtUtc;
+        }
+        else if (Status == "lost")
+        {
+            WonAtUtc = null;
+            LostAtUtc = lostAtUtc ?? concludedAtUtc;
+            ConcludedAtUtc = concludedAtUtc ?? LostAtUtc;
+        }
+        else
+        {
+            WonAtUtc = null;
+            LostAtUtc = null;
+            ConcludedAtUtc = null;
+        }
+        LossReasonNotes = Normalize(lossReasonNotes);
+        Campaign = Normalize(campaign);
+        InternalNotes = Normalize(internalNotes);
         UpdatedAtUtc = DateTime.UtcNow;
     }
 

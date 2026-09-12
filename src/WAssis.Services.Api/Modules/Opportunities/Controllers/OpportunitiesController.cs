@@ -62,7 +62,25 @@ public sealed class OpportunitiesController(IMediator mediator) : ControllerBase
             request.NextFollowUpUtc,
             request.Referrer,
             request.Notes,
-            ToMetadataJson(request.Metadata)), cancellationToken);
+            ToMetadataJson(request.Metadata),
+            request.OriginPolicyId,
+            request.LeadName,
+            request.LeadDocumentNumber,
+            request.LeadEmail,
+            request.LeadPhoneNumber,
+            request.Title,
+            request.Description,
+            request.Priority,
+            request.EstimatedPremiumAmount,
+            request.EstimatedCommissionAmount,
+            request.EstimatedCommissionPercentage,
+            request.OpenedOn,
+            request.ExpectedCloseDate,
+            request.WonAtUtc,
+            request.LostAtUtc,
+            request.LossReasonNotes,
+            request.Campaign,
+            request.InternalNotes), cancellationToken);
 
         return CreatedAtAction(nameof(GetById), new { id = response.Id }, ToViewModel(response));
     }
@@ -97,7 +115,25 @@ public sealed class OpportunitiesController(IMediator mediator) : ControllerBase
             request.ConcludedAtUtc,
             request.Referrer,
             request.Notes,
-            ToMetadataJson(request.Metadata)), cancellationToken);
+            ToMetadataJson(request.Metadata),
+            request.OriginPolicyId,
+            request.LeadName,
+            request.LeadDocumentNumber,
+            request.LeadEmail,
+            request.LeadPhoneNumber,
+            request.Title,
+            request.Description,
+            request.Priority,
+            request.EstimatedPremiumAmount,
+            request.EstimatedCommissionAmount,
+            request.EstimatedCommissionPercentage,
+            request.OpenedOn,
+            request.ExpectedCloseDate,
+            request.WonAtUtc,
+            request.LostAtUtc,
+            request.LossReasonNotes,
+            request.Campaign,
+            request.InternalNotes), cancellationToken);
 
         return response is null ? NotFound() : Ok(ToViewModel(response));
     }
@@ -140,7 +176,25 @@ public sealed class OpportunitiesController(IMediator mediator) : ControllerBase
             response.Notes,
             ParseMetadata(response.MetadataJson),
             response.CreatedAtUtc,
-            response.UpdatedAtUtc);
+            response.UpdatedAtUtc,
+            response.OriginPolicyId,
+            response.LeadName,
+            response.LeadDocumentNumber,
+            response.LeadEmail,
+            response.LeadPhoneNumber,
+            response.Title,
+            response.Description,
+            response.Priority,
+            response.EstimatedPremiumAmount,
+            response.EstimatedCommissionAmount,
+            response.EstimatedCommissionPercentage,
+            response.OpenedOn,
+            response.ExpectedCloseDate,
+            response.WonAtUtc,
+            response.LostAtUtc,
+            response.LossReasonNotes,
+            response.Campaign,
+            response.InternalNotes);
     }
 
     private static string ToMetadataJson(JsonElement? metadata)

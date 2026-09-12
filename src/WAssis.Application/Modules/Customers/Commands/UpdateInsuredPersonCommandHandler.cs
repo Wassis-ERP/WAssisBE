@@ -44,7 +44,22 @@ public sealed class UpdateInsuredPersonCommandHandler(
             request.ProducerId,
             request.ManagerId,
             request.ChatwootId,
-            request.LgpdAuthorized);
+            request.LgpdAuthorized,
+            request.SocialName ?? insuredPerson.SocialName,
+            request.IdentityDocument ?? insuredPerson.IdentityDocument,
+            request.MunicipalRegistration ?? insuredPerson.MunicipalRegistration,
+            request.EconomicActivity ?? insuredPerson.EconomicActivity,
+            request.Profession ?? insuredPerson.Profession,
+            request.MonthlyIncome ?? insuredPerson.MonthlyIncome,
+            request.DriverLicenseNumber ?? insuredPerson.DriverLicenseNumber,
+            request.DriverLicenseCategory ?? insuredPerson.DriverLicenseCategory,
+            request.DriverLicenseExpirationDate ?? insuredPerson.DriverLicenseExpirationDate,
+            request.MobilePhoneNumber ?? insuredPerson.MobilePhoneNumber,
+            request.SecondaryPhoneNumber ?? insuredPerson.SecondaryPhoneNumber,
+            request.WhatsAppNumber ?? insuredPerson.WhatsAppNumber,
+            request.Country ?? insuredPerson.Country,
+            request.LgpdAuthorizedAtUtc ?? insuredPerson.LgpdAuthorizedAtUtc,
+            request.ImportOrigin ?? insuredPerson.ImportOrigin);
 
         await repository.SaveChangesAsync(cancellationToken);
 

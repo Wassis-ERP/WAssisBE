@@ -2,7 +2,7 @@
 
 ## Source of truth
 
-`wassis_erp_esqueleto_v1_0.dbml` is the versioned structural contract received from the product design. The generated PostgreSQL migration lives in the `erp` schema so the canonical model can be introduced without breaking the legacy tables currently used by API endpoints.
+`wassis_erp_esqueleto_v1_0.dbml` is the original structural baseline. The current product contract is `wassis_erp_esqueleto_v3_1.dbml`, synchronized from the frontend hand-off completed on 2026-09-11. Generated PostgreSQL migrations live in the `erp` schema so the canonical model can be introduced without breaking the legacy tables currently used by API endpoints.
 
 Regenerate the SQL after changing the DBML:
 
@@ -10,7 +10,13 @@ Regenerate the SQL after changing the DBML:
 node tools/generate-erp-core-schema.mjs
 ```
 
-DBML and generated SQL must be committed together. Structural breaking changes require a new major contract version; additive tables and nullable columns require a minor version.
+Generate the additive v3.1 upgrade with:
+
+```powershell
+node tools/generate-erp-contract-upgrade.mjs
+```
+
+DBML, generator and generated SQL must be committed together. The v3.1 upgrade only creates missing tables, columns, foreign keys and indexes; it intentionally keeps transitional columns already used by `public.*` and by the v1/v1.1 `erp.*` schema. Renames, drops, backfills and stricter nullability require a later expand/backfill/contract migration after the runtime modules move to the canonical schema.
 
 ## Tenant model
 
@@ -38,4 +44,4 @@ The endpoint is metadata only. Business fields and CRUD endpoints are added modu
 
 ## Migration strategy
 
-The existing `public` tables remain operational during the transition. New endpoints should target the canonical `erp` schema. Legacy modules can then be migrated independently, avoiding a flag day for customers, opportunities, quotes and policy drafts.
+The existing `public` tables remain operational during the transition. Current Segurados and Oportunidades endpoints still use those tables, with additive EF columns matching the connected frontend DTO. New modules should target the canonical `erp` schema. Legacy modules can then be migrated independently, avoiding a flag day for customers, opportunities, quotes and policy drafts.

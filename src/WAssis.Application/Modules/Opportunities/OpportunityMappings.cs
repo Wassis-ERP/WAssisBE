@@ -34,6 +34,24 @@ internal static class OpportunityMappings
             opportunity.Notes,
             opportunity.MetadataJson,
             opportunity.CreatedAtUtc,
-            opportunity.UpdatedAtUtc);
+            opportunity.UpdatedAtUtc,
+            opportunity.OriginPolicyId,
+            opportunity.LeadName,
+            opportunity.LeadDocumentNumber,
+            opportunity.LeadEmail,
+            opportunity.LeadPhoneNumber,
+            opportunity.Title,
+            opportunity.Description,
+            opportunity.Priority,
+            opportunity.EstimatedPremiumAmount,
+            opportunity.EstimatedCommissionAmount,
+            opportunity.EstimatedCommissionPercentage,
+            opportunity.OpenedOn,
+            opportunity.ExpectedCloseDate,
+            opportunity.WonAtUtc,
+            opportunity.LostAtUtc,
+            opportunity.LossReasonNotes,
+            opportunity.Campaign,
+            opportunity.InternalNotes);
     }
 }

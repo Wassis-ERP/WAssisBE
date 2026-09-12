@@ -42,7 +42,25 @@ public sealed class UpdateOpportunityCommandHandler(
             request.ConcludedAtUtc,
             request.Referrer,
             request.Notes,
-            request.MetadataJson);
+            request.MetadataJson,
+            request.OriginPolicyId ?? opportunity.OriginPolicyId,
+            request.LeadName ?? opportunity.LeadName,
+            request.LeadDocumentNumber ?? opportunity.LeadDocumentNumber,
+            request.LeadEmail ?? opportunity.LeadEmail,
+            request.LeadPhoneNumber ?? opportunity.LeadPhoneNumber,
+            request.Title ?? request.Name ?? opportunity.Title,
+            request.Description ?? request.Notes ?? opportunity.Description,
+            request.Priority ?? opportunity.Priority,
+            request.EstimatedPremiumAmount ?? request.NetPremium ?? opportunity.EstimatedPremiumAmount,
+            request.EstimatedCommissionAmount ?? opportunity.EstimatedCommissionAmount,
+            request.EstimatedCommissionPercentage ?? request.CommissionPercentage ?? opportunity.EstimatedCommissionPercentage,
+            request.OpenedOn ?? opportunity.OpenedOn,
+            request.ExpectedCloseDate ?? opportunity.ExpectedCloseDate,
+            request.WonAtUtc ?? opportunity.WonAtUtc,
+            request.LostAtUtc ?? opportunity.LostAtUtc,
+            request.LossReasonNotes ?? opportunity.LossReasonNotes,
+            request.Campaign ?? opportunity.Campaign,
+            request.InternalNotes ?? opportunity.InternalNotes);
 
         await repository.SaveChangesAsync(cancellationToken);
 
