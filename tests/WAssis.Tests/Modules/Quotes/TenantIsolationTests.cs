@@ -105,7 +105,8 @@ public sealed class TenantIsolationTests
             .UseInMemoryDatabase(databaseName)
             .Options;
 
-        return new WAssisDbContext(options, currentUserContext);
+        return new WAssisDbContext(options, currentUserContext, currentUserContext.IsAuthenticated ? null
+            : WAssis.Application.Abstractions.SystemDataScope.ForWorker("test-fixture-seed", _ => { }));
     }
 
     private static QuoteRequest CreateQuoteRequest(string tenantId, string correlationId, string? officeBranchId = null)

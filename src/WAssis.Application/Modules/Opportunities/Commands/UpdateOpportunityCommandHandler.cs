@@ -7,7 +7,8 @@ namespace WAssis.Application.Modules.Opportunities.Commands;
 
 public sealed class UpdateOpportunityCommandHandler(
     IOpportunityRepository repository,
-    ICurrentUserContext currentUserContext)
+    ICurrentUserContext currentUserContext,
+    IOpportunityScope scope)
     : IRequestHandler<UpdateOpportunityCommand, OpportunityDto?>
 {
     public async Task<OpportunityDto?> Handle(UpdateOpportunityCommand request, CancellationToken cancellationToken)
@@ -18,12 +19,13 @@ public sealed class UpdateOpportunityCommandHandler(
             return null;
         }
 
+        var stage = await scope.ValidateAsync(request.OfficeBranchId, request.StageId, request.InsuredPersonId, request.Status, cancellationToken);
         opportunity.Update(
             currentUserContext.ResolveBranchIdForWrite(request.OfficeBranchId),
             request.Name,
             request.ResponsibleId ?? opportunity.ResponsibleId,
             request.InsuredPersonId,
-            request.PipelineId,
+            stage.PipelineId,
             request.StageId,
             request.InsuranceLineId,
             request.InsurerId,

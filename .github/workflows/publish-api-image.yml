@@ -26,40 +26,34 @@ env:
 
 jobs:
   publish:
-    name: Build, Push and Redeploy API Image
+    name: Build and Push API Image
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
 
       - name: Set image tag
         id: meta
-        env:
-          HML_WEBHOOK_URL: ${{ secrets.PORTAINER_API_HML_WEBHOOK_URL }}
-          PROD_WEBHOOK_URL: ${{ secrets.PORTAINER_API_PROD_WEBHOOK_URL }}
         run: |
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             if [ "${{ inputs.environment }}" = "prod" ]; then
               echo "tag=latest" >> "$GITHUB_OUTPUT"
               echo "health_url=${PROD_API_BASE_URL}/health/ready" >> "$GITHUB_OUTPUT"
-              echo "webhook_url=${PROD_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
             else
               echo "tag=hml" >> "$GITHUB_OUTPUT"
               echo "health_url=${HML_API_BASE_URL}/health/ready" >> "$GITHUB_OUTPUT"
-              echo "webhook_url=${HML_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
             fi
           else
             echo "tag=hml" >> "$GITHUB_OUTPUT"
             echo "health_url=${{ env.HML_API_BASE_URL }}/health/ready" >> "$GITHUB_OUTPUT"
-            echo "webhook_url=${HML_WEBHOOK_URL}" >> "$GITHUB_OUTPUT"
           fi
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
       - name: Login to GHCR
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9 # v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -67,98 +61,23 @@ jobs:
 
       - name: Build and push
         id: build
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8 # v6
         with:
           context: .
           file: ./Dockerfile
           push: true
+          sbom: true
+          provenance: mode=max
           build-args: |
             BUILD_SHA=${{ github.sha }}
           tags: |
             ${{ env.IMAGE_NAME }}:${{ steps.meta.outputs.tag }}
             ${{ env.IMAGE_NAME }}:${{ github.sha }}
 
-      - name: Trigger Portainer service redeploy
+      - name: Deployment handoff
         env:
-          WEBHOOK_URL: ${{ steps.meta.outputs.webhook_url }}
-          IMAGE_TAG: ${{ steps.meta.outputs.tag }}
+          RELEASE_IMAGE: ${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
         run: |
-          if [ -z "$WEBHOOK_URL" ]; then
-            echo "::error::Portainer webhook secret is not configured for the selected environment."
-            exit 1
-          fi
-
-          separator='?'
-          case "$WEBHOOK_URL" in
-            *\?*) separator='&' ;;
-          esac
-
-          response_file="$(mktemp)"
-          set +e
-          status_code="$(curl \
-            --silent \
-            --show-error \
-            --location \
-            --request POST \
-            --retry 5 \
-            --retry-delay 5 \
-            --retry-max-time 240 \
-            --retry-all-errors \
-            --connect-timeout 20 \
-            --max-time 60 \
-            --output "$response_file" \
-            --write-out '%{http_code}' \
-            "${WEBHOOK_URL}${separator}tag=${IMAGE_TAG}")"
-          curl_exit_code=$?
-          set -e
-
-          response_body="$(cat "$response_file")"
-          rm -f "$response_file"
-          printf '%s\n' "$response_body"
-
-          {
-            echo "### Portainer redeploy"
-            echo "- Image: \`${IMAGE_NAME}:${IMAGE_TAG}\`"
-            echo "- Digest: \`${{ steps.build.outputs.digest }}\`"
-            echo "- Webhook response: HTTP ${status_code:-unavailable}"
-          } >> "$GITHUB_STEP_SUMMARY"
-
-          if [ "$curl_exit_code" -ne 0 ]; then
-            echo "::error::Could not reach the Portainer service webhook after retries (curl exit ${curl_exit_code}). Verify public HTTPS availability and retry the workflow."
-            exit 1
-          fi
-
-          case "$status_code" in
-            2??)
-              ;;
-            *)
-            case "$response_body" in
-              *unauthorized*|*Unauthorized*)
-                echo "::error::Portainer reached the service webhook but GHCR rejected the image pull. Configure the ghcr.io registry on the Portainer endpoint with a GitHub user and a token that has read:packages, then associate that registry credential with the service."
-                ;;
-              *)
-                echo "::error::Expected a successful HTTP 2xx response from the Portainer service webhook, received ${status_code}. Verify the service webhook URL and the image tag."
-                ;;
-            esac
-            exit 1
-              ;;
-          esac
-
-      - name: Verify deployed API and database
-        env:
-          HEALTH_URL: ${{ steps.meta.outputs.health_url }}
-        run: |
-          for attempt in $(seq 1 18); do
-            response_file="$(mktemp)"
-            status_code="$(curl --silent --show-error --location --max-time 10 --output "$response_file" --write-out '%{http_code}' "$HEALTH_URL" || true)"
-            response_body="$(cat "$response_file")"
-            rm -f "$response_file"
-            if [ "$status_code" = "200" ] && printf '%s' "$response_body" | grep --fixed-strings --quiet "\"buildSha\":\"${GITHUB_SHA}\""; then
-              printf '%s\n' "$response_body"
-              exit 0
-            fi
-            echo "Waiting for API and migrations (${attempt}/18): HTTP ${status_code} ${response_body}"
-            sleep 5
-          done
-          echo "::error::API/database readiness did not become healthy after the Portainer redeploy."
-          exit 1
+          echo "Image published: $RELEASE_IMAGE" >> "$GITHUB_STEP_SUMMARY"
+          echo "Rollout requires the authorized manager gate in scripts/release-swarm.sh: migration singleton, schema validation, API update and readiness." >> "$GITHUB_STEP_SUMMARY"
+          echo "The old service webhook cannot prove migration completion and is deliberately not invoked." >> "$GITHUB_STEP_SUMMARY"

@@ -9,5 +9,6 @@ public interface IAuditTrailWriter
         string entityType,
         string entityId,
         string? notes,
-        CancellationToken cancellationToken);
+        CancellationToken cancellationToken,
+        string? tenantId = null);
 }

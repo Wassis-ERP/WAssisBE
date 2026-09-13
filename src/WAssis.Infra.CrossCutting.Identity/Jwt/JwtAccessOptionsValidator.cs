@@ -36,6 +36,11 @@ public sealed class JwtAccessOptionsValidator(IHostEnvironment hostEnvironment) 
             failures.Add("Identity:Jwt:SigningKey cannot use the repository placeholder outside Development.");
         }
 
+        if (!hostEnvironment.IsDevelopment() && !IsStrongKey(options.SigningKey))
+        {
+            failures.Add("Identity:Jwt:SigningKey must be a base64-encoded random secret of at least 32 bytes outside Development.");
+        }
+
         if (!hostEnvironment.IsDevelopment() && !options.RequireHttpsMetadata)
         {
             failures.Add("Identity:Jwt:RequireHttpsMetadata must be enabled outside Development.");
@@ -44,5 +49,16 @@ public sealed class JwtAccessOptionsValidator(IHostEnvironment hostEnvironment) 
         return failures.Count > 0
             ? ValidateOptionsResult.Fail(failures)
             : ValidateOptionsResult.Success;
+    }
+
+    private static bool IsStrongKey(string? key)
+    {
+        if (string.IsNullOrWhiteSpace(key) || key != key.Trim()) return false;
+        try
+        {
+            var bytes = Convert.FromBase64String(key);
+            return bytes.Length >= 32 && bytes.Distinct().Count() >= 16;
+        }
+        catch (FormatException) { return false; }
     }
 }

@@ -4,7 +4,7 @@ using WAssis.Application.Modules.Opportunities.Interfaces;
 
 namespace WAssis.Application.Modules.Opportunities.Commands;
 
-public sealed class MoveOpportunityStageCommandHandler(IOpportunityRepository repository)
+public sealed class MoveOpportunityStageCommandHandler(IOpportunityRepository repository, IOpportunityScope scope)
     : IRequestHandler<MoveOpportunityStageCommand, OpportunityDto?>
 {
     public async Task<OpportunityDto?> Handle(MoveOpportunityStageCommand request, CancellationToken cancellationToken)
@@ -15,6 +15,8 @@ public sealed class MoveOpportunityStageCommandHandler(IOpportunityRepository re
             return null;
         }
 
+        var stage = await scope.ValidateAsync(opportunity.OfficeBranchId, request.StageId, opportunity.InsuredPersonId, opportunity.Status, cancellationToken);
+        if (stage.PipelineId != opportunity.PipelineId) throw new FluentValidation.ValidationException("Use a edição para trocar o funil.");
         opportunity.MoveToStage(request.StageId);
         await repository.SaveChangesAsync(cancellationToken);
 

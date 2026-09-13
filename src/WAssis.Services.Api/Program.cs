@@ -5,10 +5,12 @@ using Serilog;
 using System.Threading.RateLimiting;
 using WAssis.Infra.CrossCutting.IoC;
 using WAssis.Infra.Data.Context;
+using WAssis.Infra.Data.Configuration;
 using WAssis.Services.Api.Infrastructure;
 using WAssis.Services.Api.Extensions;
 
 var builder = WebApplication.CreateBuilder(args);
+builder.Configuration.AddWAssisDockerSecrets();
 const string FrontendCorsPolicy = "FrontendCorsPolicy";
 
 builder.WebHost.ConfigureKestrel(options =>
@@ -17,10 +19,12 @@ builder.WebHost.ConfigureKestrel(options =>
 });
 
 builder.Host.UseSerilog((context, configuration) =>
-    configuration.ReadFrom.Configuration(context.Configuration));
+    configuration.ReadFrom.Configuration(context.Configuration)
+        .MinimumLevel.Override("Microsoft.AspNetCore.Diagnostics.ExceptionHandlerMiddleware", Serilog.Events.LogEventLevel.Fatal));
 builder.Host.ConfigureHostOptions(options => options.ShutdownTimeout = TimeSpan.FromSeconds(30));
 
 builder.Services.AddControllers();
+builder.Services.AddWAssisObservability(builder.Configuration, "WAssis.Api");
 builder.Services.AddConfiguredForwardedHeaders(builder.Configuration);
 builder.Services.AddProblemDetails();
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
@@ -71,10 +75,18 @@ if (migrateOnly)
 {
     await using var migrationScope = app.Services.CreateAsyncScope();
     var migrationDbContext = migrationScope.ServiceProvider.GetRequiredService<WAssisDbContext>();
-    Log.Information("Applying pending database migrations in one-shot mode");
-    await migrationDbContext.Database.MigrateAsync();
-    Log.Information("Database migrations are up to date");
+    Log.Information("Starting singleton migration for build {BuildSha}", buildSha);
+    await DatabaseMigrationGate.MigrateSingletonAsync(migrationDbContext);
+    Log.Information("Database schema validated for build {BuildSha}", buildSha);
     return;
+}
+
+if (args.Contains("--validate-schema", StringComparer.OrdinalIgnoreCase) || !app.Environment.IsDevelopment())
+{
+    await using var validationScope = app.Services.CreateAsyncScope();
+    await DatabaseMigrationGate.EnsureCurrentAsync(validationScope.ServiceProvider.GetRequiredService<WAssisDbContext>());
+    Log.Information("Database schema validated for build {BuildSha}", buildSha);
+    if (args.Contains("--validate-schema", StringComparer.OrdinalIgnoreCase)) return;
 }
 
 if (app.Configuration.GetValue<bool>("Database:AutoMigrate"))
@@ -104,6 +116,7 @@ else
     app.UseHsts();
 }
 
+app.UseMiddleware<CorrelationMiddleware>();
 app.UseSerilogRequestLogging();
 app.UseMiddleware<SecurityHeadersMiddleware>();
 app.UseExceptionHandler();
@@ -145,3 +158,5 @@ app.MapGet("/health/ready", async (WAssisDbContext dbContext, CancellationToken 
 }).AllowAnonymous();
 
 app.Run();
+
+public partial class Program { }

@@ -1,6 +1,7 @@
 using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Routing;
 
 namespace WAssis.Services.Api.Infrastructure;
 
@@ -29,13 +30,14 @@ public sealed class ApiExceptionHandler(
                 "Nao foi possivel concluir a operacao.")
         };
 
+        var route = (httpContext.GetEndpoint() as RouteEndpoint)?.RoutePattern.RawText ?? "unmatched";
         if (status >= StatusCodes.Status500InternalServerError)
         {
-            logger.LogError(exception, "Unhandled API exception for {Path}", httpContext.Request.Path);
+            logger.LogError("API failure {ExceptionType} for route {Route}", exception.GetType().Name, route);
         }
         else
         {
-            logger.LogWarning(exception, "Rejected API request for {Path}", httpContext.Request.Path);
+            logger.LogWarning("Rejected API request {ExceptionType} for route {Route}", exception.GetType().Name, route);
         }
 
         httpContext.Response.StatusCode = status;

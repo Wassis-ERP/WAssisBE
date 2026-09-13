@@ -2,12 +2,15 @@ using MediatR;
 using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Customers.Dtos;
 using WAssis.Application.Modules.Customers.Interfaces;
+using WAssis.Application.Modules.Core;
+using WAssis.Application.Modules.Core.Interfaces;
 
 namespace WAssis.Application.Modules.Customers.Commands;
 
 public sealed class UpdateInsuredPersonCommandHandler(
     IInsuredPersonRepository repository,
-    ICurrentUserContext currentUserContext)
+    ICurrentUserContext currentUserContext,
+    ICoreBranchReadRepository branches)
     : IRequestHandler<UpdateInsuredPersonCommand, InsuredPersonDto?>
 {
     public async Task<InsuredPersonDto?> Handle(UpdateInsuredPersonCommand request, CancellationToken cancellationToken)
@@ -18,8 +21,9 @@ public sealed class UpdateInsuredPersonCommandHandler(
             return null;
         }
 
+        var branch = await BranchWriteScope.ValidateAsync(currentUserContext, branches, request.OfficeBranchId, cancellationToken);
         insuredPerson.Update(
-            currentUserContext.ResolveBranchIdForWrite(request.OfficeBranchId),
+            branch,
             request.Name,
             request.PersonType ?? "PF",
             request.Status ?? "Ativo",

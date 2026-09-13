@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
+using Microsoft.Extensions.Hosting;
 using Microsoft.IdentityModel.Tokens;
 using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Identity.Interfaces;
@@ -28,6 +29,10 @@ public static class ServiceCollectionExtensions
             configuration.GetSection(JwtAccessOptions.SectionName).Bind(options));
         services.Configure<DevelopmentAuthOptions>(options =>
             configuration.GetSection(DevelopmentAuthOptions.SectionName).Bind(options));
+        services.AddSingleton<IValidateOptions<HomologationAuthOptions>, HomologationAuthOptionsValidator>();
+        services.AddOptions<HomologationAuthOptions>()
+            .Bind(configuration.GetSection(HomologationAuthOptions.SectionName))
+            .ValidateOnStart();
 
         var jwtOptions = new JwtAccessOptions();
         configuration.GetSection(JwtAccessOptions.SectionName).Bind(jwtOptions);
@@ -35,7 +40,12 @@ public static class ServiceCollectionExtensions
 
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserContext, HttpContextCurrentUserContext>();
-        services.AddScoped<IIdentityAuthenticationService, DevelopmentIdentityAuthenticationService>();
+        services.AddScoped<DevelopmentIdentityAuthenticationService>();
+        services.AddScoped<HomologationIdentityAuthenticationService>();
+        services.AddScoped<IIdentityAuthenticationService>(provider =>
+            provider.GetRequiredService<IHostEnvironment>().IsDevelopment()
+                ? provider.GetRequiredService<DevelopmentIdentityAuthenticationService>()
+                : provider.GetRequiredService<HomologationIdentityAuthenticationService>());
 
         services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)

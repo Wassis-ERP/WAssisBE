@@ -34,13 +34,24 @@ public sealed class JwtAccessOptionsValidatorTests
         {
             Issuer = "WAssis",
             Audience = "WAssis.Clients",
-            SigningKey = "prod-signing-key-with-at-least-thirty-two-characters",
+            SigningKey = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(48)),
             RequireHttpsMetadata = true
         };
 
         var result = validator.Validate(null, options);
 
         Assert.True(result.Succeeded);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("configure-uma-chave-com-mais-de-32-caracteres")]
+    [InlineData("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")]
+    public void Validate_RejectsMissingPlaceholderAndRepeatedKeys(string key)
+    {
+        var result = new JwtAccessOptionsValidator(new FakeHostEnvironment("Staging")).Validate(null,
+            new JwtAccessOptions { SigningKey = key, RequireHttpsMetadata = true });
+        Assert.False(result.Succeeded);
     }
 
     private sealed class FakeHostEnvironment(string environmentName) : IHostEnvironment
