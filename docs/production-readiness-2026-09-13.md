@@ -22,6 +22,8 @@
 
 ## Evidências e arquivos
 
+PR BE: [#30](https://github.com/Wassis-ERP/WAssisBE/pull/30). PR CRM: [#50](https://github.com/Wassis-ERP/WassisCRM/pull/50). Nenhum merge. No primeiro CI, testes/CodeQL passaram e o scan identificou duas CVEs HIGH no PCRE2 da imagem Debian (sem vulnerabilidades NuGet). A imagem recebe a versão oficial 10.42-1+deb12u1; o scan permanece bloqueante e é reexecutado na revisão corrigida.
+
 Comandos: `dotnet test tests/WAssis.Tests/WAssis.Tests.csproj -c Release`, `dotnet build -c Release`, `dotnet list tests/WAssis.Tests/WAssis.Tests.csproj package --vulnerable --include-transitive`. No CRM: npm test, build/tsc, audit, lint focado e global, Playwright. BE: 93 testes passaram; após ajuste de retry/trace/upgrade, os quatro testes afetados passaram novamente. CRM: 329 passaram e o arquivo de contrato com teste adicional passou (10 testes). Lint global mantém 27 erros legados; focado limpo. Builds .NET/CRM e imagens Docker aprovados. Resultado de CI/PR é evidência separada da execução local.
 
 Testcontainers cobre schema vazio, upgrade preservando dados, backfill da outbox, HTTP Staging/login/claims, isolamento de tenant/filial, attach forjado, migration concorrente, rollback da outbox, disputa de claim, recibo duplicado e lease expirada. Playwright cobre as duas jornadas no layout original com reload; não são apenas mocks de HTTP. Não houve chamadas de teste às seguradoras reais.
