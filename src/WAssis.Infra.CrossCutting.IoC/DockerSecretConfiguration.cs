@@ -1,5 +1,6 @@
 using System.Text;
 using System.Text.Json;
+using System.Text.Json.Serialization;
 using Microsoft.Extensions.Configuration;
 using WAssis.Infra.CrossCutting.Identity.Authentication;
 
@@ -8,9 +9,8 @@ namespace WAssis.Infra.CrossCutting.IoC;
 public static class DockerSecretConfiguration
 {
     // Stable mount targets; Docker secret resource names remain environment/version-specific.
-    public static void AddWAssisDockerSecrets(this ConfigurationManager configuration)
+    public static void AddWAssisDockerSecrets(this ConfigurationManager configuration, string directory = "/run/secrets")
     {
-        const string directory = "/run/secrets";
         if (!Directory.Exists(directory)) return;
         var values = new Dictionary<string, string?>();
         foreach (var pair in new[]
@@ -33,7 +33,10 @@ public static class DockerSecretConfiguration
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (identities is null || identities.Count == 0)
                 throw new InvalidOperationException("The homologation identity secret must contain a nonempty user array.");
-            var wrapped = JsonSerializer.Serialize(new { Identity = new { HomologationAuth = new { Users = identities } } });
+            // .NET 8 JSON configuration binds explicit null strings as empty strings.
+            // Omit optional values so users without a linked producer retain SellerId=null.
+            var wrapped = JsonSerializer.Serialize(new { Identity = new { HomologationAuth = new { Users = identities } } },
+                new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull });
             configuration.AddJsonStream(new MemoryStream(Encoding.UTF8.GetBytes(wrapped)));
         }
         catch (JsonException) { throw new InvalidOperationException("The homologation identity secret must contain a valid user array."); }
