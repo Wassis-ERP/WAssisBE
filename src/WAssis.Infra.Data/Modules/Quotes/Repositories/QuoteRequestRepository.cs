@@ -4,6 +4,7 @@ using WAssis.Application.Modules.Quotes.Interfaces;
 using WAssis.Domain.Modules.Quotes.Entities;
 using WAssis.Domain.Modules.Quotes.Enums;
 using WAssis.Infra.Data.Context;
+using WAssis.Application.Abstractions;
 
 namespace WAssis.Infra.Data.Modules.Quotes.Repositories;
 
@@ -55,6 +56,8 @@ public sealed class QuoteRequestRepository(WAssisDbContext dbContext) : IQuoteRe
 
     public async Task<IReadOnlyCollection<QuotePendingDispatchDto>> GetPendingDispatchBatchAsync(int batchSize, CancellationToken cancellationToken)
     {
+        var pending = dbContext.QuoteRequests.Where(x => x.Status == QuoteRequestStatus.Pending);
+        WorkerMetrics.RecordQueue(await pending.LongCountAsync(cancellationToken), await pending.MinAsync(x => (DateTime?)x.CreatedAtUtc, cancellationToken));
         return await dbContext.QuoteRequests
             .AsNoTracking()
             .Where(x => x.Status == QuoteRequestStatus.Pending)
@@ -69,8 +72,20 @@ public sealed class QuoteRequestRepository(WAssisDbContext dbContext) : IQuoteRe
             .ToArrayAsync(cancellationToken);
     }
 
-    public Task SaveChangesAsync(CancellationToken cancellationToken)
+    public async Task SaveChangesAsync(CancellationToken cancellationToken)
     {
-        return dbContext.SaveChangesAsync(cancellationToken);
+        var added = dbContext.ChangeTracker.Entries<QuoteRequest>()
+            .Where(entry => entry.State == EntityState.Added).Select(entry => entry.Entity).ToArray();
+        if (added.Length == 0) { await dbContext.SaveChangesAsync(cancellationToken); return; }
+        // Aggregate and dispatch reference commit together, including when a command owns the transaction.
+        await using var transaction = dbContext.Database.CurrentTransaction is null
+            ? await dbContext.Database.BeginTransactionAsync(cancellationToken) : null;
+        await dbContext.SaveChangesAsync(cancellationToken);
+        foreach (var quote in added)
+            await dbContext.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO infrastructure.work_outbox (id,tenant_id,kind,aggregate_id)
+                VALUES ({Guid.NewGuid()},{quote.TenantId},'quotes.dispatch',{quote.Id})
+                """, cancellationToken);
+        if (transaction is not null) await transaction.CommitAsync(cancellationToken);
     }
 }

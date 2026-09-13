@@ -6,7 +6,8 @@ namespace WAssis.Infra.Data.Modules.Notifications.Repositories;
 
 public sealed class AuditTrailWriter(
     WAssisDbContext dbContext,
-    ICurrentUserContext currentUserContext) : IAuditTrailWriter
+    ICurrentUserContext currentUserContext,
+    SystemDataScope? systemScope = null) : IAuditTrailWriter
 {
     public async Task WriteAsync(
         string correlationId,
@@ -15,10 +16,15 @@ public sealed class AuditTrailWriter(
         string entityType,
         string entityId,
         string? notes,
-        CancellationToken cancellationToken)
+        CancellationToken cancellationToken,
+        string? tenantId = null)
     {
+        var scope = systemScope is not null && !currentUserContext.IsAuthenticated
+            ? tenantId : currentUserContext.ResolveTenantIdOrPlatform();
+        if (string.IsNullOrWhiteSpace(scope) || (tenantId is not null && tenantId != scope))
+            throw new UnauthorizedAccessException("Tenant explícito obrigatório para auditoria do worker.");
         var entry = AuditEntry.Create(
-            currentUserContext.ResolveTenantIdOrPlatform(),
+            scope,
             correlationId,
             module,
             action,

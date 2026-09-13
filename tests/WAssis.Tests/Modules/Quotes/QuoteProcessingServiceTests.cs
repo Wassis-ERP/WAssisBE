@@ -52,7 +52,7 @@ public sealed class QuoteProcessingServiceTests
         var service = new QuoteProcessingService(
             repository,
             new FakeQuoteProviderRegistry([new SuccessQuoteProvider()]),
-            new FakeAuditTrailWriter());
+            new FakeAuditTrailWriter(), new FakeWorkQueue(quoteRequest));
 
         var processedCount = await service.ProcessPendingBatchAsync(25, CancellationToken.None);
 
@@ -60,6 +60,20 @@ public sealed class QuoteProcessingServiceTests
         Assert.Single(quoteRequest.Options);
         Assert.Equal(QuoteRequestStatus.Completed, quoteRequest.Status);
         Assert.Equal("justos", quoteRequest.Options.Single().InsuranceCompanyCode);
+    }
+
+    private sealed class FakeWorkQueue(QuoteRequest quote) : IDurableWorkQueue
+    {
+        private bool claimed;
+        public Task<WorkLease?> ClaimAsync(string kind, CancellationToken cancellationToken)
+        {
+            WorkLease? lease = claimed ? null : new(Guid.NewGuid(), quote.TenantId, quote.Id, Guid.NewGuid());
+            claimed = true;
+            return Task.FromResult(lease);
+        }
+        public Task RenewAsync(WorkLease lease, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task CompleteAsync(WorkLease lease, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task<int> QuarantineExpiredAsync(CancellationToken cancellationToken) => Task.FromResult(0);
     }
 
     private sealed class InMemoryQuoteRequestRepository(QuoteRequest quoteRequest) : IQuoteRequestRepository
@@ -162,7 +176,7 @@ public sealed class QuoteProcessingServiceTests
             string entityType,
             string entityId,
             string? notes,
-            CancellationToken cancellationToken)
+            CancellationToken cancellationToken, string? tenantId = null)
         {
             return Task.CompletedTask;
         }

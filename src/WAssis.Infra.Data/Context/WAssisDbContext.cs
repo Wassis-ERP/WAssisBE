@@ -21,10 +21,12 @@ public class WAssisDbContext : DbContext
 
     public WAssisDbContext(
         DbContextOptions<WAssisDbContext> options,
-        ICurrentUserContext currentUserContext)
+        ICurrentUserContext currentUserContext,
+        SystemDataScope? systemScope = null)
         : base(options)
     {
-        _currentTenantId = ResolveTenantScope(currentUserContext);
+        _currentTenantId = systemScope is not null && !currentUserContext.IsAuthenticated
+            ? null : ResolveTenantScope(currentUserContext);
         _hasAllBranchesAccess = currentUserContext.HasAllBranchesAccess;
         _branchIds = ResolveBranchScope(currentUserContext);
     }
@@ -49,6 +51,16 @@ public class WAssisDbContext : DbContext
         modelBuilder.HasDefaultSchema("public");
         modelBuilder.ApplyConfigurationsFromAssembly(typeof(WAssisDbContext).Assembly);
 
+        // Include ownership in UPDATE/DELETE predicates, including entities attached without reading.
+        // This is EF command metadata; it adds no database columns.
+        foreach (var entity in modelBuilder.Model.GetEntityTypes())
+        {
+            var tenant = entity.FindProperty("TenantId");
+            if (tenant is not null) tenant.IsConcurrencyToken = true;
+            var branch = entity.FindProperty("OfficeBranchId");
+            if (branch is not null) branch.IsConcurrencyToken = true;
+        }
+
         modelBuilder.Entity<DocumentSearch>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
         modelBuilder.Entity<ImportedDocument>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
         modelBuilder.Entity<InsuredPerson>().HasQueryFilter(x =>
@@ -72,22 +84,44 @@ public class WAssisDbContext : DbContext
 
     private static string? ResolveTenantScope(ICurrentUserContext currentUserContext)
     {
-        if (!string.IsNullOrWhiteSpace(currentUserContext.TenantId))
+        if (currentUserContext.IsAuthenticated && !string.IsNullOrWhiteSpace(currentUserContext.TenantId))
         {
             return currentUserContext.TenantId.Trim();
         }
 
-        if (!string.IsNullOrWhiteSpace(currentUserContext.BrokerageId))
-        {
-            return currentUserContext.BrokerageId.Trim();
-        }
+        return MissingTenantSentinel;
+    }
 
-        if (currentUserContext.IsAuthenticated)
-        {
-            return MissingTenantSentinel;
-        }
+    public override int SaveChanges(bool acceptAllChangesOnSuccess)
+    {
+        ValidateWriteScope();
+        return base.SaveChanges(acceptAllChangesOnSuccess);
+    }
 
-        return null;
+    public override Task<int> SaveChangesAsync(bool acceptAllChangesOnSuccess, CancellationToken cancellationToken = default)
+    {
+        ValidateWriteScope();
+        return base.SaveChangesAsync(acceptAllChangesOnSuccess, cancellationToken);
+    }
+
+    private void ValidateWriteScope()
+    {
+        if (_currentTenantId is null) return; // Only an explicit, audited SystemDataScope grants this capability.
+        foreach (var entry in ChangeTracker.Entries().Where(x => x.State is EntityState.Added or EntityState.Modified or EntityState.Deleted))
+        {
+            if (entry.Metadata.FindProperty("TenantId") is null) continue;
+            var tenant = entry.Property("TenantId");
+            if (_currentTenantId == MissingTenantSentinel || !Equals(tenant.CurrentValue, _currentTenantId)
+                || (entry.State != EntityState.Added && !Equals(tenant.OriginalValue, _currentTenantId)))
+                throw new UnauthorizedAccessException("A escrita exige o mesmo tenant do contexto autenticado.");
+            if (!_hasAllBranchesAccess && entry.Metadata.FindProperty("OfficeBranchId") is not null)
+            {
+                var branch = entry.Property("OfficeBranchId");
+                if (branch.CurrentValue is not string current || !_branchIds.Contains(current)
+                    || (entry.State != EntityState.Added && (branch.OriginalValue is not string original || !_branchIds.Contains(original))))
+                    throw new UnauthorizedAccessException("A escrita exige uma filial autorizada.");
+            }
+        }
     }
 
     private static string[] ResolveBranchScope(ICurrentUserContext currentUserContext)

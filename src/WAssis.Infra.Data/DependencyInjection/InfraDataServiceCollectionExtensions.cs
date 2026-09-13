@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
+using Polly;
 using Microsoft.Extensions.Hosting;
 using WAssis.Application.Modules.Billing.Interfaces;
 using WAssis.Application.Modules.Customers.Interfaces;
@@ -65,6 +66,8 @@ public static class InfraDataServiceCollectionExtensions
             connectionString = "Host=localhost;Port=5432;Database=wassis;Username=postgres;Password=postgres";
         }
 
+        if (!hostEnvironment.IsDevelopment()) DatabaseConnectionPolicy.ValidateSharedEnvironment(connectionString);
+
         services.AddDbContext<WAssisDbContext>(options =>
             options.UseNpgsql(connectionString, npgsqlOptions =>
                 npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "quotes")));
@@ -96,6 +99,7 @@ public static class InfraDataServiceCollectionExtensions
         services.AddScoped<IInsuredPersonReadRepository, InsuredPersonRepository>();
         services.AddScoped<IOpportunityRepository, OpportunityRepository>();
         services.AddScoped<IOpportunityReadRepository, OpportunityRepository>();
+        services.AddScoped<IOpportunityScope, OpportunityScope>();
         services.AddScoped<IDocumentSearchRepository, DocumentSearchRepository>();
         services.AddScoped<IImportedDocumentRepository, ImportedDocumentRepository>();
         services.AddScoped<ICommissionReceiptRepository, CommissionReceiptRepository>();
@@ -104,6 +108,7 @@ public static class InfraDataServiceCollectionExtensions
         services.AddScoped<IPolicyDraftRepository, PolicyDraftRepository>();
         services.AddScoped<IQuoteProviderActivationRepository, QuoteProviderActivationRepository>();
         services.AddScoped<IQuoteRequestRepository, QuoteRequestRepository>();
+        services.AddScoped<IDurableWorkQueue, WAssis.Infra.Data.Processing.DurableWorkQueue>();
         services.AddScoped<IWhatsAppConversationRepository, WhatsAppConversationRepository>();
         services.AddScoped<IAuditTrailWriter, AuditTrailWriter>();
         services.AddScoped<IApplicationTransaction, EfApplicationTransaction>();
@@ -149,6 +154,13 @@ public static class InfraDataServiceCollectionExtensions
         options.AttemptTimeout.Timeout = ExternalAttemptTimeout;
         options.TotalRequestTimeout.Timeout = ExternalRequestTimeout;
         options.Retry.MaxRetryAttempts = 3;
+        var defaultShouldHandle = options.Retry.ShouldHandle;
+        options.Retry.ShouldHandle = arguments =>
+        {
+            var method = arguments.Context.GetRequestMessage()?.Method;
+            return method == HttpMethod.Get || method == HttpMethod.Head || method == HttpMethod.Options
+                ? defaultShouldHandle(arguments) : ValueTask.FromResult(false);
+        };
         options.Retry.Delay = TimeSpan.FromSeconds(2);
         options.CircuitBreaker.SamplingDuration = TimeSpan.FromSeconds(30);
         options.CircuitBreaker.FailureRatio = 0.5;

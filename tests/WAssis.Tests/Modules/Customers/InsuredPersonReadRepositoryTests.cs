@@ -14,7 +14,7 @@ public sealed class InsuredPersonReadRepositoryTests
         var options = new DbContextOptionsBuilder<WAssisDbContext>()
             .UseInMemoryDatabase($"insured-read-{Guid.NewGuid():N}")
             .Options;
-        await using var dbContext = new WAssisDbContext(options, new FakeCurrentUserContext());
+        await using var dbContext = new WAssisDbContext(options, new FakeCurrentUserContext { IsAuthenticated = true, TenantId = "tenant-1", BranchId = "branch-1" });
         var insuredPerson = CreateInsuredPerson();
         dbContext.InsuredPeople.Add(insuredPerson);
         await dbContext.SaveChangesAsync();
@@ -33,7 +33,7 @@ public sealed class InsuredPersonReadRepositoryTests
         var options = new DbContextOptionsBuilder<WAssisDbContext>()
             .UseInMemoryDatabase($"insured-write-{Guid.NewGuid():N}")
             .Options;
-        await using var dbContext = new WAssisDbContext(options, new FakeCurrentUserContext());
+        await using var dbContext = new WAssisDbContext(options, new FakeCurrentUserContext { IsAuthenticated = true, TenantId = "tenant-1", BranchId = "branch-1" });
         var insuredPerson = CreateInsuredPerson();
         dbContext.InsuredPeople.Add(insuredPerson);
         await dbContext.SaveChangesAsync();

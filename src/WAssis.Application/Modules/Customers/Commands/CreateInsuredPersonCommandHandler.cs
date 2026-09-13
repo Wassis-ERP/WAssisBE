@@ -3,19 +3,23 @@ using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Customers.Dtos;
 using WAssis.Application.Modules.Customers.Interfaces;
 using WAssis.Domain.Modules.Customers.Entities;
+using WAssis.Application.Modules.Core;
+using WAssis.Application.Modules.Core.Interfaces;
 
 namespace WAssis.Application.Modules.Customers.Commands;
 
 public sealed class CreateInsuredPersonCommandHandler(
     IInsuredPersonRepository repository,
-    ICurrentUserContext currentUserContext)
+    ICurrentUserContext currentUserContext,
+    ICoreBranchReadRepository branches)
     : IRequestHandler<CreateInsuredPersonCommand, InsuredPersonDto>
 {
     public async Task<InsuredPersonDto> Handle(CreateInsuredPersonCommand request, CancellationToken cancellationToken)
     {
+        var branch = await BranchWriteScope.ValidateAsync(currentUserContext, branches, request.OfficeBranchId, cancellationToken);
         var insuredPerson = InsuredPerson.Create(
             currentUserContext.ResolveTenantIdOrPlatform(),
-            currentUserContext.ResolveBranchIdForWrite(request.OfficeBranchId),
+            branch,
             request.Name,
             request.PersonType ?? "PF",
             request.Status ?? "Ativo",

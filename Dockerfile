@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0@sha256:5ef85cc12cb25be6ec319a7392d1e9efd53c3bc8abb971c53d8058a473f09053 AS build
 WORKDIR /src
 
 COPY WAssisInsurance.sln ./
@@ -23,7 +23,11 @@ RUN dotnet publish src/WAssis.Services.Api/WAssis.Services.Api.csproj \
     --output /app/publish \
     -p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS runtime
+FROM mcr.microsoft.com/dotnet/aspnet:8.0@sha256:9a464e9a7e8c6144631020975f703c89034fe386417cb740620df69c2c6cfe24 AS runtime
+# Security patch newer than the pinned upstream image (CVE-2026-86145 / CVE-2026-89161).
+RUN apt-get update \
+    && apt-get install --no-install-recommends --only-upgrade -y libpcre2-8-0=10.42-1+deb12u1 \
+    && rm -rf /var/lib/apt/lists/*
 WORKDIR /app
 
 ARG BUILD_SHA=local

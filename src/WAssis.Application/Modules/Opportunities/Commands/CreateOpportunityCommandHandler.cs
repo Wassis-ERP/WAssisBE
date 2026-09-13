@@ -8,18 +8,20 @@ namespace WAssis.Application.Modules.Opportunities.Commands;
 
 public sealed class CreateOpportunityCommandHandler(
     IOpportunityRepository repository,
-    ICurrentUserContext currentUserContext)
+    ICurrentUserContext currentUserContext,
+    IOpportunityScope scope)
     : IRequestHandler<CreateOpportunityCommand, OpportunityDto>
 {
     public async Task<OpportunityDto> Handle(CreateOpportunityCommand request, CancellationToken cancellationToken)
     {
+        var stage = await scope.ValidateAsync(request.OfficeBranchId, request.StageId, request.InsuredPersonId, request.Status, cancellationToken);
         var opportunity = Opportunity.Create(
             currentUserContext.ResolveTenantIdOrPlatform(),
             currentUserContext.ResolveBranchIdForWrite(request.OfficeBranchId),
             request.Name,
             request.ResponsibleId ?? currentUserContext.UserId ?? string.Empty,
             request.InsuredPersonId,
-            request.PipelineId,
+            stage.PipelineId,
             request.StageId,
             request.InsuranceLineId,
             request.InsurerId,
