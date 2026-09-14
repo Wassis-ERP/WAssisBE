@@ -29,6 +29,8 @@ using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Liberty.Life;
 using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Liberty.Residence;
 using WAssis.Infra.Data.Integrations.Modules.Quotes.Carriers.Liberty.Travel;
 using WAssis.Infra.Data.Integrations.Parsers;
+using WAssis.Infra.Data.Modules.Administration;
+using WAssis.Application.Modules.Administration.Interfaces;
 using WAssis.Infra.Data.Modules.Billing.Repositories;
 using WAssis.Infra.Data.Modules.Customers.Repositories;
 using WAssis.Infra.Data.Modules.Core.Queries;
@@ -93,6 +95,7 @@ public static class InfraDataServiceCollectionExtensions
         services.Configure<JustosAutoQuoteOptions>(options =>
             configuration.GetSection(JustosAutoQuoteOptions.SectionName).Bind(options));
         services.AddScoped<IBillingRepository, BillingRepository>();
+        services.AddScoped<IAdministrationRepository, AdministrationRepository>();
         services.AddScoped<ICoreBranchReadRepository, CoreBranchReadRepository>();
         services.AddScoped<ICoreCatalogReadRepository, CoreCatalogReadRepository>();
         services.AddScoped<IInsuredPersonRepository, InsuredPersonRepository>();
