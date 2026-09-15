@@ -2,6 +2,7 @@ using FluentValidation;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
+using Npgsql;
 
 namespace WAssis.Services.Api.Infrastructure;
 
@@ -24,6 +25,14 @@ public sealed class ApiExceptionHandler(
                 StatusCodes.Status400BadRequest,
                 "Dados invalidos.",
                 "Revise os campos enviados e tente novamente."),
+            PostgresException postgres when postgres.SqlState is
+                PostgresErrorCodes.UniqueViolation or
+                PostgresErrorCodes.ForeignKeyViolation or
+                PostgresErrorCodes.CheckViolation or
+                PostgresErrorCodes.ExclusionViolation => (
+                StatusCodes.Status409Conflict,
+                "Conflito de dados.",
+                "O registro conflita com dados existentes ou relacionados."),
             _ => (
                 StatusCodes.Status500InternalServerError,
                 "Erro interno.",
