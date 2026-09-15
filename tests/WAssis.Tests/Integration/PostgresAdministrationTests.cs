@@ -80,6 +80,14 @@ public sealed class PostgresAdministrationTests
                 """);
         }
 
+        await using (var direct = Context(postgres.GetConnectionString()))
+        {
+            var administration = new AdministrationRepository(direct);
+            Assert.True(await administration.HasAdministrationPermissionAsync(
+                Guid.Parse(TenantA), Guid.Parse(UserA), false, default));
+            Assert.Equal(2, (await administration.ListUsersAsync(Guid.Parse(TenantA), default)).Count);
+        }
+
         using var factory = new ApiFactory(postgres.GetConnectionString());
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/administration/users")).StatusCode);
