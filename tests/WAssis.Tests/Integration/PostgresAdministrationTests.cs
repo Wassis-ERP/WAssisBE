@@ -86,6 +86,8 @@ public sealed class PostgresAdministrationTests
             Assert.True(await administration.HasAdministrationPermissionAsync(
                 Guid.Parse(TenantA), Guid.Parse(UserA), false, default));
             Assert.Equal(2, (await administration.ListUsersAsync(Guid.Parse(TenantA), default)).Count);
+            Assert.Empty(await administration.ListUserBranchAccessAsync(
+                Guid.Parse(TenantA), Guid.Parse(UserB), default));
         }
 
         using var factory = new ApiFactory(postgres.GetConnectionString());

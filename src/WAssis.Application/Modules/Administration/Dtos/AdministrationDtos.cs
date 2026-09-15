@@ -45,7 +45,7 @@ public sealed record AdministrationBranchDto(
     string? Susep,
     decimal? TaxPercentage,
     bool LgpdAccepted,
-    DateTimeOffset? LgpdAcceptedAt,
+    DateTime? LgpdAcceptedAt,
     string? Manager,
     Guid? ManagerId,
     string? Contact,
@@ -117,8 +117,8 @@ public sealed record AdministrationUserDto(
     string Status,
     bool IsActive,
     string? InvitationStatus,
-    DateTimeOffset? InvitationSentAt,
-    DateTimeOffset? LastAccessAt,
+    DateTime? InvitationSentAt,
+    DateTime? LastAccessAt,
     int BranchCount,
     string? PrimaryAccessProfile);
 

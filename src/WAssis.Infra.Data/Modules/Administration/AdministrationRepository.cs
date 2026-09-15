@@ -358,9 +358,9 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
             WHERE p.tenant_id = @TenantId AND p.id = @UserId
             ORDER BY pf.principal DESC, pf.filial_id
             """;
-        var rows = await (await OpenAsync(cancellationToken)).QueryAsync<UserBranchAccessDto>(
+        var rows = await (await OpenAsync(cancellationToken)).QueryAsync<UserBranchAccessRow>(
             new CommandDefinition(sql, new { TenantId = tenantId, UserId = userId }, cancellationToken: cancellationToken));
-        return rows.AsList();
+        return rows.Select(ToBranchAccessDto).ToArray();
     }
 
     public async Task<UserBranchAccessDto?> UpsertUserBranchAccessAsync(Guid tenantId, Guid userId, Guid branchId, UserBranchAccessUpdateDto update, CancellationToken cancellationToken)
@@ -420,7 +420,7 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
                       perfil_id AS AccessProfileId, principal AS IsPrimary, ativo AS IsActive,
                       data_inicio AS StartsOn, data_fim AS EndsOn
             """;
-        var result = await connection.QuerySingleAsync<UserBranchAccessDto>(new CommandDefinition(sql, new
+        var result = await connection.QuerySingleAsync<UserBranchAccessRow>(new CommandDefinition(sql, new
         {
             Id = Guid.NewGuid(),
             UserId = userId,
@@ -435,8 +435,17 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
                 activeMasterSql, new { TenantId = tenantId }, transaction, cancellationToken: cancellationToken)) == 0)
             throw new InvalidOperationException("O último usuário Master ativo não pode perder o acesso.");
         transaction.Commit();
-        return result;
+        return ToBranchAccessDto(result);
     }
+
+    private sealed record UserBranchAccessRow(
+        Guid Id, Guid UserId, Guid BranchId, Guid AccessProfileId,
+        bool IsPrimary, bool IsActive, DateTime? StartsOn, DateTime? EndsOn);
+
+    private static UserBranchAccessDto ToBranchAccessDto(UserBranchAccessRow row) => new(
+        row.Id, row.UserId, row.BranchId, row.AccessProfileId, row.IsPrimary, row.IsActive,
+        row.StartsOn is null ? null : DateOnly.FromDateTime(row.StartsOn.Value),
+        row.EndsOn is null ? null : DateOnly.FromDateTime(row.EndsOn.Value));
 
     private static async Task LockTenantAdministrationAsync(IDbConnection connection, IDbTransaction transaction,
         Guid tenantId, CancellationToken cancellationToken)
