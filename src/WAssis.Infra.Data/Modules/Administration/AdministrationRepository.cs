@@ -16,6 +16,27 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
         return connection;
     }
 
+    public async Task<bool> HasAdministrationPermissionAsync(Guid tenantId, Guid userId, bool manage, CancellationToken cancellationToken)
+    {
+        const string sql = """
+            SELECT EXISTS (
+              SELECT 1 FROM erp.profiles p
+              JOIN erp.profile_filiais pf ON pf.profile_id = p.id AND pf.ativo
+              JOIN erp.filiais f ON f.id = pf.filial_id AND f.tenant_id = p.tenant_id AND f.ativo
+              JOIN erp.perfis pe ON pe.id = pf.perfil_id AND pe.tenant_id = p.tenant_id AND pe.ativo
+              JOIN erp.role_permissions rp ON rp.perfil_id = pe.id
+              WHERE p.id = @UserId AND p.tenant_id = @TenantId AND p.ativo AND p.status = 'ATIVO'
+                AND (p.convite_status IS NULL OR p.convite_status = 'ACEITO')
+                AND (pf.data_inicio IS NULL OR pf.data_inicio <= current_date)
+                AND (pf.data_fim IS NULL OR pf.data_fim >= current_date)
+                AND rp.modulo = 'configuracoes' AND rp.escopo = 'GRUPO'
+                AND ((@Manage AND rp.can_manage) OR (NOT @Manage AND rp.can_read))
+            )
+            """;
+        return await (await OpenAsync(cancellationToken)).ExecuteScalarAsync<bool>(new CommandDefinition(
+            sql, new { TenantId = tenantId, UserId = userId, Manage = manage }, cancellationToken: cancellationToken));
+    }
+
     public async Task<OrganizationDto?> GetOrganizationAsync(Guid tenantId, CancellationToken cancellationToken)
     {
         const string sql = """
@@ -66,13 +87,15 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
         const string sql = """
             SELECT
               (SELECT count(*)::int FROM erp.filiais WHERE tenant_id = @TenantId AND ativo) AS ActiveBranches,
-              (SELECT count(*)::int FROM erp.profiles WHERE tenant_id = @TenantId AND ativo) AS ActiveUsers,
-              (SELECT count(*)::int FROM erp.profiles WHERE tenant_id = @TenantId AND NOT COALESCE(ativo, false)) AS InactiveUsers,
-              (SELECT count(*)::int FROM erp.profiles WHERE tenant_id = @TenantId AND convite_status = 'PENDENTE') AS PendingInvitations,
-              (SELECT count(*)::int FROM erp.segurados WHERE tenant_id = @TenantId) AS InsuredPeople,
-              (SELECT count(*)::int FROM erp.oportunidades WHERE tenant_id = @TenantId AND status = 'pending') AS OpenOpportunities,
-              (SELECT count(*)::int FROM erp.oportunidades WHERE tenant_id = @TenantId AND status = 'won') AS WonOpportunities,
-              (SELECT count(*)::int FROM erp.oportunidades WHERE tenant_id = @TenantId AND status = 'lost') AS LostOpportunities
+              (SELECT count(*)::int FROM erp.profiles WHERE tenant_id = @TenantId AND ativo
+                 AND status = 'ATIVO' AND convite_status IS DISTINCT FROM 'PENDENTE') AS ActiveUsers,
+              (SELECT count(*)::int FROM erp.profiles WHERE tenant_id = @TenantId AND status = 'INATIVO') AS InactiveUsers,
+              (SELECT count(*)::int FROM erp.profiles WHERE tenant_id = @TenantId AND convite_status = 'PENDENTE'
+                 AND status <> 'INATIVO') AS PendingInvitations,
+              (SELECT count(*)::int FROM public.segurados WHERE tenant_id = CAST(@TenantId AS text)) AS InsuredPeople,
+              (SELECT count(*)::int FROM public.oportunidades WHERE tenant_id = CAST(@TenantId AS text) AND status = 'pending') AS OpenOpportunities,
+              (SELECT count(*)::int FROM public.oportunidades WHERE tenant_id = CAST(@TenantId AS text) AND status = 'won') AS WonOpportunities,
+              (SELECT count(*)::int FROM public.oportunidades WHERE tenant_id = CAST(@TenantId AS text) AND status = 'lost') AS LostOpportunities
             """;
         return await (await OpenAsync(cancellationToken)).QuerySingleAsync<OrganizationStatisticsDto>(
             new CommandDefinition(sql, new { TenantId = tenantId }, cancellationToken: cancellationToken));
@@ -117,13 +140,21 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
         {
             const string parentScopeSql = """
                 SELECT EXISTS (SELECT 1 FROM erp.filiais
-                               WHERE id = @ParentBranchId AND tenant_id = @TenantId AND ativo)
+                               WHERE id = @ParentBranchId AND tenant_id = @TenantId AND ativo
+                                 AND matriz_id IS NULL)
                 """;
             var validParent = await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
                 parentScopeSql,
                 new { input.ParentBranchId, TenantId = tenantId },
                 cancellationToken: cancellationToken));
             if (!validParent) throw new InvalidOperationException("A matriz informada não pertence ao grupo ativo.");
+        }
+        if (input.ManagerId.HasValue)
+        {
+            var validManager = await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
+                "SELECT EXISTS (SELECT 1 FROM erp.produtores WHERE id = @ManagerId AND tenant_id = @TenantId AND ativo)",
+                new { input.ManagerId, TenantId = tenantId }, cancellationToken: cancellationToken));
+            if (!validManager) throw new InvalidOperationException("O gerente informado não pertence ao grupo ativo.");
         }
 
         const string insert = """
@@ -225,11 +256,15 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
                    p.avatar_url AS AvatarUrl, COALESCE(p.status, CASE WHEN p.ativo THEN 'ATIVO' ELSE 'INATIVO' END) AS Status,
                    COALESCE(p.ativo, false) AS IsActive, p.convite_status AS InvitationStatus,
                    p.convite_enviado_em AS InvitationSentAt, p.ultimo_acesso_em AS LastAccessAt,
-                   count(pf.id) FILTER (WHERE pf.ativo AND (pf.data_inicio IS NULL OR pf.data_inicio <= current_date)
+                   count(pf.id) FILTER (WHERE pf.ativo AND f.ativo AND pe.ativo
+                     AND (pf.data_inicio IS NULL OR pf.data_inicio <= current_date)
                      AND (pf.data_fim IS NULL OR pf.data_fim >= current_date))::int AS BranchCount,
-                   max(pe.nome) FILTER (WHERE pf.principal AND pf.ativo) AS PrimaryAccessProfile
+                   max(pe.nome) FILTER (WHERE pf.principal AND pf.ativo AND pe.ativo
+                     AND (pf.data_inicio IS NULL OR pf.data_inicio <= current_date)
+                     AND (pf.data_fim IS NULL OR pf.data_fim >= current_date)) AS PrimaryAccessProfile
             FROM erp.profiles p
             LEFT JOIN erp.profile_filiais pf ON pf.profile_id = p.id
+            LEFT JOIN erp.filiais f ON f.id = pf.filial_id AND f.tenant_id = p.tenant_id
             LEFT JOIN erp.perfis pe ON pe.id = pf.perfil_id AND pe.tenant_id = p.tenant_id
             WHERE p.tenant_id = @TenantId
             GROUP BY p.id
@@ -246,7 +281,7 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
             INSERT INTO erp.profiles
                 (id, tenant_id, nome_completo, email, status, ativo, convite_status, convite_enviado_em)
             VALUES
-                (@Id, @TenantId, @Name, lower(@Email), 'ATIVO', true, 'PENDENTE', now())
+                (@Id, @TenantId, @Name, lower(@Email), 'PENDENTE', false, 'PENDENTE', NULL)
             RETURNING id AS Id, nome_completo AS Name, email AS Email, avatar_url AS AvatarUrl,
                       status AS Status, ativo AS IsActive, convite_status AS InvitationStatus,
                       convite_enviado_em AS InvitationSentAt, ultimo_acesso_em AS LastAccessAt,
@@ -269,6 +304,11 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
 
         var connection = await OpenAsync(cancellationToken);
         using var transaction = connection.BeginTransaction();
+        await LockTenantAdministrationAsync(connection, transaction, tenantId, cancellationToken);
+        if (isActive && await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
+                "SELECT EXISTS (SELECT 1 FROM erp.profiles WHERE id = @UserId AND tenant_id = @TenantId AND convite_status = 'PENDENTE')",
+                new { TenantId = tenantId, UserId = userId }, transaction, cancellationToken: cancellationToken)))
+            throw new InvalidOperationException("O convite ainda não foi aceito no provedor de identidade.");
         if (!isActive)
         {
             const string lastMasterSql = """
@@ -276,13 +316,20 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
                   SELECT 1 FROM erp.profile_filiais pf
                   JOIN erp.profiles p ON p.id = pf.profile_id
                   JOIN erp.perfis pe ON pe.id = pf.perfil_id
-                  WHERE p.id = @UserId AND p.tenant_id = @TenantId AND pf.ativo AND pe.ativo
+                  JOIN erp.filiais f ON f.id = pf.filial_id AND f.tenant_id = p.tenant_id AND f.ativo
+                  WHERE p.id = @UserId AND p.tenant_id = @TenantId AND p.ativo AND pf.ativo AND pe.ativo
+                    AND (pf.data_inicio IS NULL OR pf.data_inicio <= current_date)
+                    AND (pf.data_fim IS NULL OR pf.data_fim >= current_date)
                     AND pe.sistema AND lower(pe.nome) = 'master'
                 ) AND (
                   SELECT count(DISTINCT p.id) FROM erp.profiles p
                   JOIN erp.profile_filiais pf ON pf.profile_id = p.id AND pf.ativo
                   JOIN erp.perfis pe ON pe.id = pf.perfil_id AND pe.ativo
-                  WHERE p.tenant_id = @TenantId AND p.ativo AND pe.sistema AND lower(pe.nome) = 'master'
+                  JOIN erp.filiais f ON f.id = pf.filial_id AND f.tenant_id = p.tenant_id AND f.ativo
+                  WHERE p.tenant_id = @TenantId AND p.ativo AND p.status = 'ATIVO'
+                    AND (pf.data_inicio IS NULL OR pf.data_inicio <= current_date)
+                    AND (pf.data_fim IS NULL OR pf.data_fim >= current_date)
+                    AND pe.sistema AND lower(pe.nome) = 'master'
                 ) <= 1
                 """;
             if (await connection.ExecuteScalarAsync<bool>(new CommandDefinition(lastMasterSql,
@@ -323,6 +370,7 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
 
         var connection = await OpenAsync(cancellationToken);
         using var transaction = connection.BeginTransaction();
+        await LockTenantAdministrationAsync(connection, transaction, tenantId, cancellationToken);
         const string scopeSql = """
             SELECT EXISTS (SELECT 1 FROM erp.profiles WHERE id = @UserId AND tenant_id = @TenantId)
                AND EXISTS (SELECT 1 FROM erp.filiais WHERE id = @BranchId AND tenant_id = @TenantId)
@@ -336,6 +384,23 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
             update.AccessProfileId,
         }, transaction, cancellationToken: cancellationToken));
         if (!scoped) return null;
+
+        if (update.IsPrimary && (!update.IsActive || update.StartsOn > DateOnly.FromDateTime(DateTime.UtcNow)
+            || update.EndsOn < DateOnly.FromDateTime(DateTime.UtcNow)))
+            throw new InvalidOperationException("A corretora principal deve ter vínculo ativo e vigente.");
+
+        const string activeMasterSql = """
+            SELECT count(DISTINCT p.id)::int FROM erp.profiles p
+            JOIN erp.profile_filiais pf ON pf.profile_id = p.id AND pf.ativo
+            JOIN erp.perfis pe ON pe.id = pf.perfil_id AND pe.ativo
+            JOIN erp.filiais f ON f.id = pf.filial_id AND f.tenant_id = p.tenant_id AND f.ativo
+            WHERE p.tenant_id = @TenantId AND p.ativo AND p.status = 'ATIVO'
+              AND pe.sistema AND lower(pe.nome) = 'master'
+              AND (pf.data_inicio IS NULL OR pf.data_inicio <= current_date)
+              AND (pf.data_fim IS NULL OR pf.data_fim >= current_date)
+            """;
+        var mastersBefore = await connection.ExecuteScalarAsync<int>(new CommandDefinition(
+            activeMasterSql, new { TenantId = tenantId }, transaction, cancellationToken: cancellationToken));
 
         if (update.IsPrimary)
         {
@@ -366,14 +431,25 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
             update.StartsOn,
             update.EndsOn,
         }, transaction, cancellationToken: cancellationToken));
+        if (mastersBefore > 0 && await connection.ExecuteScalarAsync<int>(new CommandDefinition(
+                activeMasterSql, new { TenantId = tenantId }, transaction, cancellationToken: cancellationToken)) == 0)
+            throw new InvalidOperationException("O último usuário Master ativo não pode perder o acesso.");
         transaction.Commit();
         return result;
+    }
+
+    private static async Task LockTenantAdministrationAsync(IDbConnection connection, IDbTransaction transaction,
+        Guid tenantId, CancellationToken cancellationToken)
+    {
+        await connection.ExecuteAsync(new CommandDefinition(
+            "SELECT pg_advisory_xact_lock(hashtextextended(CAST(@TenantId AS text), 0))",
+            new { TenantId = tenantId }, transaction, cancellationToken: cancellationToken));
     }
 
     public async Task<IReadOnlyCollection<AccessProfileDto>> ListAccessProfilesAsync(Guid tenantId, CancellationToken cancellationToken)
     {
         const string sql = """
-            SELECT id AS Id, nome AS Name, descricao AS Description, COALESCE(sistema, false) AS IsSystem,
+            SELECT id AS Id, tenant_id AS TenantId, nome AS Name, descricao AS Description, COALESCE(sistema, false) AS IsSystem,
                    nivel_acesso AS AccessLevel, ordem AS "Order", COALESCE(ativo, false) AS IsActive
             FROM erp.perfis WHERE tenant_id = @TenantId ORDER BY ordem NULLS LAST, nome
             """;
@@ -391,7 +467,7 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
             INSERT INTO erp.perfis (id, tenant_id, nome, descricao, sistema, nivel_acesso, ordem, ativo)
             VALUES (@Id, @TenantId, @Name, @Description, false, @AccessLevel,
                     COALESCE((SELECT max(ordem) + 1 FROM erp.perfis WHERE tenant_id = @TenantId), 1), true)
-            RETURNING id AS Id, nome AS Name, descricao AS Description, sistema AS IsSystem,
+            RETURNING id AS Id, tenant_id AS TenantId, nome AS Name, descricao AS Description, sistema AS IsSystem,
                       nivel_acesso AS AccessLevel, ordem AS "Order", ativo AS IsActive
             """;
         var result = await connection.QuerySingleAsync<AccessProfileDto>(new CommandDefinition(sql, new
@@ -423,7 +499,7 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
             UPDATE erp.perfis SET nome = @Name, descricao = @Description,
                    nivel_acesso = @AccessLevel, ativo = @IsActive
              WHERE id = @ProfileId AND tenant_id = @TenantId AND NOT sistema
-            RETURNING id AS Id, nome AS Name, descricao AS Description, sistema AS IsSystem,
+            RETURNING id AS Id, tenant_id AS TenantId, nome AS Name, descricao AS Description, sistema AS IsSystem,
                       nivel_acesso AS AccessLevel, ordem AS "Order", ativo AS IsActive
             """;
         return await (await OpenAsync(cancellationToken)).QuerySingleOrDefaultAsync<AccessProfileDto>(

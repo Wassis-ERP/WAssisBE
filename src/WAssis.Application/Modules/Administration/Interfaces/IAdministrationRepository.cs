@@ -4,6 +4,7 @@ namespace WAssis.Application.Modules.Administration.Interfaces;
 
 public interface IAdministrationRepository
 {
+    Task<bool> HasAdministrationPermissionAsync(Guid tenantId, Guid userId, bool manage, CancellationToken cancellationToken);
     Task<OrganizationDto?> GetOrganizationAsync(Guid tenantId, CancellationToken cancellationToken);
     Task<OrganizationDto?> UpdateOrganizationAsync(Guid tenantId, OrganizationUpdateDto update, CancellationToken cancellationToken);
     Task<OrganizationStatisticsDto> GetStatisticsAsync(Guid tenantId, CancellationToken cancellationToken);

@@ -145,6 +145,7 @@ public sealed record UserBranchAccessUpdateDto(
 
 public sealed record AccessProfileDto(
     Guid Id,
+    Guid TenantId,
     string Name,
     string? Description,
     bool IsSystem,

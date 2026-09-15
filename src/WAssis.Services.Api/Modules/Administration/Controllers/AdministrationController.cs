@@ -1,6 +1,7 @@
 using System.Net.Mail;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Mvc.Filters;
 using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Administration.Dtos;
 using WAssis.Application.Modules.Administration.Interfaces;
@@ -14,8 +15,25 @@ namespace WAssis.Services.Api.Modules.Administration.Controllers;
 public sealed class AdministrationController(
     ICurrentUserContext currentUser,
     IAdministrationRepository repository,
-    IAuditTrailWriter auditTrail) : ControllerBase
+    IAuditTrailWriter auditTrail) : ControllerBase, IAsyncActionFilter
 {
+    public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
+    {
+        if (!TryScope(out var tenantId, out var userId))
+        {
+            context.Result = TenantRequired();
+            return;
+        }
+        var manage = !HttpMethods.IsGet(context.HttpContext.Request.Method);
+        if (!await repository.HasAdministrationPermissionAsync(tenantId, userId, manage,
+                context.HttpContext.RequestAborted))
+        {
+            context.Result = Problem(statusCode: StatusCodes.Status403Forbidden,
+                title: "Permissão administrativa insuficiente.");
+            return;
+        }
+        await next();
+    }
     [HttpGet("organization")]
     public async Task<IActionResult> GetOrganization(CancellationToken cancellationToken)
     {
@@ -105,7 +123,7 @@ public sealed class AdministrationController(
         if (string.IsNullOrWhiteSpace(invitation.Name) || !ValidEmail(invitation.Email))
             return ValidationProblem("Nome e e-mail válidos são obrigatórios.");
         var user = await repository.InviteUserAsync(tenantId, invitation, cancellationToken);
-        await AuditAsync("user.invited", "profile", user.Id, cancellationToken);
+        await AuditAsync("user.added.pending", "profile", user.Id, cancellationToken);
         return CreatedAtAction(nameof(ListUsers), user);
     }
 
@@ -140,7 +158,15 @@ public sealed class AdministrationController(
         if (!TryScope(out var tenantId, out _)) return TenantRequired();
         if (update.StartsOn.HasValue && update.EndsOn.HasValue && update.StartsOn > update.EndsOn)
             return ValidationProblem("A data inicial não pode ser posterior à data final.");
-        var result = await repository.UpsertUserBranchAccessAsync(tenantId, userId, branchId, update, cancellationToken);
+        UserBranchAccessDto? result;
+        try
+        {
+            result = await repository.UpsertUserBranchAccessAsync(tenantId, userId, branchId, update, cancellationToken);
+        }
+        catch (InvalidOperationException exception)
+        {
+            return BusinessConflict(exception.Message);
+        }
         if (result is null) return NotFound();
         await AuditAsync("user.branch-access.updated", "profile_filial", result.Id, cancellationToken);
         return Ok(result);
