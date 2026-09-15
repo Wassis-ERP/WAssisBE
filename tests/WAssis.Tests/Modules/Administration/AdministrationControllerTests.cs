@@ -71,6 +71,7 @@ public sealed class AdministrationControllerTests
 
     private sealed class StubAdministrationRepository : IAdministrationRepository
     {
+        public Task<bool> HasAdministrationPermissionAsync(Guid tenantId, Guid userId, bool manage, CancellationToken cancellationToken) => Task.FromResult(true);
         public UserInvitationDto? Invited { get; private set; }
         public bool PermissionUpdated { get; private set; }
         public Task<OrganizationDto?> GetOrganizationAsync(Guid tenantId, CancellationToken cancellationToken) => Task.FromResult<OrganizationDto?>(null);
