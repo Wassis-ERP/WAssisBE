@@ -17,6 +17,7 @@ public sealed class AdministrationController(
     IAdministrationRepository repository,
     IAuditTrailWriter auditTrail) : ControllerBase, IAsyncActionFilter
 {
+    [NonAction]
     public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
     {
         if (!TryScope(out var tenantId, out var userId))
