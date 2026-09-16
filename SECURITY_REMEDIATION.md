@@ -29,7 +29,7 @@ Este registro documenta a implementação realizada nos repositórios `WAssisBE`
 - SCA: NuGet e npm audit retornaram zero advisories nas fontes consultadas em 2026-09-16.
 - Gitleaks 8.30.1: árvores atuais e histórico local completo dos dois repositórios, zero achados.
 - Imagens Docker da API e do worker: builds aprovados, usuário efetivo UID 1654; Trivy 0.69.3 retornou zero vulnerabilidades HIGH/CRITICAL corrigíveis nas duas imagens.
-- CI do CRM no commit `64d6d22`: integralmente aprovado (run 35155954745). O primeiro CI do backend no commit `b7f643c` falhou somente porque a fixture passava `postgres` duas vezes ao entrypoint; a reprodução local corrigiu a chamada e a suíte completa passou. A nova execução de CI será vinculada após o push deste checkpoint.
+- CI do CRM no commit `64d6d22`: integralmente aprovado (run 35155954745). O primeiro CI do backend no commit `b7f643c` falhou somente porque a fixture passava `postgres` duas vezes ao entrypoint; o checkpoint corretivo `81af4f3` passou integralmente no run 35157591250, inclusive testes PostgreSQL e scans das duas imagens.
 - Docker Compose completo: **não executado**, pois exige segredos locais deliberadamente não versionados.
 
 ## Parecer de liberação

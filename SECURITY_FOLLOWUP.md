@@ -226,6 +226,8 @@ Evidências após a correção:
   é excluída) e usuário não-root UID 1654;
 - Trivy 0.69.3, severidades HIGH/CRITICAL, `--ignore-unfixed` e exit code bloqueante:
   zero vulnerabilidades corrigíveis nas duas imagens.
+- o CI do commit `81af4f3` repetiu com sucesso todos os gates acima no run
+  35157591250.
 
 Isso comprova a fixture Testcontainers/Docker deste checkpoint; não deve ser
 confundido com evidência de grants, storage, limites de runtime ou deploy em
