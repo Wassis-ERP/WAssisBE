@@ -318,6 +318,7 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnName("lgpd_autorizado_em");
 
                     b.Property<string>("ManagerId")
+                        .IsConcurrencyToken()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("gerente_id");
@@ -386,6 +387,7 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnName("cep");
 
                     b.Property<string>("ProducerId")
+                        .IsConcurrencyToken()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("produtor_id");
@@ -909,6 +911,7 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnName("indicador");
 
                     b.Property<string>("ResponsibleId")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")

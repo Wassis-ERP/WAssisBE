@@ -22,34 +22,34 @@ public sealed class AuthSessionService(NpgsqlDataSource dataSource) : IAuthSessi
             ON CONFLICT (jti) DO NOTHING
             """;
         await ExecuteAsync(sql, new { Jti = jti, TenantId = tenantId, UserId = userId, ExpiresAt = jwt.ValidTo }, cancellationToken);
-        if (!await ValidateAsync(jti, userId, tenantId, cancellationToken))
+        if ((await GetAuthorizedBranchesAsync(jti, userId, tenantId, cancellationToken)).Count == 0)
         {
             await RevokeAsync(jti, cancellationToken);
             throw new UnauthorizedAccessException("Usuário ou vínculo de corretora inativo.");
         }
     }
 
-    public async Task<bool> ValidateAsync(string jti, string userId, string tenantId, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<string>> GetAuthorizedBranchesAsync(string jti, string userId, string tenantId, CancellationToken cancellationToken)
     {
         const string sql = """
-            SELECT EXISTS (
-              SELECT 1 FROM security.auth_sessions s
-              JOIN erp.profiles p ON p.id::text = s.user_id AND p.tenant_id::text = s.tenant_id
-              WHERE s.jti = @Jti AND s.user_id = @UserId AND s.tenant_id = @TenantId
+            SELECT f.id::text FROM security.auth_sessions s
+            JOIN erp.profiles p ON p.id::text = s.user_id AND p.tenant_id::text = s.tenant_id
+            JOIN erp.profile_filiais pf ON pf.profile_id = p.id
+            JOIN erp.filiais f ON f.id = pf.filial_id AND f.tenant_id = p.tenant_id
+            JOIN erp.perfis pe ON pe.id = pf.perfil_id AND pe.tenant_id = p.tenant_id
+            WHERE s.jti = @Jti AND s.user_id = @UserId AND s.tenant_id = @TenantId
                 AND s.revoked_at IS NULL AND s.expires_at > now()
                 AND p.ativo AND p.status = 'ATIVO'
                 AND (p.convite_status IS NULL OR p.convite_status = 'ACEITO')
-                AND EXISTS (
-                  SELECT 1 FROM erp.profile_filiais pf
-                  JOIN erp.filiais f ON f.id = pf.filial_id AND f.tenant_id = p.tenant_id
-                  JOIN erp.perfis pe ON pe.id = pf.perfil_id AND pe.tenant_id = p.tenant_id
-                  WHERE pf.profile_id = p.id AND pf.ativo AND f.ativo AND pe.ativo
-                    AND (pf.data_inicio IS NULL OR pf.data_inicio <= current_date)
-                    AND (pf.data_fim IS NULL OR pf.data_fim >= current_date)
-                )
-            )
+                AND pf.ativo AND f.ativo AND pe.ativo
+                AND (pf.data_inicio IS NULL OR pf.data_inicio <= current_date)
+                AND (pf.data_fim IS NULL OR pf.data_fim >= current_date)
+            GROUP BY f.id
+            ORDER BY bool_or(COALESCE(pf.principal, false)) DESC, f.id
             """;
-        return await ExecuteScalarAsync(sql, new { Jti = jti, UserId = userId, TenantId = tenantId }, cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        return (await connection.QueryAsync<string>(new CommandDefinition(
+            sql, new { Jti = jti, UserId = userId, TenantId = tenantId }, cancellationToken: cancellationToken))).AsList();
     }
 
     public Task RevokeAsync(string jti, CancellationToken cancellationToken) => ExecuteAsync(
@@ -62,9 +62,4 @@ public sealed class AuthSessionService(NpgsqlDataSource dataSource) : IAuthSessi
         await connection.ExecuteAsync(new CommandDefinition(sql, values, cancellationToken: cancellationToken));
     }
 
-    private async Task<bool> ExecuteScalarAsync(string sql, object values, CancellationToken cancellationToken)
-    {
-        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
-        return await connection.ExecuteScalarAsync<bool>(new CommandDefinition(sql, values, cancellationToken: cancellationToken));
-    }
 }

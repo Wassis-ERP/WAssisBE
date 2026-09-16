@@ -52,8 +52,8 @@ jobs:
       - name: Test
         run: dotnet test tests/WAssis.Tests/WAssis.Tests.csproj --configuration Release --no-restore -p:UseSharedCompilation=false -nodeReuse:false
 
-      - name: Vulnerable package audit
-        run: dotnet list src/WAssis.Services.Api/WAssis.Services.Api.csproj package --vulnerable --include-transitive
+      - name: Vulnerability report (restore enforces audit errors)
+        run: dotnet list WAssisInsurance.sln package --vulnerable --include-transitive
 
       - name: Publish API
         run: dotnet publish src/WAssis.Services.Api/WAssis.Services.Api.csproj --configuration Release --no-build --output ./artifacts/api -p:UseAppHost=false

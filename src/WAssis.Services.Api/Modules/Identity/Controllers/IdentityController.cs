@@ -36,7 +36,15 @@ public sealed class IdentityController(
     {
         var result = await mediator.Send(new LoginCommand(request.Username, request.Password), cancellationToken);
         if (!result.IsSuccess) return this.ToActionResult(result, value => Ok(ToLoginViewModel(value)));
-        await authSessions.RegisterAsync(result.Value!.AccessToken, cancellationToken);
+        try { await authSessions.RegisterAsync(result.Value!.AccessToken, cancellationToken); }
+        catch (UnauthorizedAccessException)
+        {
+            return Unauthorized(new ProblemDetails
+            {
+                Status = StatusCodes.Status401Unauthorized,
+                Title = "Não foi possível autenticar com as credenciais informadas.",
+            });
+        }
         Response.Cookies.Append("wassis_access", result.Value.AccessToken, new CookieOptions
         {
             HttpOnly = true,

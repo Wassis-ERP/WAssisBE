@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using WAssis.Application.Modules.Administration.Dtos;
 using WAssis.Application.Modules.Administration.Interfaces;
 using WAssis.Infra.Data.Context;
+using WAssis.Infra.Data.Transactions;
 
 namespace WAssis.Infra.Data.Modules.Administration;
 
@@ -303,7 +304,8 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
             throw new InvalidOperationException("O administrador não pode inativar o próprio acesso.");
 
         var connection = await OpenAsync(cancellationToken);
-        using var transaction = connection.BeginTransaction();
+        await using var unit = await RepositoryTransaction.BeginAsync(dbContext, cancellationToken);
+        var transaction = unit.DbTransaction;
         await LockTenantAdministrationAsync(connection, transaction, tenantId, cancellationToken);
         if (isActive && await connection.ExecuteScalarAsync<bool>(new CommandDefinition(
                 "SELECT EXISTS (SELECT 1 FROM erp.profiles WHERE id = @UserId AND tenant_id = @TenantId AND convite_status = 'PENDENTE')",
@@ -343,7 +345,7 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
             """;
         var changed = await connection.ExecuteAsync(new CommandDefinition(sql,
             new { TenantId = tenantId, UserId = userId, IsActive = isActive }, transaction, cancellationToken: cancellationToken));
-        transaction.Commit();
+        await unit.CompleteAsync(cancellationToken);
         return changed == 1;
     }
 
@@ -369,7 +371,8 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
             throw new InvalidOperationException("A data inicial do acesso não pode ser posterior à data final.");
 
         var connection = await OpenAsync(cancellationToken);
-        using var transaction = connection.BeginTransaction();
+        await using var unit = await RepositoryTransaction.BeginAsync(dbContext, cancellationToken);
+        var transaction = unit.DbTransaction;
         await LockTenantAdministrationAsync(connection, transaction, tenantId, cancellationToken);
         const string scopeSql = """
             SELECT EXISTS (SELECT 1 FROM erp.profiles WHERE id = @UserId AND tenant_id = @TenantId)
@@ -420,7 +423,7 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
                       perfil_id AS AccessProfileId, principal AS IsPrimary, ativo AS IsActive,
                       data_inicio AS StartsOn, data_fim AS EndsOn
             """;
-        var result = await connection.QuerySingleAsync<UserBranchAccessRow>(new CommandDefinition(sql, new
+        var parameters = new DynamicParameters(new
         {
             Id = Guid.NewGuid(),
             UserId = userId,
@@ -428,24 +431,26 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
             update.AccessProfileId,
             update.IsPrimary,
             update.IsActive,
-            update.StartsOn,
-            update.EndsOn,
-        }, transaction, cancellationToken: cancellationToken));
+        });
+        parameters.Add("StartsOn", update.StartsOn?.ToDateTime(TimeOnly.MinValue), DbType.Date);
+        parameters.Add("EndsOn", update.EndsOn?.ToDateTime(TimeOnly.MinValue), DbType.Date);
+        var result = await connection.QuerySingleAsync<UserBranchAccessRow>(new CommandDefinition(
+            sql, parameters, transaction, cancellationToken: cancellationToken));
         if (mastersBefore > 0 && await connection.ExecuteScalarAsync<int>(new CommandDefinition(
                 activeMasterSql, new { TenantId = tenantId }, transaction, cancellationToken: cancellationToken)) == 0)
             throw new InvalidOperationException("O último usuário Master ativo não pode perder o acesso.");
-        transaction.Commit();
+        await unit.CompleteAsync(cancellationToken);
         return ToBranchAccessDto(result);
     }
 
     private sealed record UserBranchAccessRow(
         Guid Id, Guid UserId, Guid BranchId, Guid AccessProfileId,
-        bool IsPrimary, bool IsActive, DateTime? StartsOn, DateTime? EndsOn);
+        bool IsPrimary, bool IsActive, DateOnly? StartsOn, DateOnly? EndsOn);
 
     private static UserBranchAccessDto ToBranchAccessDto(UserBranchAccessRow row) => new(
         row.Id, row.UserId, row.BranchId, row.AccessProfileId, row.IsPrimary, row.IsActive,
-        row.StartsOn is null ? null : DateOnly.FromDateTime(row.StartsOn.Value),
-        row.EndsOn is null ? null : DateOnly.FromDateTime(row.EndsOn.Value));
+        row.StartsOn,
+        row.EndsOn);
 
     private static async Task LockTenantAdministrationAsync(IDbConnection connection, IDbTransaction transaction,
         Guid tenantId, CancellationToken cancellationToken)
@@ -470,7 +475,8 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
     public async Task<AccessProfileDto> CreateAccessProfileAsync(Guid tenantId, AccessProfileCreateDto create, CancellationToken cancellationToken)
     {
         var connection = await OpenAsync(cancellationToken);
-        using var transaction = connection.BeginTransaction();
+        await using var unit = await RepositoryTransaction.BeginAsync(dbContext, cancellationToken);
+        var transaction = unit.DbTransaction;
         var id = Guid.NewGuid();
         const string sql = """
             INSERT INTO erp.perfis (id, tenant_id, nome, descricao, sistema, nivel_acesso, ordem, ativo)
@@ -498,7 +504,7 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
             """;
         await connection.ExecuteAsync(new CommandDefinition(permissionsSql,
             new { ProfileId = id, TenantId = tenantId }, transaction, cancellationToken: cancellationToken));
-        transaction.Commit();
+        await unit.CompleteAsync(cancellationToken);
         return result;
     }
 

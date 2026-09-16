@@ -15,6 +15,7 @@ COPY src/WAssis.UI.Web/WAssis.UI.Web.csproj src/WAssis.UI.Web/
 COPY tests/WAssis.Tests/WAssis.Tests.csproj tests/WAssis.Tests/
 
 COPY global.json ./
+COPY Directory.Build.props NuGet.Config ./
 COPY src/WAssis.Domain.Core/packages.lock.json src/WAssis.Domain.Core/
 COPY src/WAssis.Domain/packages.lock.json src/WAssis.Domain/
 COPY src/WAssis.Application/packages.lock.json src/WAssis.Application/

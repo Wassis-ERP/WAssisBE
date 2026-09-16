@@ -10,7 +10,6 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
-using Testcontainers.PostgreSql;
 using WAssis.Infra.CrossCutting.Identity.Authentication;
 using WAssis.Infra.Data.Context;
 using WAssis.Infra.Data.Configuration;
@@ -18,7 +17,7 @@ using WAssis.Tests.TestDoubles;
 
 namespace WAssis.Tests.Integration;
 
-public sealed class PostgresReadinessTests
+public sealed partial class PostgresReadinessTests
 {
     private const string TenantA = "22222222-2222-2222-2222-222222222222";
     private const string TenantB = "22222222-2222-2222-2222-222222222223";
@@ -36,9 +35,7 @@ public sealed class PostgresReadinessTests
     [Trait("Category", "Postgres")]
     public async Task MigrationsAndHttpJourney_UseRealPostgresAndEnforceTenantAndBranch()
     {
-        await using var postgres = new PostgreSqlBuilder("postgres:16-alpine")
-            .WithPassword(Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))).Build();
-        await postgres.StartAsync();
+        await using var postgres = await PostgresTestDatabase.StartAsync();
         await using var db = Context(postgres.GetConnectionString());
         await Assert.ThrowsAsync<InvalidOperationException>(() => DatabaseMigrationGate.EnsureCurrentAsync(db));
         await DatabaseMigrationGate.MigrateSingletonAsync(db);
@@ -78,13 +75,19 @@ public sealed class PostgresReadinessTests
             UPDATE erp.pipeline_stages SET finaliza_com_sucesso = true, finaliza_com_perda = true;
             """);
 
-        using var factory = new ApiFactory(postgres.GetConnectionString());
+        using var factory = new ApiFactory(await postgres.CreateApplicationConnectionAsync());
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/health/ready")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/segurados")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/identity/login", new { username = "user0@example.invalid", password = "wrong" })).StatusCode);
-        await Login(client, 0);
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/health/ready")).StatusCode);
+        using var anonymousCsrf = await client.GetFromJsonAsync<JsonDocument>("/api/identity/csrf");
+        var sessionCookie = await Login(client, 0);
+        using (var staleCsrf = new HttpRequestMessage(HttpMethod.Post, "/api/identity/logout"))
+        {
+            staleCsrf.Headers.Add("X-CSRF-TOKEN", anonymousCsrf!.RootElement.GetProperty("token").GetString());
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.SendAsync(staleCsrf)).StatusCode);
+        }
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/health/ready")).StatusCode);
         var create = await client.PostAsJsonAsync("/api/segurados", new
         {
             officeBranchId = BranchA, name = "Segurado de integração", personType = "PF", status = "Prospecto",
@@ -155,6 +158,15 @@ public sealed class PostgresReadinessTests
             Assert.Contains(await worker.InsuredPeople.Select(x => x.Id).ToArrayAsync(), item => item == id);
         Assert.Equal("test-queue", auditPurpose);
 
+        await VerifyOwnScopeAndLivePermissions(db, client, id, opportunityId);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsync("/api/identity/logout", null)).StatusCode);
+        using (var replay = factory.CreateClient(new WebApplicationFactoryClientOptions
+        { BaseAddress = new Uri("https://localhost"), HandleCookies = false }))
+        {
+            replay.DefaultRequestHeaders.Add("Cookie", sessionCookie);
+            Assert.Equal(HttpStatusCode.Unauthorized, (await replay.GetAsync("/api/identity/me")).StatusCode);
+        }
+
         foreach (var otherUser in new[] { 1, 2 })
         {
             await Login(client, otherUser);
@@ -171,7 +183,7 @@ public sealed class PostgresReadinessTests
         Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/segurados", new
         { officeBranchId = BranchB, name = "Proibido", status = "Prospecto", personType = "PF" })).StatusCode);
 
-        await VerifyUpgrade(postgres.GetConnectionString());
+        await VerifyUpgrade();
     }
 
     private static async Task VerifyRlsWithEffectiveApplicationRole(string connectionString, Guid insuredId)
@@ -205,6 +217,41 @@ public sealed class PostgresReadinessTests
             await transaction.RollbackAsync();
         }
 
+        foreach (var (tenant, branch, expected) in new[]
+        {
+            (TenantA, BranchA, 1L), (TenantA, BranchB, 0L),
+            (TenantB, BranchTenantB, 0L), (string.Empty, string.Empty, 0L),
+        })
+        {
+            await using var scoped = await dataSource.OpenConnectionAsync();
+            await using var transaction = await scoped.BeginTransactionAsync();
+            await using var setup = new NpgsqlCommand("""
+                SET LOCAL ROLE wassis_test_app;
+                SELECT set_config('app.tenant_id', @tenant, true), set_config('app.branch_id', @branch, true);
+                """, scoped, transaction);
+            setup.Parameters.AddWithValue("tenant", tenant);
+            setup.Parameters.AddWithValue("branch", branch);
+            await setup.ExecuteNonQueryAsync();
+            await using var visible = new NpgsqlCommand("SELECT count(*) FROM public.segurados WHERE id = @id", scoped, transaction);
+            visible.Parameters.AddWithValue("id", insuredId);
+            Assert.Equal(expected, await visible.ExecuteScalarAsync());
+            await using var write = new NpgsqlCommand("UPDATE public.segurados SET nome = nome WHERE id = @id", scoped, transaction);
+            write.Parameters.AddWithValue("id", insuredId);
+            Assert.Equal((int)expected, await write.ExecuteNonQueryAsync());
+            // An INSERT outside the selected tenant/branch must fail WITH CHECK,
+            // including when transaction-local context is absent.
+            await using var forbidden = new NpgsqlCommand("""
+                INSERT INTO public.segurados (id,tenant_id,filial_id,nome,tipo,status,lgpd_autorizado,created_at,updated_at)
+                VALUES (@id,@tenant,@branch,'RLS fixture','PF','Prospecto',false,now(),now())
+                """, scoped, transaction);
+            forbidden.Parameters.AddWithValue("id", Guid.NewGuid());
+            forbidden.Parameters.AddWithValue("tenant", TenantA);
+            forbidden.Parameters.AddWithValue("branch", branch == BranchA ? BranchB : BranchA);
+            var denied = await Assert.ThrowsAsync<PostgresException>(() => forbidden.ExecuteNonQueryAsync());
+            Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, denied.SqlState);
+            await transaction.RollbackAsync();
+        }
+
         // A pooled connection without transaction-local context must deny by default.
         await using (var reused = await dataSource.OpenConnectionAsync())
         await using (var transaction = await reused.BeginTransactionAsync())
@@ -220,18 +267,12 @@ public sealed class PostgresReadinessTests
 
     private static string iBranch(int user) => user == 2 ? BranchB : BranchTenantB;
 
-    private static async Task VerifyUpgrade(string connectionString)
+    private static async Task VerifyUpgrade()
     {
-        await using (var connection = new NpgsqlConnection(connectionString))
-        {
-            await connection.OpenAsync();
-            await using var command = new NpgsqlCommand("CREATE DATABASE readiness_upgrade", connection);
-            await command.ExecuteNonQueryAsync();
-        }
-        var upgradeConnection = new NpgsqlConnectionStringBuilder(connectionString) { Database = "readiness_upgrade" }.ConnectionString;
+        await using var upgradeDatabase = await PostgresTestDatabase.StartAsync();
+        var upgradeConnection = upgradeDatabase.GetConnectionString();
         await using var upgrade = Context(upgradeConnection, TenantA, BranchA);
-        var migrations = upgrade.Database.GetMigrations().ToArray();
-        await upgrade.GetService<IMigrator>().MigrateAsync(migrations[^2]);
+        await upgrade.GetService<IMigrator>().MigrateAsync("20260912120359_AlignFrontendV31ConnectedContracts");
         var id = Guid.NewGuid();
         await upgrade.Database.ExecuteSqlInterpolatedAsync($"INSERT INTO public.segurados (id, tenant_id, filial_id, nome, tipo, status, lgpd_autorizado, created_at, updated_at) VALUES ({id}, {TenantA}, {BranchA}, 'Antes do upgrade', 'PF', 'Prospecto', false, now(), now())");
         // Seed through the old schema: new queue tables do not exist yet.
@@ -256,13 +297,17 @@ public sealed class PostgresReadinessTests
         new DbContextOptionsBuilder<WAssisDbContext>().UseNpgsql(connection, options => options.MigrationsHistoryTable("__EFMigrationsHistory", "quotes")).Options,
         new FakeCurrentUserContext { IsAuthenticated = tenant is not null, TenantId = tenant, BranchId = branch, HasAllBranchesAccess = false, BranchIds = branch is null ? [] : [branch] });
 
-    private static async Task Login(HttpClient client, int user)
+    private static async Task<string> Login(HttpClient client, int user)
     {
         var response = await client.PostAsJsonAsync("/api/identity/login", new { username = $"user{user}@example.invalid", password = Password });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var csrf = await client.GetFromJsonAsync<JsonDocument>("/api/identity/csrf");
         client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
         client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", csrf!.RootElement.GetProperty("token").GetString());
+        var cookie = Assert.Single(response.Headers.GetValues("Set-Cookie"), value => value.StartsWith("wassis_access=", StringComparison.Ordinal));
+        Assert.Contains("httponly", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("secure", cookie, StringComparison.OrdinalIgnoreCase);
+        return cookie.Split(';')[0];
     }
 
     private sealed class ApiFactory(string connection) : WebApplicationFactory<Program>
@@ -292,7 +337,7 @@ public sealed class PostgresReadinessTests
                 settings[prefix + "BranchIds:0"] = settings[prefix + "BranchId"];
                 settings[prefix + "UserType"] = "brokerage_staff";
                 settings[prefix + "Roles:0"] = "brokerage_admin";
-                if (i == 0) settings[prefix + "Roles:1"] = "platform_admin";
+
             }
             foreach (var setting in settings) builder.UseSetting(setting.Key, setting.Value);
             builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(settings));

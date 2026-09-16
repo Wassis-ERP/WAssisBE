@@ -8,11 +8,11 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
-using Testcontainers.PostgreSql;
 using WAssis.Infra.CrossCutting.Identity.Authentication;
 using WAssis.Infra.Data.Configuration;
 using WAssis.Infra.Data.Context;
 using WAssis.Infra.Data.Modules.Administration;
+using WAssis.Application.Modules.Administration.Dtos;
 using WAssis.Tests.TestDoubles;
 
 namespace WAssis.Tests.Integration;
@@ -37,9 +37,7 @@ public sealed class PostgresAdministrationTests
     [Trait("Category", "Postgres")]
     public async Task AdministrationHttp_RejectsCrossTenantAndUnsafeLifecycleChanges()
     {
-        await using var postgres = new PostgreSqlBuilder("postgres:16-alpine")
-            .WithPassword(Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))).Build();
-        await postgres.StartAsync();
+        await using var postgres = await PostgresTestDatabase.StartAsync();
         await using (var migration = Context(postgres.GetConnectionString()))
         {
             await DatabaseMigrationGate.MigrateSingletonAsync(migration);
@@ -87,9 +85,26 @@ public sealed class PostgresAdministrationTests
             Assert.Equal(2, (await administration.ListUsersAsync(Guid.Parse(TenantA), default)).Count);
             Assert.Empty(await administration.ListUserBranchAccessAsync(
                 Guid.Parse(TenantA), Guid.Parse(UserB), default));
+
+            // A rejected change rolls back its savepoint even if the caller catches it.
+            // A successful repository operation must still obey the caller's rollback.
+            Guid rolledBackProfile;
+            await using (var outer = await direct.Database.BeginTransactionAsync())
+            {
+                await Assert.ThrowsAsync<InvalidOperationException>(() => administration.UpsertUserBranchAccessAsync(
+                    Guid.Parse(TenantB), Guid.Parse(UserB), Guid.Parse(BranchB),
+                    new UserBranchAccessUpdateDto(Guid.Parse(MasterB), false, false, null, null), default));
+                var preserved = Assert.Single(await administration.ListUserBranchAccessAsync(Guid.Parse(TenantB), Guid.Parse(UserB), default));
+                Assert.True(preserved.IsActive);
+                Assert.True(preserved.IsPrimary);
+                rolledBackProfile = (await administration.CreateAccessProfileAsync(Guid.Parse(TenantB),
+                    new AccessProfileCreateDto("Rollback fixture", null, null), default)).Id;
+                await outer.RollbackAsync();
+            }
+            Assert.DoesNotContain(await administration.ListAccessProfilesAsync(Guid.Parse(TenantB), default), p => p.Id == rolledBackProfile);
         }
 
-        using var factory = new ApiFactory(postgres.GetConnectionString());
+        using var factory = new ApiFactory(await postgres.CreateApplicationConnectionAsync());
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/administration/users")).StatusCode);
         await Login(client, "admin-a@example.invalid");
@@ -108,6 +123,15 @@ public sealed class PostgresAdministrationTests
             $"/api/administration/users/{UserA}/branches/{BranchA}", Access(MasterA, "2027-01-02", "2027-01-01"))).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await client.PatchAsJsonAsync(
             $"/api/administration/users/{UserA}/status", new { isActive = false })).StatusCode);
+
+        var updatedAccess = await client.PutAsJsonAsync(
+            $"/api/administration/users/{OtherMasterA}/branches/{BranchA}", Access(MasterA, "2000-01-01", "2099-12-31"));
+        Assert.Equal(HttpStatusCode.OK, updatedAccess.StatusCode);
+        using var accessBody = await updatedAccess.Content.ReadFromJsonAsync<JsonDocument>();
+        Assert.Equal("2000-01-01", accessBody!.RootElement.GetProperty("startsOn").GetString());
+        Assert.Equal("2099-12-31", accessBody.RootElement.GetProperty("endsOn").GetString());
+        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/administration/access-profiles",
+            new { name = "Leitura futura", description = "Fixture", accessLevel = "OPERACIONAL" })).StatusCode);
 
         var created = await client.PostAsJsonAsync("/api/administration/users", new
         { name = "Novo usuário", email = "new@example.invalid" });

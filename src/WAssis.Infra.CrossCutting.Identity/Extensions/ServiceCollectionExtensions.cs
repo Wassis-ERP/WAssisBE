@@ -83,9 +83,25 @@ public static class ServiceCollectionExtensions
                         var tenantId = principal?.FindFirstValue(ClaimConstants.TenantId);
                         var sessions = context.HttpContext.RequestServices.GetRequiredService<IAuthSessionService>();
                         if (string.IsNullOrWhiteSpace(jti) || string.IsNullOrWhiteSpace(userId)
-                            || string.IsNullOrWhiteSpace(tenantId)
-                            || !await sessions.ValidateAsync(jti, userId, tenantId, context.HttpContext.RequestAborted))
+                            || string.IsNullOrWhiteSpace(tenantId))
+                        {
                             context.Fail("Sessão revogada, expirada ou sem vínculo ativo.");
+                            return;
+                        }
+                        var branches = await sessions.GetAuthorizedBranchesAsync(jti, userId, tenantId, context.HttpContext.RequestAborted);
+                        if (branches.Count == 0 || principal?.Identity is not ClaimsIdentity identity)
+                        {
+                            context.Fail("Sessão revogada, expirada ou sem vínculo ativo.");
+                            return;
+                        }
+                        // The signed token identifies the session. Branch bindings are live
+                        // database permissions, including grants/revocations since login.
+                        var previousBranch = identity.FindFirst(ClaimConstants.BranchId)?.Value;
+                        foreach (var claim in identity.Claims.Where(c => c.Type is ClaimConstants.BranchId or ClaimConstants.BranchIds).ToArray())
+                            identity.RemoveClaim(claim);
+                        foreach (var branch in branches) identity.AddClaim(new Claim(ClaimConstants.BranchIds, branch));
+                        identity.AddClaim(new Claim(ClaimConstants.BranchId,
+                            previousBranch is not null && branches.Contains(previousBranch) ? previousBranch : branches[0]));
                     },
                 };
             });

@@ -68,6 +68,12 @@ public class WAssisDbContext : DbContext
             if (branch is not null) branch.IsConcurrencyToken = true;
         }
 
+        // Ownership can change after a permitted read. Include the original owner
+        // in UPDATE/DELETE predicates so a stale request cannot write after reassignment.
+        modelBuilder.Entity<Opportunity>().Property(x => x.ResponsibleId).IsConcurrencyToken();
+        modelBuilder.Entity<InsuredPerson>().Property(x => x.ProducerId).IsConcurrencyToken();
+        modelBuilder.Entity<InsuredPerson>().Property(x => x.ManagerId).IsConcurrencyToken();
+
         modelBuilder.Entity<DocumentSearch>().HasQueryFilter(x => _currentTenantId == null ||
             x.TenantId == _currentTenantId && x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId));
         modelBuilder.Entity<ImportedDocument>().HasQueryFilter(x => _currentTenantId == null ||

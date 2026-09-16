@@ -29,7 +29,10 @@ public sealed class RlsTransactionMiddleware(RequestDelegate next)
         try
         {
             await next(context);
-            await transaction.CommitAsync(context.RequestAborted);
+            if (context.Response.StatusCode >= StatusCodes.Status400BadRequest)
+                await transaction.RollbackAsync(CancellationToken.None);
+            else
+                await transaction.CommitAsync(context.RequestAborted);
         }
         catch
         {

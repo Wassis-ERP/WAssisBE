@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
-using Testcontainers.PostgreSql;
 using WAssis.Application.Abstractions;
 using WAssis.Domain.Modules.Quotes.Entities;
 using WAssis.Infra.Data.Configuration;
@@ -22,9 +21,7 @@ public sealed class DurableDispatchTests
     [Trait("Category", "Postgres")]
     public async Task AtomicOutboxClaimReceiptAndExpiredLease_UseRealPostgres()
     {
-        await using var postgres = new PostgreSqlBuilder("postgres:16-alpine")
-            .WithPassword(Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))).Build();
-        await postgres.StartAsync();
+        await using var postgres = await PostgresTestDatabase.StartAsync();
         await using var db = Context(postgres.GetConnectionString());
         await DatabaseMigrationGate.MigrateSingletonAsync(db);
         var repository = new QuoteRequestRepository(db);

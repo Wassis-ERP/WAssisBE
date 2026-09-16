@@ -1,68 +1,109 @@
 # Checkpoint de segurança — 16/09/2026
 
 Base: WAssisBE `7bea743`, WassisCRM `be9627e`.
-Continuação: branch `codex/security-remediation-followup` nos dois repositórios.
-Este documento complementa o histórico `SECURITY_REMEDIATION.md`; não certifica Production.
+Branch de continuação nos dois repositórios: `codex/security-remediation-followup`.
+Primeiro checkpoint: backend `42a86ca`, frontend `d98b84c`.
+Este documento complementa `SECURITY_REMEDIATION.md`; não certifica Production.
 
-## Alterações
+## Correções implementadas
 
-- SEC-12: action Gitleaks substituída pela CLI oficial 8.30.1 com checksum fixo
-  por plataforma. Mantidos histórico completo, redação e falha em achados.
-- SEC-05: consultas de sessão usam conexão curta de `NpgsqlDataSource`, evitando
-  construir o DbContext durante autenticação, antes de `HttpContext.User` existir.
-  O CRM invalida CSRF após login para obter um token ligado à nova identidade.
-- SEC-01/02: autorização e contexto de dados devem selecionar a mesma filial.
-  Consulta de permissões sem branch retorna os vínculos vigentes do usuário,
-  permitindo ao CRM montar a lista de corretoras sem restringi-la ao JWT inicial.
-- SEC-01: `PROPRIO` agora produz restrição explícita em Segurados (produtor/gerente
-  vinculados ao profile) e Oportunidades (responsável). Filtros cobrem listagem/ID;
-  escritas verificam propriedade atual e original. Nos demais endpoints, PROPRIO
-  é negado até existir suporte de ownership; não equivale a acesso CORRETORA.
-  Escopos desconhecidos não concedem autorização. Isso não encerra toda a matriz.
-- SEC-04: contadores separados por usuário, tenant e IP, compartilhados entre
-  réplicas. Por operação/janela: limite do atributo por usuário, 10 vezes para
-  tenant e 20 vezes para IP; login anônimo mantém limite por IP. Consumo usa
-  transação independente, persistindo mesmo se a operação de negócio falhar.
-  SQL retorna aliases explícitos para Dapper e satura contadores para evitar overflow.
+- SEC-12: Gitleaks CLI oficial 8.30.1, checksum fixo Windows/Linux, histórico
+  completo e saída redigida. Resolve a dependência de licença da action anterior.
+- SEC-07/12: NuGet Audit bloqueia restore/build por vulnerabilidades diretas ou
+  transitivas (low a critical) e falhas da fonte de auditoria. Configuração também
+  copiada antes do restore Docker. Relatório sozinho não era um gate de falha.
+- SEC-05: sessão e permissões usam conexões curtas independentes do DbContext da
+  requisição, evitando capturar contexto anônimo durante OnTokenValidated.
+  CRM descarta o CSRF anônimo depois do login e busca token da identidade atual.
+- SEC-01/02/05: vínculos de filial são reconstruídos do banco durante validação da
+  sessão, sem depender de claims antigos. Novo vínculo permite seleção sem novo
+  login; remoção perde acesso imediatamente. Sessão sem vínculo válido é recusada.
+  Login com profile/vínculo inválido retorna 401 genérico, sem emitir cookie novo.
+- SEC-01/02: autorização e dados usam a mesma filial. Permissões sem filtro de
+  branch retornam todos os vínculos vigentes para o seletor de corretoras do CRM.
+- SEC-01: PROPRIO restringe Segurados por produtor/gerente ligado ao profile e
+  Oportunidades por responsável, em listagem, ID e escrita. Outros módulos negam
+  PROPRIO até implementarem ownership. Escopos desconhecidos não concedem acesso.
+- SEC-01: campos de ownership também são tokens de concorrência EF. Reatribuição
+  entre leitura e escrita impede UPDATE/DELETE antigo. Conflito retorna 409 genérico.
+  Migration `20260916203520_ProtectConcurrentRecordOwnership` atualiza apenas o
+  snapshot; Up/Down não alteram esquema físico ou dados.
+- SEC-04: orçamentos independentes por usuário, tenant e IP, compartilhados entre
+  réplicas. Limite do atributo por usuário, 10x tenant e 20x IP; anônimo por IP.
+  Consumo persiste mesmo quando a transação de negócio sofre rollback.
+- Administração: três operações usam transação existente com savepoint ou criam
+  transação própria. Erro ou retorno antecipado desfaz a operação sem encerrar a
+  transação externa. Middleware RLS também desfaz respostas HTTP >=400.
+- Administração: datas PostgreSQL/Npgsql são lidas como DateOnly; parâmetros
+  Dapper enviados como DbType.Date. Datas preenchidas e nulas foram verificadas.
 
-## Validação
+## Evidências locais
 
-- SDK .NET 10.0.401 instalado por WinGet, origem Microsoft.
-- Restore locked: aprovado com `--no-http-cache` (cache local anterior estava desatualizado).
-- Base antes das alterações: build sem avisos/erros e 109 testes sem PostgreSQL.
-- Código alterado: 117 testes sem PostgreSQL aprovados; build sem avisos/erros.
-- CRM: 334 testes, lint e build aprovados; permanecem avisos de fontes Mulish/Rubik.
-- Teste `SecurityServicesPostgresTests` cobre SQL real de permissões, sessão/revogação,
-  quotas concorrentes entre duas instâncias, IP rotativo, orçamento por tenant e rollback.
-- `scripts/test-security-postgres.ps1` cria um cluster Windows descartável em loopback
-  usando binários PostgreSQL fornecidos explicitamente, roda esse teste e para o servidor.
-  Não usa banco/credenciais da aplicação. Resultado registrado no fechamento.
-- Gitleaks CLI: histórico backend (54 commits) e frontend (73 commits), zero achados.
-- O teste real detectou incompatibilidade Dapper entre `DateTime` retornado por
-  Npgsql e `DateTimeOffset` no construtor do contador; corrigida para UTC `DateTime`.
-- Após a correção, `SecurityServicesPostgresTests` passou em PostgreSQL 16.15 real:
-  migrations, permissões, revogação, concorrência/quotas e rollback. Cluster temporário
-  encerrado. Não foi executada a suíte completa Testcontainers nem jornada no navegador.
-- Checkpoint frontend publicado: `d98b84c`, branch `codex/security-remediation-followup`.
+- .NET SDK 10.0.401 instalado via WinGet/Microsoft; ferramenta EF 10.0.12 restaurada.
+- Restore locked aprovado com `--no-http-cache`; não houve downgrade para contornar cache.
+- 117 testes sem PostgreSQL aprovados; quatro testes de integração PostgreSQL
+  aprovados, cobrindo múltiplas jornadas/assertivas cada. Execução final conjunta:
+  121/121 aprovados. Build Release da solução: zero avisos e zero erros.
+- PostgreSQL 16.15 oficial em cluster temporário, loopback, senha aleatória e
+  TLS VerifyFull com certificado de teste. Nenhum banco da aplicação foi utilizado.
+- Fixtures HTTP usam role LOGIN sem SUPERUSER, ownership ou BYPASSRLS. As permissões
+  amplas concedidas nas tabelas da fixture servem para testar RLS e NÃO constituem
+  uma proposta de grants mínimos para Production.
+- Jornadas HTTP: tenant/filial, PROPRIO, permissão alterada sem novo login, vínculos
+  concedidos/removidos durante sessão, cookie HttpOnly/Secure, CSRF anônimo recusado,
+  logout e replay do cookie revogado, CRUD, proteção do último Master e auditoria.
+- Concorrência: ownership alterado após leitura reproduziu escrita indevida antes
+  da correção; agora gera DbUpdateConcurrencyException. Testado com oportunidades
+  e vínculo de produtor de segurados.
+- Savepoints: recusa de remover último Master preserva vínculo; criação bem-sucedida
+  de perfil respeita rollback externo. Datas HTTP, criação de perfil e concorrência
+  de inativação de dois Masters cobertas.
+- Outbox/inbox: atomicidade, leases/claims concorrentes e recuperação; upgrade desde
+  `20260912120359_AlignFrontendV31ConnectedContracts`, antes da migration de outbox.
+- RLS: consultas e escritas SQL diretas com role comum, tenant/filial divergentes,
+  contexto ausente e conexão reutilizada; jornadas HTTP executadas sob RLS.
+- NuGet: solução sem avisos de vulnerabilidade; fixture externa com Newtonsoft.Json
+  12.0.3 falhou com NU1903 como esperado. Não foi adicionado pacote vulnerável ao produto.
+- CRM: 334 testes, lint e build passaram no primeiro checkpoint. Avisos conhecidos
+  de fontes Mulish/Rubik permanecem. Nenhuma alteração de tela/contrato database.ts.
 
-## Pendências para Renato
+## Execução reproduzível
 
-1. Executar os gates GitHub na branch e a suíte completa em Docker. Os workflows da
-   base falharam no Gitleaks antes dos testes; publicação de imagem verde não substitui gates.
-2. Completar matriz real de tenant/filial/PROPRIO, RLS com role não-owner e worker.
-   O teste de serviços não substitui as jornadas HTTP/PostgreSQL existentes.
-3. Investigar transações aninhadas: `RlsTransactionMiddleware` abre uma transação por
-   request e três métodos de `AdministrationRepository` abrem outra na mesma conexão.
-   Reutilizar a transação com comportamento correto em sucesso, erro e rollback.
-4. Testes HTTP existentes usam Staging com PostgreSQL de container sem TLS. Ajustar
-   a infraestrutura de teste para VerifyFull sem enfraquecer validação de Production/Staging.
-5. Concluir Auth0/Production, MFA, recuperação, rotação e ciclo completo de sessão.
-   Revisar também idle timeout/reload e claims de filial após mudança de vínculos.
-6. Completar PDF por streaming/storage privado/fila e processo encerrável com limites.
-   Quotas atuais são controles de frequência; não implementam ainda orçamento por custo de seguradora.
-7. Completar RLS de quotes/worker, grants operacionais, backfill revisado, retenção,
-   backup/restore/PITR e evidências externas. Não executar migrations em dados reais.
-8. Revisar escopo GRUPO nos endpoints tenant-wide: consolidar somente filiais permitidas
-   quando o contrato exigir; não assumir que um vínculo autoriza todos os registros do tenant.
+Com Docker disponível, os quatro testes usam Testcontainers PostgreSQL 16-bookworm,
+certificado efêmero e VerifyFull. Alternativa Windows validada localmente:
+
+```powershell
+./scripts/test-security-postgres.ps1 -PostgresBinDirectory '<binários PostgreSQL>\bin'
+```
+
+O script cria cluster descartável, executa `Category=Postgres`, para o servidor e
+remove senha/chave privada. Dados/logs temporários ficam para diagnóstico. Aceita
+`-Filter` para um teste específico. Nunca fornecer banco compartilhado/de produção.
+
+## Gates GitHub
+
+- Frontend `d98b84c`: [CI 35145654570](https://github.com/Wassis-ERP/WassisCRM/actions/runs/35145654570)
+  aprovado, incluindo testes/build/auditoria e scan de imagem.
+- Backend `42a86ca`: [CI 35145647720](https://github.com/Wassis-ERP/WAssisBE/actions/runs/35145647720)
+  passou Gitleaks/restore/build e falhou nos testes existentes. Esta continuação
+  corrige as fixtures TLS, datas e transações que impediam a suíte local completa.
+- A versão Docker da nova fixture e os gates do próximo commit precisam de execução
+  remota após push. Não confundir validação local PostgreSQL com validação Docker.
+
+## Pendências reais
+
+1. Validar gates GitHub do novo commit e resolver falhas sem desativar controles.
+2. Ampliar matriz em todos os módulos/filhos/Dapper e worker. Não considerar SEC-01,
+   SEC-02 ou SEC-09 encerrados pelos testes de Segurados/Oportunidades.
+3. Auth0/Production: autenticação, MFA, recuperação, rotação, idle timeout e jornada
+   de reload no navegador. Provedor de HML continua proibido em Production.
+4. PDF/OCR: streaming/storage privado/fila durável e processo encerrável, limites de
+   CPU/memória/objetos/descompressão. Quotas atuais são de frequência, não de custo
+   por seguradora. Parser PDF ainda síncrono e em memória: SEC-04 não está encerrado.
+5. RLS quotes/worker, grants operacionais mínimos, backfill revisado, retenção,
+   backup/restore/PITR e evidências externas. Sem migrations em dados reais aqui.
+6. Revisar GRUPO em endpoints tenant-wide e consolidação somente de corretoras
+   autorizadas quando exigido pelo contrato. Completar ciclo administrativo.
+7. Smoke no navegador com frontend/backend reais; os testes HTTP não são browser E2E.
 
 Nenhum deploy ou alteração de dados reais foi executado nesta continuação.
