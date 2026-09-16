@@ -9,6 +9,7 @@ public sealed class EffectivePermissionService(NpgsqlDataSource dataSource) : IE
 {
     private const string ActiveBindings = """
         FROM erp.profiles p
+        JOIN erp.tenants tenant ON tenant.id = p.tenant_id AND tenant.ativo
         JOIN erp.profile_filiais pf ON pf.profile_id = p.id
         JOIN erp.filiais f ON f.id = pf.filial_id AND f.tenant_id = p.tenant_id
         JOIN erp.perfis pe ON pe.id = pf.perfil_id AND pe.tenant_id = p.tenant_id

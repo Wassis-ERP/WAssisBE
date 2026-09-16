@@ -14,6 +14,7 @@ using WAssis.Infra.CrossCutting.Identity.Authentication;
 using WAssis.Infra.Data.Context;
 using WAssis.Infra.Data.Configuration;
 using WAssis.Tests.TestDoubles;
+using WAssis.Infra.Data.Modules.Quotes.Repositories;
 
 namespace WAssis.Tests.Integration;
 
@@ -103,6 +104,7 @@ public sealed partial class PostgresReadinessTests
         Assert.Equal("Segurado atualizado", reread!.RootElement.GetProperty("name").GetString());
         Assert.Equal("Preservar no PUT", reread.RootElement.GetProperty("socialName").GetString());
         await VerifyRlsWithEffectiveApplicationRole(postgres.GetConnectionString(), id);
+        await VerifyQuoteRlsWithEffectiveWorkerRole(postgres.GetConnectionString());
         var stages = await client.GetFromJsonAsync<JsonElement[]>("/api/oportunidades/stages");
         Assert.Equal(3, stages!.Length);
         var opportunityResponse = await client.PostAsJsonAsync("/api/oportunidades", new
@@ -260,6 +262,86 @@ public sealed partial class PostgresReadinessTests
             await role.ExecuteNonQueryAsync();
             await using var hidden = new NpgsqlCommand("SELECT count(*) FROM public.segurados WHERE id = @id", reused, transaction);
             hidden.Parameters.AddWithValue("id", insuredId);
+            Assert.Equal(0L, await hidden.ExecuteScalarAsync());
+            await transaction.RollbackAsync();
+        }
+    }
+
+    private static async Task VerifyQuoteRlsWithEffectiveWorkerRole(string connectionString)
+    {
+        var workerRole = "wassis_test_worker_" + Guid.NewGuid().ToString("N");
+        var quoteA = DurableDispatchTests.Quote($"rls-a-{Guid.NewGuid():N}", TenantA, BranchA);
+        var quoteB = DurableDispatchTests.Quote($"rls-b-{Guid.NewGuid():N}", TenantA, BranchB);
+        await using (var seed = new WAssisDbContext(
+            new DbContextOptionsBuilder<WAssisDbContext>().UseNpgsql(connectionString).Options,
+            new FakeCurrentUserContext(),
+            WAssis.Application.Abstractions.SystemDataScope.ForWorker("test-quote-rls-seed", _ => { })))
+        {
+            var repository = new QuoteRequestRepository(seed);
+            await repository.AddAsync(quoteA, default);
+            await repository.AddAsync(quoteB, default);
+            await repository.SaveChangesAsync(default);
+        }
+
+        await using (var admin = new NpgsqlConnection(connectionString))
+        {
+            await admin.OpenAsync();
+            // The identifier is generated locally as lowercase ASCII + GUID hex, never supplied externally.
+            await using var setup = new NpgsqlCommand($"""
+                CREATE ROLE {workerRole} NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+                GRANT USAGE ON SCHEMA security, quotes TO {workerRole};
+                GRANT SELECT, UPDATE ON quotes.quote_requests TO {workerRole};
+                GRANT SELECT, INSERT ON quotes.quote_options TO {workerRole};
+                GRANT SELECT, INSERT ON quotes.quote_option_coverages, quotes.quote_option_installments, quotes.quote_option_messages TO {workerRole};
+                GRANT EXECUTE ON FUNCTION security.current_tenant_id(), security.current_branch_id() TO {workerRole};
+                """, admin);
+            await setup.ExecuteNonQueryAsync();
+        }
+
+        await using var dataSource = NpgsqlDataSource.Create(connectionString);
+        foreach (var (tenant, branch, expectedId) in new[]
+        {
+            (TenantA, BranchA, quoteA.Id),
+            (TenantA, BranchB, quoteB.Id),
+        })
+        {
+            await using var scoped = await dataSource.OpenConnectionAsync();
+            await using var transaction = await scoped.BeginTransactionAsync();
+            await using var setup = new NpgsqlCommand($"""
+                SET LOCAL ROLE {workerRole};
+                SELECT set_config('app.tenant_id', @tenant, true), set_config('app.branch_id', @branch, true);
+                """, scoped, transaction);
+            setup.Parameters.AddWithValue("tenant", tenant);
+            setup.Parameters.AddWithValue("branch", branch);
+            await setup.ExecuteNonQueryAsync();
+
+            await using var visible = new NpgsqlCommand("SELECT array_agg(\"Id\" ORDER BY \"Id\") FROM quotes.quote_requests", scoped, transaction);
+            Assert.Equal([expectedId], (Guid[])(await visible.ExecuteScalarAsync())!);
+
+            var forbiddenId = expectedId == quoteA.Id ? quoteB.Id : quoteA.Id;
+            await using var crossBranchUpdate = new NpgsqlCommand("UPDATE quotes.quote_requests SET \"UpdatedAtUtc\" = now() WHERE \"Id\" = @id", scoped, transaction);
+            crossBranchUpdate.Parameters.AddWithValue("id", forbiddenId);
+            Assert.Equal(0, await crossBranchUpdate.ExecuteNonQueryAsync());
+
+            await using var crossBranchChild = new NpgsqlCommand("""
+                INSERT INTO quotes.quote_options
+                  ("Id","TenantId","QuoteRequestId","InsuranceCompanyCode","InsuranceCompanyName","ProductCode","ProductName","Status","ExternalReference")
+                VALUES (@id,@tenant,@quote,'fixture','Fixture','fixture','Fixture',0,'fixture')
+                """, scoped, transaction);
+            crossBranchChild.Parameters.AddWithValue("id", Guid.NewGuid());
+            crossBranchChild.Parameters.AddWithValue("tenant", TenantA);
+            crossBranchChild.Parameters.AddWithValue("quote", forbiddenId);
+            var denied = await Assert.ThrowsAsync<PostgresException>(() => crossBranchChild.ExecuteNonQueryAsync());
+            Assert.Equal(PostgresErrorCodes.InsufficientPrivilege, denied.SqlState);
+            await transaction.RollbackAsync();
+        }
+
+        await using (var reused = await dataSource.OpenConnectionAsync())
+        await using (var transaction = await reused.BeginTransactionAsync())
+        {
+            await using var role = new NpgsqlCommand($"SET LOCAL ROLE {workerRole}", reused, transaction);
+            await role.ExecuteNonQueryAsync();
+            await using var hidden = new NpgsqlCommand("SELECT count(*) FROM quotes.quote_requests", reused, transaction);
             Assert.Equal(0L, await hidden.ExecuteScalarAsync());
             await transaction.RollbackAsync();
         }

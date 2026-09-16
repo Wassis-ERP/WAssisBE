@@ -135,7 +135,12 @@ public sealed class HomologationAuthenticationTests
         });
         builder.Services.AddWAssisIdentity(builder.Configuration);
         using var host = builder.Build();
-        await Assert.ThrowsAsync<OptionsValidationException>(() => host.StartAsync());
+        var exception = await Record.ExceptionAsync(() => host.StartAsync());
+        Assert.NotNull(exception);
+        if (exception is AggregateException aggregate)
+            Assert.All(aggregate.Flatten().InnerExceptions, item => Assert.IsType<OptionsValidationException>(item));
+        else
+            Assert.IsType<OptionsValidationException>(exception);
     }
 
     [Theory]
@@ -154,7 +159,10 @@ public sealed class HomologationAuthenticationTests
         }).Build());
         using var provider = services.BuildServiceProvider();
         using var scope = provider.CreateScope();
-        Assert.IsType<HomologationIdentityAuthenticationService>(scope.ServiceProvider.GetRequiredService<IIdentityAuthenticationService>());
+        if (environment == "Staging")
+            Assert.IsType<HomologationIdentityAuthenticationService>(scope.ServiceProvider.GetRequiredService<IIdentityAuthenticationService>());
+        else
+            Assert.IsType<ProductionPasswordAuthenticationService>(scope.ServiceProvider.GetRequiredService<IIdentityAuthenticationService>());
     }
 
     private sealed class TestEnvironment(string environment) : IHostEnvironment

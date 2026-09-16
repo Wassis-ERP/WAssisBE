@@ -15,18 +15,21 @@ Consolidar o fluxo documental e financeiro sem perda operacional, cobrindo:
 ### Proposta PDF
 
 1. usuário envia arquivo em `POST /api/documents/proposals/uploads`
-2. sistema cria `ImportedDocument`
-3. parser tenta camada textual do PDF
-4. se necessário, executa OCR configurável via `Tesseract`
-5. parser aplica perfil por seguradora quando reconhece o layout
-6. resultado fica persistido para revisão e reuso em `Policies`
+2. API transmite o PDF para storage privado usando um ID do servidor
+3. sistema cria `ImportedDocument` e outbox durável na mesma transação
+4. worker abre escopo tenant/filial e inicia um processo filho descartável
+5. parser tenta a camada textual e, se necessário, OCR configurável via `Tesseract`
+6. parser aplica perfil por seguradora quando reconhece o layout
+7. resultado e conclusão da outbox são persistidos juntos para revisão e reuso em `Policies`
 
 ### Estado implementado
 
-- upload multipart pronto
+- upload multipart por streaming, com limite de tamanho e assinatura PDF
+- storage privado configurável; a chave física não é retornada ao cliente
+- fila PostgreSQL durável com filial explícita
 - persistência EF pronta
 - parser inicial por perfil de seguradora
-- fallback de OCR configurável
+- fallback de OCR em processo encerrável, com limites de tempo/CPU/memória observada
 - conversão para `PolicyDraft`
 
 ## Fluxo financeiro alvo
@@ -65,6 +68,8 @@ Fluxo alvo:
 - divergência nunca apaga o recebimento original
 - baixa automática e manual devem ser idempotentes
 - toda transição relevante gera auditoria
+- limites rígidos do runtime, antimalware e storage durável devem ser comprovados
+  no ambiente; a configuração preparada não é evidência de infraestrutura
 
 ## Próximas evoluções
 

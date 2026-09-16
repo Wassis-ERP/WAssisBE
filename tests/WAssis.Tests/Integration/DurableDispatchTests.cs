@@ -13,6 +13,7 @@ namespace WAssis.Tests.Integration;
 public sealed class DurableDispatchTests
 {
     private const string Tenant = "22222222-2222-2222-2222-222222222222";
+    private const string Branch = "33333333-3333-3333-3333-333333333333";
     private static SystemDataScope Scope() => SystemDataScope.ForWorker("test-durable-dispatch", _ => { });
     private static WAssisDbContext Context(string connection) => new(
         new DbContextOptionsBuilder<WAssisDbContext>().UseNpgsql(connection).Options, new FakeCurrentUserContext(), Scope());
@@ -46,6 +47,7 @@ public sealed class DurableDispatchTests
         var lease = Assert.Single(claims, item => item is not null)!;
         Assert.Equal(quote.Id, lease.AggregateId);
         Assert.Equal(Tenant, lease.TenantId);
+        Assert.Equal(Branch, lease.BranchId);
         await Assert.ThrowsAsync<InvalidOperationException>(() => queue.CompleteAsync(lease with { Token = Guid.NewGuid() }, default));
         await queue.RenewAsync(lease, default);
         quote.MarkAsProcessing();
@@ -71,8 +73,8 @@ public sealed class DurableDispatchTests
 
     private static Task<int> Count(WAssisDbContext db, string sql) => db.Database.SqlQueryRaw<int>(sql).SingleAsync();
 
-    internal static QuoteRequest Quote(string correlation) => QuoteRequest.Create(
-        tenantId: Tenant, correlationId: correlation, customerName: "Fixture", documentNumber: "00000000000",
+    internal static QuoteRequest Quote(string correlation, string tenantId = Tenant, string branchId = Branch) => QuoteRequest.Create(
+        tenantId: tenantId, correlationId: correlation, customerName: "Fixture", documentNumber: "00000000000",
         email: null, phoneNumber: null, postalCode: null, customerSurname: null, customerGender: null,
         customerMaritalStatusCode: null, customerBirthDateUtc: null, driverLicenseYears: null,
         driverLicenseNumber: null, insuredDriverRelationshipCode: null, vehicleChassisNumber: null,
@@ -80,5 +82,6 @@ public sealed class DurableDispatchTests
         vehicleManufactureYear: null, vehicleModelYear: 2026, vehicleIsZeroKm: null, vehicleHasTracker: null,
         vehicleHasAntiTheft: null, vehicleIsFinanced: null, vehicleIsArmored: null, vehicleFuelTypeCode: null,
         vehicleOvernightPostalCode: null, vehicleHasKitGas: null, hasDriverUnder24: false,
-        isCurrentlyInsured: false, previousBonus: null, brokerCommissionPercentage: null, renewalInsurerCode: null);
+        isCurrentlyInsured: false, previousBonus: null, brokerCommissionPercentage: null, renewalInsurerCode: null,
+        officeBranchId: branchId);
 }

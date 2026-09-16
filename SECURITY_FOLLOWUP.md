@@ -107,3 +107,99 @@ remove senha/chave privada. Dados/logs temporários ficam para diagnóstico. Ace
 7. Smoke no navegador com frontend/backend reais; os testes HTTP não são browser E2E.
 
 Nenhum deploy ou alteração de dados reais foi executado nesta continuação.
+
+## Continuação — Auth0, sessão e RLS de cotações/worker
+
+Base inspecionada antes das mudanças: WAssisBE `039b55b`, WassisCRM `ae41f12`,
+ambos limpos e acompanhando `origin/codex/security-remediation-followup`. O run
+backend 35148569842 desse HEAD ainda falhava no passo Test; os logs não estavam
+disponíveis sem permissão administrativa no repositório. Os workflows agora também
+executam automaticamente em push nessa branch, para produzir nova evidência.
+
+Implementado:
+
+- BFF Auth0 com OIDC confidencial Authorization Code + PKCE usando o handler
+  Microsoft 10.0.12. Production não seleciona mais o autenticador de homologação e
+  falha no startup se Auth0, redirects HTTPS ou segredo externo estiverem ausentes.
+- `security.external_identities` mapeia somente `issuer/sub` explicitamente
+  provisionado para profile local. Não existe backfill automático. Resolver exige
+  tenant, profile, filial, perfil e vínculo vigentes e deriva funções apenas para
+  compatibilidade; a matriz persistida continua decidindo cada ação.
+- Perfil com `configuracoes/manage` exige `amr=mfa`. Universal Login é o limite de
+  confiança para enrollment, recuperação e convite. Essas políticas ainda precisam
+  ser configuradas e evidenciadas no tenant Auth0 real.
+- Sessão ganhou idle timeout server-side (30 minutos) e janela revisável de rotação:
+  a chave atual assina; chaves anteriores fortes e distintas apenas validam. O CRM
+  usa o mesmo timeout e nunca recebe/persiste o token.
+- Quotes/opções/filhos receberam FORCE RLS tenant+filial. A outbox guarda filial
+  derivada do pai; legado ambíguo vai para `NeedsReview`. O worker abre unidades DB
+  curtas com contexto transacional local e mantém chamadas a seguradoras fora delas.
+  Grants propostos foram reduzidos e API/worker seguem sem `BYPASSRLS`.
+
+Evidências deste checkpoint:
+
+- restore locked com SDK 10.0.401 e EF 10.0.12: aprovado;
+- build Release: zero avisos/erros; 124/124 testes sem PostgreSQL aprovados;
+- migration model check sem divergência; script idempotente gerado com sucesso;
+- NuGet e npm audit: zero vulnerabilidades reportadas nas fontes consultadas;
+- CRM: lint sem avisos, 335/335 testes e build backend/Auth0 aprovados;
+- Gitleaks 8.30.1: 55 commits BE e 75 commits CRM, zero achados, saída redigida;
+- smoke local: `/health` do BE retornou apenas `{"status":"ok"}`; navegador
+  carregou Dashboard e a lista de Segurados do CRM em modo mock.
+
+Não executado neste host:
+
+- as quatro integrações PostgreSQL/TLS/RLS atualizadas, porque não há daemon Docker
+  nem binários PostgreSQL locais. A nova cobertura (external identity, idle timeout,
+  quote/filhos, role worker e pool sem contexto) não é declarada aprovada;
+- login/logout/recovery/MFA contra Auth0, por faltar tenant, client/secret e vínculos
+  externos provisionados;
+- build/scan de imagem local e qualquer migration/deploy em infraestrutura real.
+
+Continuam bloqueadores: pipeline PDF/OCR ainda síncrono/em memória e sem processo
+encerrável; orçamento de custo por seguradora; validação CI/PostgreSQL do novo RLS;
+provisionamento/políticas/evidências Auth0; grants, backup/restore/PITR e retenção.
+
+## Continuação — pipeline privado e isolado de documentos
+
+O bloqueador de arquitetura do upload foi reduzido sem aplicar migration ou tocar em
+dados reais:
+
+- multipart é lido diretamente do corpo HTTP com limite de 8 MB e assinatura PDF;
+  o arquivo não é mais materializado pelo model binder da API;
+- storage privado usa diretório absoluto configurado, IDs de tenant/filial/documento
+  gerados/validados no servidor e não incorpora o nome fornecido no caminho;
+- persistência de `ImportedDocument` e criação da outbox `documents.parse` são
+  atômicas; a outbox leva filial explícita e o worker abre contexto RLS transacional;
+- PdfPig/OCR rodam em processo filho descartável, fora da API e da transação, com
+  timeout, limite observado de memória/CPU, limite de saída e concorrência. Timeout
+  ou cancelamento encerra toda a árvore de processos;
+- API não retorna a chave física do storage. O CI agora publica, constrói e examina
+  uma imagem não-root dedicada ao worker, além da imagem da API.
+
+Evidências locais desta etapa:
+
+- restore locked `--no-http-cache`, SDK 10.0.401 e EF 10.0.12: aprovado;
+- build Release da solução: zero avisos/erros;
+- 129/129 testes sem PostgreSQL aprovados, inclusive storage privado, chave física
+  ausente da resposta e PDF corrompido contido no processo filho;
+- modelo EF sem alterações pendentes; script idempotente gerado (365.255 bytes);
+- auditoria NuGet sem pacote vulnerável reportado nas fontes consultadas.
+
+As quatro integrações PostgreSQL foram solicitadas, mas não chegaram a iniciar: o
+Testcontainers não conectou a `npipe://./pipe/docker_engine` e não há binários locais.
+Portanto, as novas assertivas de Auth0/RLS/worker/outbox permanecem **não executadas**
+neste host até o CI. Também não foram executados build/scan local das imagens.
+
+Ainda é necessário impor e comprovar limites rígidos do runtime (cgroup/Job Object),
+provisionar storage privado compartilhado e observabilidade/backpressure, validar um
+corpus PDF/OCR representativo e hostil e definir orçamento monetário por seguradora.
+Frequência distribuída não é evidência desse orçamento. O sistema continua sem
+condição de liberação para Production.
+
+Fontes oficiais consultadas para a integração: documentação Microsoft do cliente
+OIDC confidencial/BFF no ASP.NET Core 10
+(`https://learn.microsoft.com/aspnet/core/security/authentication/configure-oidc-web-authentication?view=aspnetcore-10.0`)
+e documentação Auth0 de Authorization Code + PKCE e Universal Login
+(`https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce/add-login-using-the-authorization-code-flow-with-pkce`,
+`https://auth0.com/docs/authenticate/login/auth0-universal-login/universal-login-vs-classic-login/universal-experience`).

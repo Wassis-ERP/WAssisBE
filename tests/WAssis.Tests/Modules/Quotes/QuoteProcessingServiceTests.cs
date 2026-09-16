@@ -46,13 +46,14 @@ public sealed class QuoteProcessingServiceTests
             false,
             "0",
             15,
-            null);
+            null,
+            officeBranchId: "33333333-3333-3333-3333-333333333333");
 
         var repository = new InMemoryQuoteRequestRepository(quoteRequest);
         var service = new QuoteProcessingService(
             repository,
             new FakeQuoteProviderRegistry([new SuccessQuoteProvider()]),
-            new FakeAuditTrailWriter(), new FakeWorkQueue(quoteRequest));
+            new FakeAuditTrailWriter(), new FakeWorkQueue(quoteRequest), new PassthroughWorkerDataScope());
 
         var processedCount = await service.ProcessPendingBatchAsync(25, CancellationToken.None);
 
@@ -67,13 +68,21 @@ public sealed class QuoteProcessingServiceTests
         private bool claimed;
         public Task<WorkLease?> ClaimAsync(string kind, CancellationToken cancellationToken)
         {
-            WorkLease? lease = claimed ? null : new(Guid.NewGuid(), quote.TenantId, quote.Id, Guid.NewGuid());
+            WorkLease? lease = claimed ? null : new(
+                Guid.NewGuid(), quote.TenantId, quote.OfficeBranchId!, quote.Id, Guid.NewGuid());
             claimed = true;
             return Task.FromResult(lease);
         }
         public Task RenewAsync(WorkLease lease, CancellationToken cancellationToken) => Task.CompletedTask;
         public Task CompleteAsync(WorkLease lease, CancellationToken cancellationToken) => Task.CompletedTask;
+        public Task MarkNeedsReviewAsync(WorkLease lease, CancellationToken cancellationToken) => Task.CompletedTask;
         public Task<int> QuarantineExpiredAsync(CancellationToken cancellationToken) => Task.FromResult(0);
+    }
+
+    private sealed class PassthroughWorkerDataScope : IWorkerDataScope
+    {
+        public Task<T> ExecuteAsync<T>(string tenantId, string branchId,
+            Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken) => operation(cancellationToken);
     }
 
     private sealed class InMemoryQuoteRequestRepository(QuoteRequest quoteRequest) : IQuoteRequestRepository
@@ -176,7 +185,7 @@ public sealed class QuoteProcessingServiceTests
             string entityType,
             string entityId,
             string? notes,
-            CancellationToken cancellationToken, string? tenantId = null)
+            CancellationToken cancellationToken, string? tenantId = null, string? branchId = null)
         {
             return Task.CompletedTask;
         }

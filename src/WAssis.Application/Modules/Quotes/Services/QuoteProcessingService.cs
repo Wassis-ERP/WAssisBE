@@ -12,38 +12,55 @@ public sealed class QuoteProcessingService(
     IQuoteRequestRepository repository,
     IQuoteProviderRegistry providerRegistry,
     IAuditTrailWriter auditTrailWriter,
-    IDurableWorkQueue workQueue)
+    IDurableWorkQueue workQueue,
+    IWorkerDataScope workerDataScope)
     : IQuoteProcessingService
 {
     public async Task<int> ProcessPendingBatchAsync(int batchSize, CancellationToken cancellationToken)
     {
         var started = System.Diagnostics.Stopwatch.GetTimestamp();
         await workQueue.QuarantineExpiredAsync(cancellationToken);
-        // Also samples queue metrics; dispatch ownership is decided only by the atomic claim below.
-        await repository.GetPendingDispatchBatchAsync(1, cancellationToken);
-        var providers = await providerRegistry.GetEnabledProvidersAsync(cancellationToken);
         var processedCount = 0;
 
         for (var index = 0; index < Math.Clamp(batchSize, 1, 100); index++)
         {
             var lease = await workQueue.ClaimAsync("quotes.dispatch", cancellationToken);
             if (lease is null) break;
-            var quoteRequest = await repository.GetByIdAsync(lease.AggregateId, cancellationToken);
-            if (quoteRequest is null || quoteRequest.TenantId != lease.TenantId || quoteRequest.Status != QuoteRequestStatus.Pending)
+
+            var prepared = await workerDataScope.ExecuteAsync(
+                lease.TenantId,
+                lease.BranchId,
+                async scopedCancellationToken =>
+                {
+                    var quote = await repository.GetByIdAsync(lease.AggregateId, scopedCancellationToken);
+                    if (quote is null || quote.TenantId != lease.TenantId
+                        || quote.OfficeBranchId != lease.BranchId
+                        || quote.Status != QuoteRequestStatus.Pending)
+                        return null;
+
+                    quote.MarkAsProcessing();
+                    await repository.SaveChangesAsync(scopedCancellationToken);
+                    return new PreparedQuote(ToProcessingDto(quote), quote.CorrelationId);
+                },
+                cancellationToken);
+
+            if (prepared is null)
             {
-                // Preserve the lease for quarantine/reconciliation; never call an insurer for inconsistent work.
+                // Never call an insurer for inconsistent or inaccessible work.
+                await workQueue.MarkNeedsReviewAsync(lease, cancellationToken);
                 continue;
             }
 
-            quoteRequest.MarkAsProcessing();
-            await repository.SaveChangesAsync(cancellationToken);
-
             using var activity = WorkerMetrics.Traces.StartActivity("quotes.dispatch", System.Diagnostics.ActivityKind.Consumer);
             activity?.SetTag("worker", "quotes");
-            if (Guid.TryParse(quoteRequest.CorrelationId, out var correlation)) activity?.SetTag("wassis.correlation_id", correlation.ToString());
+            if (Guid.TryParse(prepared.CorrelationId, out var correlation)) activity?.SetTag("wassis.correlation_id", correlation.ToString());
 
-            var request = ToProcessingDto(quoteRequest);
-
+            var providers = await workerDataScope.ExecuteAsync(
+                lease.TenantId,
+                lease.BranchId,
+                providerRegistry.GetEnabledProvidersAsync,
+                cancellationToken);
+            var providerResults = new List<QuoteProviderResultDto>();
             foreach (var provider in providers)
             {
                 await workQueue.RenewAsync(lease, cancellationToken);
@@ -51,7 +68,7 @@ public sealed class QuoteProcessingService(
 
                 try
                 {
-                    results = await provider.StartQuoteAsync(request, cancellationToken);
+                    results = await provider.StartQuoteAsync(prepared.Request, cancellationToken);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -59,43 +76,56 @@ public sealed class QuoteProcessingService(
                 }
                 catch (HttpRequestException)
                 {
-                    results = CreateProviderFailureResult(provider, quoteRequest, "Falha de comunicação; confira o resultado na seguradora antes de reenviar.");
+                    results = CreateProviderFailureResult(provider, lease.AggregateId, "Falha de comunicação; confira o resultado na seguradora antes de reenviar.");
                 }
                 catch (JsonException)
                 {
-                    results = CreateProviderFailureResult(provider, quoteRequest, "Resposta inválida da seguradora.");
+                    results = CreateProviderFailureResult(provider, lease.AggregateId, "Resposta inválida da seguradora.");
                 }
                 catch (InvalidOperationException)
                 {
-                    results = CreateProviderFailureResult(provider, quoteRequest, "Operação indisponível na seguradora.");
+                    results = CreateProviderFailureResult(provider, lease.AggregateId, "Operação indisponível na seguradora.");
                 }
                 catch (TimeoutException)
                 {
-                    results = CreateProviderFailureResult(provider, quoteRequest, "Tempo limite excedido; confira o resultado antes de reenviar.");
+                    results = CreateProviderFailureResult(provider, lease.AggregateId, "Tempo limite excedido; confira o resultado antes de reenviar.");
                 }
                 catch (TaskCanceledException)
                 {
-                    results = CreateProviderFailureResult(provider, quoteRequest, "Operação interrompida; confira o resultado antes de reenviar.");
+                    results = CreateProviderFailureResult(provider, lease.AggregateId, "Operação interrompida; confira o resultado antes de reenviar.");
                 }
 
                 foreach (var result in results)
                 {
                     if (result.Status is QuoteOptionStatus.Failure or QuoteOptionStatus.LoginInvalid)
                         WorkerMetrics.ProviderFailures.Add(1, new KeyValuePair<string, object?>("provider", provider.ProviderCode));
-                    quoteRequest.AddOption(ToEntity(quoteRequest, result));
+                    providerResults.Add(result);
                 }
             }
 
-            quoteRequest.MarkAsCompleted();
-            await workQueue.CompleteAsync(lease, cancellationToken);
-            await auditTrailWriter.WriteAsync(
-                quoteRequest.CorrelationId,
-                "Quotes",
-                "ProcessedPendingRequest",
-                nameof(QuoteRequest),
-                quoteRequest.Id.ToString(),
-                $"Providers={providers.Count}; Status={quoteRequest.Status}",
-                cancellationToken, quoteRequest.TenantId);
+            await workerDataScope.ExecuteAsync(
+                lease.TenantId,
+                lease.BranchId,
+                async scopedCancellationToken =>
+                {
+                    var quote = await repository.GetByIdAsync(lease.AggregateId, scopedCancellationToken)
+                        ?? throw new InvalidOperationException("Leased quote became inaccessible before completion.");
+                    foreach (var result in providerResults) quote.AddOption(ToEntity(quote, result));
+                    quote.MarkAsCompleted();
+                    await workQueue.CompleteAsync(lease, scopedCancellationToken);
+                    await auditTrailWriter.WriteAsync(
+                        quote.CorrelationId,
+                        "Quotes",
+                        "ProcessedPendingRequest",
+                        nameof(QuoteRequest),
+                        quote.Id.ToString(),
+                        $"Providers={providers.Count}; Status={quote.Status}",
+                        scopedCancellationToken,
+                        quote.TenantId,
+                        quote.OfficeBranchId);
+                    return true;
+                },
+                cancellationToken);
 
             processedCount++;
         }
@@ -145,7 +175,7 @@ public sealed class QuoteProcessingService(
 
     private static QuoteProviderResultDto[] CreateProviderFailureResult(
         IQuoteProvider provider,
-        QuoteRequest quoteRequest,
+        Guid quoteRequestId,
         string message)
     {
         return
@@ -154,7 +184,7 @@ public sealed class QuoteProcessingService(
                 provider.ProviderCode,
                 provider.ProviderName,
                 QuoteOptionStatus.Failure,
-                $"{provider.ProviderCode}-{quoteRequest.Id:N}",
+                $"{provider.ProviderCode}-{quoteRequestId:N}",
                 null,
                 null,
                 [],
@@ -162,6 +192,8 @@ public sealed class QuoteProcessingService(
                 [new QuoteStatusMessageDto("provider_failure", message)])
         ];
     }
+
+    private sealed record PreparedQuote(StartQuoteProcessingDto Request, string CorrelationId);
 
     private static QuoteOption ToEntity(QuoteRequest quoteRequest, QuoteProviderResultDto result)
     {

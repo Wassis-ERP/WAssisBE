@@ -43,6 +43,37 @@ public sealed class JwtAccessOptionsValidatorTests
         Assert.True(result.Succeeded);
     }
 
+    [Fact]
+    public void Validate_AllowsOneStrongPreviousKeyDuringRotation()
+    {
+        var options = new JwtAccessOptions
+        {
+            Issuer = "WAssis",
+            Audience = "WAssis.Clients",
+            SigningKey = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(48)),
+            PreviousSigningKeys = [Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(48))],
+            RequireHttpsMetadata = true,
+        };
+
+        Assert.True(new JwtAccessOptionsValidator(new FakeHostEnvironment("Production")).Validate(null, options).Succeeded);
+    }
+
+    [Fact]
+    public void Validate_RejectsWeakOrRepeatedPreviousKeys()
+    {
+        var current = Convert.ToBase64String(System.Security.Cryptography.RandomNumberGenerator.GetBytes(48));
+        var options = new JwtAccessOptions
+        {
+            Issuer = "WAssis",
+            Audience = "WAssis.Clients",
+            SigningKey = current,
+            PreviousSigningKeys = [current, "not-a-strong-base64-key"],
+            RequireHttpsMetadata = true,
+        };
+
+        Assert.False(new JwtAccessOptionsValidator(new FakeHostEnvironment("Production")).Validate(null, options).Succeeded);
+    }
+
     [Theory]
     [InlineData("")]
     [InlineData("configure-uma-chave-com-mais-de-32-caracteres")]

@@ -64,6 +64,7 @@ public sealed class DevelopmentIdentityAuthenticationService(
         {
             new(ClaimTypes.NameIdentifier, user.UserId),
             new(JwtRegisteredClaimNames.Sub, user.UserId),
+            new(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString()),
             new(JwtRegisteredClaimNames.UniqueName, user.Username),
             new(ClaimConstants.UserType, user.UserType)
         };

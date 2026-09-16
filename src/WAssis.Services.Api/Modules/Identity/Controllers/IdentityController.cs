@@ -3,13 +3,16 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using Microsoft.AspNetCore.Antiforgery;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Options;
 using System.IdentityModel.Tokens.Jwt;
 using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Identity.Commands;
 using WAssis.Application.Modules.Identity.Dtos;
 using WAssis.Application.Modules.Identity.Interfaces;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Infra.CrossCutting.Identity.Authentication;
 using WAssis.Services.Api.Extensions;
 using WAssis.Services.Api.Infrastructure;
 using WAssis.Services.Api.Modules.Identity.Contracts;
@@ -24,6 +27,9 @@ public sealed class IdentityController(
     ICurrentUserContext currentUserContext,
     IEffectivePermissionService effectivePermissions,
     IAuthSessionService authSessions,
+    IExternalIdentityResolver externalIdentities,
+    IInternalAccessTokenIssuer internalTokens,
+    IOptions<Auth0Options> auth0Options,
     IHostEnvironment environment,
     IMediator mediator) : ControllerBase
 {
@@ -45,16 +51,65 @@ public sealed class IdentityController(
                 Title = "Não foi possível autenticar com as credenciais informadas.",
             });
         }
-        Response.Cookies.Append("wassis_access", result.Value.AccessToken, new CookieOptions
-        {
-            HttpOnly = true,
-            Secure = !environment.IsDevelopment(),
-            SameSite = SameSiteMode.Strict,
-            Expires = new DateTimeOffset(result.Value.ExpiresAtUtc),
-            IsEssential = true,
-            Path = "/",
-        });
+        AppendAccessCookie(result.Value);
         return Ok(ToLoginViewModel(result.Value) with { AccessToken = string.Empty });
+    }
+
+    [AllowAnonymous]
+    [HttpGet("external/login")]
+    public IActionResult ExternalLogin()
+    {
+        if (!auth0Options.Value.Enabled) return NotFound();
+        return Challenge(
+            new AuthenticationProperties { RedirectUri = "/api/identity/external/complete" },
+            ExternalAuthenticationSchemes.Auth0);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("external/complete")]
+    public async Task<IActionResult> ExternalComplete(CancellationToken cancellationToken)
+    {
+        if (!auth0Options.Value.Enabled) return NotFound();
+        var authentication = await HttpContext.AuthenticateAsync(ExternalAuthenticationSchemes.TemporaryCookie);
+        var principal = authentication.Principal;
+        var subject = principal?.FindFirst("sub")?.Value;
+        if (!authentication.Succeeded || string.IsNullOrWhiteSpace(subject))
+            return Unauthorized(new ProblemDetails { Status = 401, Title = "A autenticação corporativa não pôde ser concluída." });
+
+        var identity = await externalIdentities.ResolveAsync(auth0Options.Value.Authority, subject, cancellationToken);
+        if (identity is null)
+        {
+            await HttpContext.SignOutAsync(ExternalAuthenticationSchemes.TemporaryCookie);
+            return Forbid();
+        }
+
+        var mfaSatisfied = principal!.FindAll("amr").Any(claim =>
+            claim.Value.Split([' ', ',', '[', ']', '"'], StringSplitOptions.RemoveEmptyEntries)
+                .Contains("mfa", StringComparer.OrdinalIgnoreCase));
+        if (identity.RequiresMfa && !mfaSatisfied)
+        {
+            await HttpContext.SignOutAsync(ExternalAuthenticationSchemes.TemporaryCookie);
+            return Forbid();
+        }
+
+        var session = internalTokens.Issue(identity);
+        await authSessions.RegisterAsync(session.AccessToken, cancellationToken);
+        AppendAccessCookie(session);
+        await HttpContext.SignOutAsync(ExternalAuthenticationSchemes.TemporaryCookie);
+        return Redirect(auth0Options.Value.FrontendCallbackUrl);
+    }
+
+    [AllowAnonymous]
+    [HttpGet("external/logout")]
+    public async Task<IActionResult> ExternalLogout(CancellationToken cancellationToken)
+    {
+        if (!auth0Options.Value.Enabled) return NotFound();
+        var jti = User.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
+        if (!string.IsNullOrWhiteSpace(jti)) await authSessions.RevokeAsync(jti, cancellationToken);
+        DeleteAccessCookie();
+        return SignOut(
+            new AuthenticationProperties { RedirectUri = auth0Options.Value.FrontendLogoutUrl },
+            ExternalAuthenticationSchemes.Auth0);
     }
 
     [AllowAnonymous]
@@ -100,6 +155,12 @@ public sealed class IdentityController(
     {
         var jti = User.FindFirst(JwtRegisteredClaimNames.Jti)?.Value;
         if (!string.IsNullOrWhiteSpace(jti)) await authSessions.RevokeAsync(jti, cancellationToken);
+        DeleteAccessCookie();
+        return NoContent();
+    }
+
+    private void DeleteAccessCookie()
+    {
         Response.Cookies.Delete("wassis_access", new CookieOptions
         {
             HttpOnly = true,
@@ -107,7 +168,6 @@ public sealed class IdentityController(
             SameSite = SameSiteMode.Strict,
             Path = "/",
         });
-        return NoContent();
     }
 
     [Authorize(Policy = AccessPolicies.BrokerageAdmin)]
@@ -136,5 +196,18 @@ public sealed class IdentityController(
             result.SellerId,
             result.UserType,
             result.Roles);
+    }
+
+    private void AppendAccessCookie(LoginResultDto result)
+    {
+        Response.Cookies.Append("wassis_access", result.AccessToken, new CookieOptions
+        {
+            HttpOnly = true,
+            Secure = !environment.IsDevelopment(),
+            SameSite = SameSiteMode.Strict,
+            Expires = new DateTimeOffset(result.ExpiresAtUtc),
+            IsEssential = true,
+            Path = "/",
+        });
     }
 }

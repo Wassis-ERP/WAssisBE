@@ -1,8 +1,13 @@
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.WebUtilities;
+using Microsoft.Net.Http.Headers;
+using System.Text;
+using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Documents.Commands;
 using WAssis.Application.Modules.Documents.Dtos;
+using WAssis.Application.Modules.Documents.Interfaces;
 using WAssis.Application.Modules.Documents.Queries;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
 using WAssis.Services.Api.Infrastructure;
@@ -14,21 +19,76 @@ namespace WAssis.Services.Api.Modules.Documents.Controllers;
 [ApiController]
 [Route("api/documents/proposals")]
 [Authorize(Policy = AccessPolicies.BrokerageStaff)]
-public sealed class ProposalDocumentsController(IMediator mediator) : ControllerBase
+public sealed class ProposalDocumentsController(
+    IMediator mediator,
+    ICurrentUserContext currentUser,
+    IPrivateDocumentStorage privateStorage) : ControllerBase
 {
     [HttpPost("uploads")]
     [RequirePermission("documentos", "create")]
     [DistributedOperationLimit("documents.upload", 5, 60)]
-    [RequestSizeLimit(8_000_000)]
-    [RequestFormLimits(MultipartBodyLengthLimit = 8_000_000)]
+    [RequestSizeLimit(8_100_000)]
     [ProducesResponseType(typeof(ImportedDocumentViewModel), StatusCodes.Status201Created)]
-    public async Task<IActionResult> Upload([FromForm] UploadProposalDocumentRequest request, CancellationToken cancellationToken)
+    public async Task<IActionResult> Upload(CancellationToken cancellationToken)
     {
-        if (request.File is null || request.File.Length == 0)
+        if (!MediaTypeHeaderValue.TryParse(Request.ContentType, out var mediaType)
+            || !string.Equals(mediaType.MediaType.Value, "multipart/form-data", StringComparison.OrdinalIgnoreCase))
+            return StatusCode(StatusCodes.Status415UnsupportedMediaType);
+        var boundary = HeaderUtilities.RemoveQuotes(mediaType.Boundary).Value;
+        if (string.IsNullOrWhiteSpace(boundary) || boundary.Length > 128)
+            return BadRequest(new ProblemDetails { Status = 400, Title = "Multipart inválido." });
+
+        var documentId = Guid.NewGuid();
+        var tenantId = currentUser.ResolveTenantIdOrPlatform();
+        var branchId = currentUser.ResolveBranchIdForWrite()
+            ?? throw new UnauthorizedAccessException("Filial ativa é obrigatória para armazenar documentos.");
+        string? storageKey = null;
+        string? fileName = null;
+        string? contentType = null;
+        string? correlationId = null;
+        var source = "manual_upload";
+        var accepted = false;
+        try
         {
-            return BadRequest("Arquivo PDF é obrigatório.");
+            var reader = new MultipartReader(boundary, Request.Body) { BodyLengthLimit = 8_050_000 };
+            MultipartSection? section;
+            while ((section = await reader.ReadNextSectionAsync(cancellationToken)) is not null)
+            {
+                if (!ContentDispositionHeaderValue.TryParse(section.ContentDisposition, out var disposition)) continue;
+                var name = HeaderUtilities.RemoveQuotes(disposition.Name).Value;
+                var suppliedName = HeaderUtilities.RemoveQuotes(disposition.FileNameStar).Value
+                    ?? HeaderUtilities.RemoveQuotes(disposition.FileName).Value;
+                if (!string.IsNullOrWhiteSpace(suppliedName))
+                {
+                    if (storageKey is not null) throw new InvalidDataException("document_multiple_files");
+                    fileName = Path.GetFileName(suppliedName);
+                    contentType = section.ContentType;
+                    if (!string.Equals(contentType, "application/pdf", StringComparison.OrdinalIgnoreCase)
+                        || !string.Equals(Path.GetExtension(fileName), ".pdf", StringComparison.OrdinalIgnoreCase))
+                        throw new InvalidDataException("document_format_unsupported");
+                    storageKey = await privateStorage.StoreAsync(
+                        documentId, tenantId, branchId, section.Body, cancellationToken);
+                    continue;
+                }
+
+                var value = await ReadSmallFieldAsync(section.Body, cancellationToken);
+                if (string.Equals(name, "correlationId", StringComparison.OrdinalIgnoreCase)) correlationId = value;
+                else if (string.Equals(name, "source", StringComparison.OrdinalIgnoreCase)) source = value;
+            }
+
+            if (storageKey is null || string.IsNullOrWhiteSpace(fileName) || string.IsNullOrWhiteSpace(contentType))
+                return BadRequest(new ProblemDetails { Status = 400, Title = "Arquivo PDF é obrigatório." });
+            var result = await mediator.Send(new UploadProposalDocumentCommand(
+                documentId,
+                correlationId ?? HttpContext.TraceIdentifier,
+                fileName,
+                contentType,
+                source,
+                storageKey), cancellationToken);
+            accepted = true;
+            return CreatedAtAction(nameof(GetById), new { id = result.Id }, ToViewModel(result));
         }
-        if (request.File.Length > 8_000_000)
+        catch (InvalidDataException exception) when (exception.Message == "document_size_limit_exceeded")
         {
             return StatusCode(StatusCodes.Status413PayloadTooLarge, new ProblemDetails
             {
@@ -36,20 +96,26 @@ public sealed class ProposalDocumentsController(IMediator mediator) : Controller
                 Title = "Arquivo excede o limite permitido.",
             });
         }
+        catch (InvalidDataException)
+        {
+            return BadRequest(new ProblemDetails { Status = 400, Title = "Arquivo PDF inválido." });
+        }
+        finally
+        {
+            if (storageKey is not null && !accepted)
+                await privateStorage.DeleteAsync(storageKey, CancellationToken.None);
+        }
+    }
 
-        await using var memoryStream = new MemoryStream();
-        await request.File.CopyToAsync(memoryStream, cancellationToken);
-
-        var result = await mediator.Send(
-            new UploadProposalDocumentCommand(
-                request.CorrelationId ?? HttpContext.TraceIdentifier,
-                request.File.FileName,
-                request.File.ContentType,
-                request.Source,
-                memoryStream.ToArray()),
-            cancellationToken);
-
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, ToViewModel(result));
+    private static async Task<string> ReadSmallFieldAsync(Stream stream, CancellationToken cancellationToken)
+    {
+        using var reader = new StreamReader(stream, Encoding.UTF8, true, 256, leaveOpen: true);
+        var buffer = new char[1025];
+        var read = await reader.ReadBlockAsync(buffer.AsMemory(), cancellationToken);
+        var extra = new char[1];
+        if (read > 1024 || await reader.ReadAsync(extra.AsMemory(), cancellationToken) != 0)
+            throw new InvalidDataException("document_field_limit_exceeded");
+        return new string(buffer, 0, read).Trim();
     }
 
     [HttpGet("{id:guid}")]
@@ -90,7 +156,6 @@ public sealed class ProposalDocumentsController(IMediator mediator) : Controller
             result.FileName,
             result.ContentType,
             result.Source,
-            result.StoragePath,
             result.Status,
             result.DocumentType,
             result.InsuranceCompanyName,

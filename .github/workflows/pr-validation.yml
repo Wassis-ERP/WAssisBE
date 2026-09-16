@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - main
+      - codex/security-remediation-followup
   workflow_dispatch:
 
 permissions:
@@ -58,6 +59,9 @@ jobs:
       - name: Publish API
         run: dotnet publish src/WAssis.Services.Api/WAssis.Services.Api.csproj --configuration Release --no-build --output ./artifacts/api -p:UseAppHost=false
 
+      - name: Publish Worker
+        run: dotnet publish src/WAssis.BackgroundTasks/WAssis.BackgroundTasks.csproj --configuration Release --no-build --output ./artifacts/worker -p:UseAppHost=false
+
       - name: Build API Docker image
         run: docker build -t wassisbe-api:${{ github.sha }} .
 
@@ -69,8 +73,25 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
 
+      - name: Build Worker Docker image
+        run: docker build -f Dockerfile.worker -t wassisbe-worker:${{ github.sha }} .
+
+      - name: Scan Worker image
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          image-ref: wassisbe-worker:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
       - name: Upload API artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: wassisbe-api
           path: ./artifacts/api
+
+      - name: Upload Worker artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: wassisbe-worker
+          path: ./artifacts/worker

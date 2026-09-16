@@ -90,8 +90,8 @@ public sealed class QuoteRequestRepository(WAssisDbContext dbContext) : IQuoteRe
         await dbContext.SaveChangesAsync(cancellationToken);
         foreach (var quote in added)
             await dbContext.Database.ExecuteSqlInterpolatedAsync($"""
-                INSERT INTO infrastructure.work_outbox (id,tenant_id,kind,aggregate_id)
-                VALUES ({Guid.NewGuid()},{quote.TenantId},'quotes.dispatch',{quote.Id})
+                INSERT INTO infrastructure.work_outbox (id,tenant_id,branch_id,kind,aggregate_id)
+                VALUES ({Guid.NewGuid()},{quote.TenantId},{quote.OfficeBranchId},'quotes.dispatch',{quote.Id})
                 """, cancellationToken);
         if (transaction is not null) await transaction.CommitAsync(cancellationToken);
     }

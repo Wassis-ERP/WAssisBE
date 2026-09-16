@@ -9,32 +9,33 @@ namespace WAssis.Tests.Modules.Documents;
 public sealed class UploadProposalDocumentCommandHandlerTests
 {
     [Fact]
-    public async Task Handle_ShouldMarkDocumentAsFailed_WhenNoTextAndNoOcr()
+    public async Task Handle_ShouldQueueStoredDocumentWithoutParsingInRequest()
     {
         var repository = new InMemoryImportedDocumentRepository();
         var handler = new UploadProposalDocumentCommandHandler(
             new FakeCurrentUserContext
             {
                 IsAuthenticated = true,
-                TenantId = "tenant-docs"
+                TenantId = "22222222-2222-2222-2222-222222222222",
+                BranchId = "44444444-4444-4444-4444-444444444444",
+                BranchIds = ["44444444-4444-4444-4444-444444444444"]
             },
-            repository,
-            new EmptyPdfTextExtractor(),
-            new EmptyOcrTextExtractor(),
-            new FakeProposalDocumentParser());
+            repository);
 
+        var id = Guid.NewGuid();
         var result = await handler.Handle(
             new UploadProposalDocumentCommand(
+                id,
                 "corr-doc-1",
                 "proposta.pdf",
                 "application/pdf",
                 "manual_upload",
-                [1, 2, 3]),
+                "tenant/branch/document.pdf"),
             CancellationToken.None);
 
-        Assert.Equal(ImportedDocumentStatus.Failed, result.Status);
-        Assert.Contains("OCR", result.ParsingNotes);
-        Assert.Equal("tenant-docs", repository.Items.Single().TenantId);
+        Assert.Equal(id, result.Id);
+        Assert.Equal(ImportedDocumentStatus.Received, result.Status);
+        Assert.Equal("22222222-2222-2222-2222-222222222222", repository.Items.Single().TenantId);
     }
 
     private sealed class InMemoryImportedDocumentRepository : IImportedDocumentRepository
@@ -60,39 +61,4 @@ public sealed class UploadProposalDocumentCommandHandlerTests
         }
     }
 
-    private sealed class EmptyPdfTextExtractor : IPdfTextExtractor
-    {
-        public Task<string> ExtractTextAsync(byte[] content, CancellationToken cancellationToken)
-        {
-            return Task.FromResult(string.Empty);
-        }
-    }
-
-    private sealed class EmptyOcrTextExtractor : IOcrTextExtractor
-    {
-        public Task<string?> ExtractTextAsync(byte[] content, CancellationToken cancellationToken)
-        {
-            return Task.FromResult<string?>(null);
-        }
-    }
-
-    private sealed class FakeProposalDocumentParser : IProposalDocumentParser
-    {
-        public Application.Modules.Documents.Dtos.ProposalDocumentParsingResultDto Parse(string extractedText)
-        {
-            return new Application.Modules.Documents.Dtos.ProposalDocumentParsingResultDto(
-                "proposal_pdf",
-                extractedText,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                null,
-                0.35m,
-                true,
-                null);
-        }
-    }
 }

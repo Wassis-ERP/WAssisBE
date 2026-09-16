@@ -1,11 +1,15 @@
 using System.IdentityModel.Tokens.Jwt;
 using Dapper;
+using Microsoft.Extensions.Options;
 using Npgsql;
 using WAssis.Application.Modules.Identity.Interfaces;
+using WAssis.Infra.Data.Configuration;
 
 namespace WAssis.Infra.Data.Modules.Identity;
 
-public sealed class AuthSessionService(NpgsqlDataSource dataSource) : IAuthSessionService
+public sealed class AuthSessionService(
+    NpgsqlDataSource dataSource,
+    IOptions<AuthSessionOptions> sessionOptions) : IAuthSessionService
 {
     public async Task RegisterAsync(string token, CancellationToken cancellationToken)
     {
@@ -17,8 +21,8 @@ public sealed class AuthSessionService(NpgsqlDataSource dataSource) : IAuthSessi
             || string.IsNullOrWhiteSpace(tenantId) || jwt.ValidTo <= DateTime.UtcNow)
             throw new UnauthorizedAccessException("Sessão de autenticação inválida.");
         const string sql = """
-            INSERT INTO security.auth_sessions (jti, tenant_id, user_id, expires_at, created_at)
-            VALUES (@Jti, @TenantId, @UserId, @ExpiresAt, now())
+            INSERT INTO security.auth_sessions (jti, tenant_id, user_id, expires_at, created_at, last_seen_at)
+            VALUES (@Jti, @TenantId, @UserId, @ExpiresAt, now(), now())
             ON CONFLICT (jti) DO NOTHING
             """;
         await ExecuteAsync(sql, new { Jti = jti, TenantId = tenantId, UserId = userId, ExpiresAt = jwt.ValidTo }, cancellationToken);
@@ -32,14 +36,20 @@ public sealed class AuthSessionService(NpgsqlDataSource dataSource) : IAuthSessi
     public async Task<IReadOnlyList<string>> GetAuthorizedBranchesAsync(string jti, string userId, string tenantId, CancellationToken cancellationToken)
     {
         const string sql = """
-            SELECT f.id::text FROM security.auth_sessions s
+            WITH active_session AS (
+              UPDATE security.auth_sessions s
+              SET last_seen_at = now()
+              WHERE s.jti = @Jti AND s.user_id = @UserId AND s.tenant_id = @TenantId
+                AND s.revoked_at IS NULL AND s.expires_at > now()
+                AND COALESCE(s.last_seen_at, s.created_at) > now() - make_interval(mins => @IdleMinutes)
+              RETURNING s.jti, s.tenant_id, s.user_id
+            )
+            SELECT f.id::text FROM active_session s
             JOIN erp.profiles p ON p.id::text = s.user_id AND p.tenant_id::text = s.tenant_id
             JOIN erp.profile_filiais pf ON pf.profile_id = p.id
             JOIN erp.filiais f ON f.id = pf.filial_id AND f.tenant_id = p.tenant_id
             JOIN erp.perfis pe ON pe.id = pf.perfil_id AND pe.tenant_id = p.tenant_id
-            WHERE s.jti = @Jti AND s.user_id = @UserId AND s.tenant_id = @TenantId
-                AND s.revoked_at IS NULL AND s.expires_at > now()
-                AND p.ativo AND p.status = 'ATIVO'
+            WHERE p.ativo AND p.status = 'ATIVO'
                 AND (p.convite_status IS NULL OR p.convite_status = 'ACEITO')
                 AND pf.ativo AND f.ativo AND pe.ativo
                 AND (pf.data_inicio IS NULL OR pf.data_inicio <= current_date)
@@ -49,7 +59,13 @@ public sealed class AuthSessionService(NpgsqlDataSource dataSource) : IAuthSessi
             """;
         await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         return (await connection.QueryAsync<string>(new CommandDefinition(
-            sql, new { Jti = jti, UserId = userId, TenantId = tenantId }, cancellationToken: cancellationToken))).AsList();
+            sql, new
+            {
+                Jti = jti,
+                UserId = userId,
+                TenantId = tenantId,
+                IdleMinutes = sessionOptions.Value.IdleTimeoutMinutes,
+            }, cancellationToken: cancellationToken))).AsList();
     }
 
     public Task RevokeAsync(string jti, CancellationToken cancellationToken) => ExecuteAsync(

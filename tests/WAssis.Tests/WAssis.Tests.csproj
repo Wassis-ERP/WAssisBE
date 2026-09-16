@@ -23,5 +23,6 @@
     <ProjectReference Include="../../src/WAssis.Infra.Data/WAssis.Infra.Data.csproj" />
     <ProjectReference Include="../../src/WAssis.Infra.CrossCutting.Identity/WAssis.Infra.CrossCutting.Identity.csproj" />
     <ProjectReference Include="../../src/WAssis.Services.Api/WAssis.Services.Api.csproj" />
+    <ProjectReference Include="../../src/WAssis.BackgroundTasks/WAssis.BackgroundTasks.csproj" Aliases="background" />
   </ItemGroup>
 </Project>
