@@ -4,7 +4,7 @@ namespace WAssis.Application.Modules.Identity.Interfaces;
 
 public interface IEffectivePermissionService
 {
-    Task<bool> HasPermissionAsync(
+    Task<PermissionAccess> GetAccessAsync(
         Guid tenantId,
         Guid userId,
         string module,

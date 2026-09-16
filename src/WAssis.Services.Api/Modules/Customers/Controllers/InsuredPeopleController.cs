@@ -18,7 +18,7 @@ namespace WAssis.Services.Api.Modules.Customers.Controllers;
 public sealed class InsuredPeopleController(IMediator mediator) : ControllerBase
 {
     [HttpGet]
-    [RequirePermission("segurados", "read")]
+    [RequirePermission("segurados", "read", supportsOwnRecords: true)]
     [ProducesResponseType(typeof(PagedResult<InsuredPersonViewModel>), StatusCodes.Status200OK)]
     public async Task<IActionResult> List([FromQuery] string? search, [FromQuery] string? status,
         [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
@@ -28,7 +28,7 @@ public sealed class InsuredPeopleController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [RequirePermission("segurados", "read")]
+    [RequirePermission("segurados", "read", supportsOwnRecords: true)]
     [ProducesResponseType(typeof(InsuredPersonViewModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
@@ -38,7 +38,7 @@ public sealed class InsuredPeopleController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost]
-    [RequirePermission("segurados", "create")]
+    [RequirePermission("segurados", "create", supportsOwnRecords: true)]
     [ProducesResponseType(typeof(InsuredPersonViewModel), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] CreateInsuredPersonRequest request, CancellationToken cancellationToken)
     {
@@ -89,7 +89,7 @@ public sealed class InsuredPeopleController(IMediator mediator) : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [RequirePermission("segurados", "update")]
+    [RequirePermission("segurados", "update", supportsOwnRecords: true)]
     [ProducesResponseType(typeof(InsuredPersonViewModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateInsuredPersonRequest request, CancellationToken cancellationToken)

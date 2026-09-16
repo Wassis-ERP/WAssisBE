@@ -81,8 +81,9 @@ public sealed class IdentityController(
         if (!Guid.TryParse(currentUserContext.TenantId, out var tenantId)
             || !Guid.TryParse(currentUserContext.UserId, out var userId))
             return Forbid();
-        var selected = branchId ?? (Guid.TryParse(currentUserContext.BranchId, out var currentBranch) ? currentBranch : null);
-        return Ok(await effectivePermissions.ListAsync(tenantId, userId, selected, cancellationToken));
+        // Omitted branch means all current bindings for this user, not just the
+        // branch from the JWT/header. This list drives the CRM branch selector.
+        return Ok(await effectivePermissions.ListAsync(tenantId, userId, branchId, cancellationToken));
     }
 
     [Authorize(Policy = AccessPolicies.AuthenticatedUser)]

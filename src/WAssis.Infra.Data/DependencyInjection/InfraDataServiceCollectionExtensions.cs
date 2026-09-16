@@ -3,6 +3,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 using Polly;
+using Npgsql;
 using Microsoft.Extensions.Hosting;
 using WAssis.Application.Modules.Billing.Interfaces;
 using WAssis.Application.Modules.Customers.Interfaces;
@@ -73,8 +74,12 @@ public static class InfraDataServiceCollectionExtensions
 
         if (!hostEnvironment.IsDevelopment()) DatabaseConnectionPolicy.ValidateSharedEnvironment(connectionString);
 
-        services.AddDbContext<WAssisDbContext>(options =>
-            options.UseNpgsql(connectionString, npgsqlOptions =>
+        // Authentication must not construct the request DbContext before HttpContext.User
+        // has been assigned. Security queries lease separate, short-lived connections.
+        services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));
+        services.AddScoped<RecordPermissionScope>();
+        services.AddDbContext<WAssisDbContext>((provider, options) =>
+            options.UseNpgsql(provider.GetRequiredService<NpgsqlDataSource>(), npgsqlOptions =>
                 npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "quotes")));
 
         services.Configure<TesseractOcrOptions>(options =>

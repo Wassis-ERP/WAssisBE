@@ -1,12 +1,11 @@
 using System.IdentityModel.Tokens.Jwt;
 using Dapper;
-using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using WAssis.Application.Modules.Identity.Interfaces;
-using WAssis.Infra.Data.Context;
 
 namespace WAssis.Infra.Data.Modules.Identity;
 
-public sealed class AuthSessionService(WAssisDbContext db) : IAuthSessionService
+public sealed class AuthSessionService(NpgsqlDataSource dataSource) : IAuthSessionService
 {
     public async Task RegisterAsync(string token, CancellationToken cancellationToken)
     {
@@ -57,16 +56,15 @@ public sealed class AuthSessionService(WAssisDbContext db) : IAuthSessionService
         "UPDATE security.auth_sessions SET revoked_at = now() WHERE jti = @Jti AND revoked_at IS NULL",
         new { Jti = jti }, cancellationToken);
 
-    private async Task<System.Data.IDbConnection> OpenAsync(CancellationToken cancellationToken)
+    private async Task ExecuteAsync(string sql, object values, CancellationToken cancellationToken)
     {
-        var connection = db.Database.GetDbConnection();
-        if (connection.State != System.Data.ConnectionState.Open) await connection.OpenAsync(cancellationToken);
-        return connection;
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        await connection.ExecuteAsync(new CommandDefinition(sql, values, cancellationToken: cancellationToken));
     }
 
-    private async Task ExecuteAsync(string sql, object values, CancellationToken cancellationToken)
-        => await (await OpenAsync(cancellationToken)).ExecuteAsync(new CommandDefinition(sql, values, cancellationToken: cancellationToken));
-
     private async Task<bool> ExecuteScalarAsync(string sql, object values, CancellationToken cancellationToken)
-        => await (await OpenAsync(cancellationToken)).ExecuteScalarAsync<bool>(new CommandDefinition(sql, values, cancellationToken: cancellationToken));
+    {
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        return await connection.ExecuteScalarAsync<bool>(new CommandDefinition(sql, values, cancellationToken: cancellationToken));
+    }
 }

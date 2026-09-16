@@ -1,12 +1,11 @@
 using Dapper;
-using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using WAssis.Application.Modules.Identity.Dtos;
 using WAssis.Application.Modules.Identity.Interfaces;
-using WAssis.Infra.Data.Context;
 
 namespace WAssis.Infra.Data.Modules.Identity;
 
-public sealed class EffectivePermissionService(WAssisDbContext dbContext) : IEffectivePermissionService
+public sealed class EffectivePermissionService(NpgsqlDataSource dataSource) : IEffectivePermissionService
 {
     private const string ActiveBindings = """
         FROM erp.profiles p
@@ -22,7 +21,7 @@ public sealed class EffectivePermissionService(WAssisDbContext dbContext) : IEff
           AND (pf.data_fim IS NULL OR pf.data_fim >= current_date)
         """;
 
-    public async Task<bool> HasPermissionAsync(
+    public async Task<PermissionAccess> GetAccessAsync(
         Guid tenantId,
         Guid userId,
         string module,
@@ -31,16 +30,16 @@ public sealed class EffectivePermissionService(WAssisDbContext dbContext) : IEff
         bool tenantWide,
         CancellationToken cancellationToken)
     {
-        if (!AllowedActions.Contains(action) || string.IsNullOrWhiteSpace(module)) return false;
+        if (!AllowedActions.Contains(action) || string.IsNullOrWhiteSpace(module)) return PermissionAccess.Denied;
 
         var sql = """
-            SELECT EXISTS (
-              SELECT 1
-            """ + ActiveBindings + """
+            SELECT rp.escopo
+            """ + "\n" + ActiveBindings + "\n" + """
                 AND lower(rp.modulo) = lower(@Module)
                 AND (
                   (@TenantWide AND rp.escopo = 'GRUPO')
-                  OR (NOT @TenantWide AND @BranchId IS NOT NULL AND pf.filial_id = @BranchId)
+                  OR (NOT @TenantWide AND @BranchId IS NOT NULL AND pf.filial_id = @BranchId
+                      AND rp.escopo IN ('GRUPO', 'CORRETORA', 'PROPRIO'))
                 )
                 AND CASE lower(@Action)
                   WHEN 'read' THEN rp.can_read
@@ -51,13 +50,10 @@ public sealed class EffectivePermissionService(WAssisDbContext dbContext) : IEff
                   WHEN 'manage' THEN rp.can_manage
                   ELSE false
                 END
-            )
             """;
 
-        var connection = dbContext.Database.GetDbConnection();
-        if (connection.State != System.Data.ConnectionState.Open)
-            await connection.OpenAsync(cancellationToken);
-        return await connection.ExecuteScalarAsync<bool>(new CommandDefinition(sql, new
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
+        var scopes = (await connection.QueryAsync<string>(new CommandDefinition(sql, new
         {
             TenantId = tenantId,
             UserId = userId,
@@ -65,7 +61,13 @@ public sealed class EffectivePermissionService(WAssisDbContext dbContext) : IEff
             Action = action,
             BranchId = branchId,
             TenantWide = tenantWide,
-        }, cancellationToken: cancellationToken));
+        }, cancellationToken: cancellationToken))).ToArray();
+        if (scopes.Any(scope => scope is "CORRETORA" or "GRUPO")) return PermissionAccess.Branch;
+        if (!scopes.Contains("PROPRIO", StringComparer.Ordinal)) return PermissionAccess.Denied;
+        var producers = await connection.QueryAsync<Guid>(new CommandDefinition(
+            "SELECT id FROM erp.produtores WHERE tenant_id = @TenantId AND profile_id = @UserId AND ativo",
+            new { TenantId = tenantId, UserId = userId }, cancellationToken: cancellationToken));
+        return new PermissionAccess(true, true, producers.Select(id => id.ToString()).ToArray());
     }
 
     public async Task<IReadOnlyCollection<EffectivePermissionDto>> ListAsync(
@@ -83,14 +85,12 @@ public sealed class EffectivePermissionService(WAssisDbContext dbContext) : IEff
                    COALESCE(rp.can_delete, false) AS CanDelete,
                    COALESCE(rp.can_export, false) AS CanExport,
                    COALESCE(rp.can_manage, false) AS CanManage
-            """ + ActiveBindings + """
+            """ + "\n" + ActiveBindings + "\n" + """
               AND (@BranchId IS NULL OR pf.filial_id = @BranchId)
             ORDER BY pf.filial_id, lower(rp.modulo)
             """;
 
-        var connection = dbContext.Database.GetDbConnection();
-        if (connection.State != System.Data.ConnectionState.Open)
-            await connection.OpenAsync(cancellationToken);
+        await using var connection = await dataSource.OpenConnectionAsync(cancellationToken);
         var rows = await connection.QueryAsync<EffectivePermissionDto>(new CommandDefinition(
             sql, new { TenantId = tenantId, UserId = userId, BranchId = branchId }, cancellationToken: cancellationToken));
         return rows.AsList();

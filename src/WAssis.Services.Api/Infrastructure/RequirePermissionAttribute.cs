@@ -6,7 +6,7 @@ using WAssis.Application.Modules.Identity.Interfaces;
 namespace WAssis.Services.Api.Infrastructure;
 
 [AttributeUsage(AttributeTargets.Method, AllowMultiple = true, Inherited = true)]
-public sealed class RequirePermissionAttribute(string module, string action, bool tenantWide = false)
+public sealed class RequirePermissionAttribute(string module, string action, bool tenantWide = false, bool supportsOwnRecords = false)
     : Attribute, IAsyncAuthorizationFilter
 {
     public async Task OnAuthorizationAsync(AuthorizationFilterContext context)
@@ -27,11 +27,24 @@ public sealed class RequirePermissionAttribute(string module, string action, boo
             return;
         }
 
-        if (!await service.HasPermissionAsync(
-                tenantId, userId, module, action, branchId, tenantWide, context.HttpContext.RequestAborted))
+        // The authorization branch and the data branch must be identical. Never
+        // authorize a query/header branch while repositories use a JWT fallback.
+        if (!tenantWide && (!Guid.TryParse(user.BranchId, out var dataBranch) || dataBranch != branchId))
+        {
+            context.Result = Forbidden("branch_context_mismatch", "Contexto de corretora divergente.");
+            return;
+        }
+
+        var access = await service.GetAccessAsync(
+            tenantId, userId, module, action, branchId, tenantWide, context.HttpContext.RequestAborted);
+        if (!access.Allowed || (access.OwnRecordsOnly && !supportsOwnRecords))
         {
             context.Result = Forbidden("permission_denied", "Permissão insuficiente para esta operação.");
+            return;
         }
+        if (access.OwnRecordsOnly)
+            context.HttpContext.RequestServices.GetRequiredService<RecordPermissionScope>()
+                .RestrictToOwner(module, userId.ToString(), access.ProducerIds);
     }
 
     private static Guid? ResolveBranch(AuthorizationFilterContext context, ICurrentUserContext user)

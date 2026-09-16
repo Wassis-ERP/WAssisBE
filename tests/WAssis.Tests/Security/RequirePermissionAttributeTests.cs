@@ -33,7 +33,7 @@ public sealed class RequirePermissionAttributeTests
     }
 
     [Fact]
-    public async Task UsesRequestedBranchAndAllowsOnlyLiveServiceDecision()
+    public async Task RejectsRequestedBranchThatDiffersFromDataContext()
     {
         var requestedBranch = Guid.NewGuid();
         var filter = new RequirePermissionAttribute("comercial", "update");
@@ -43,10 +43,8 @@ public sealed class RequirePermissionAttributeTests
 
         await filter.OnAuthorizationAsync(context);
 
-        Assert.Null(context.Result);
-        Assert.Equal(requestedBranch, service.BranchId);
-        Assert.Equal("comercial", service.Module);
-        Assert.Equal("update", service.Action);
+        Assert.IsType<ObjectResult>(context.Result);
+        Assert.Null(service.BranchId);
     }
 
     [Fact]
@@ -74,6 +72,7 @@ public sealed class RequirePermissionAttributeTests
             BranchIds = [branchId],
         };
         var services = new ServiceCollection()
+            .AddSingleton<RecordPermissionScope>()
             .AddSingleton<ICurrentUserContext>(currentUser)
             .AddSingleton<IEffectivePermissionService>(service)
             .BuildServiceProvider();
@@ -82,14 +81,26 @@ public sealed class RequirePermissionAttributeTests
         return new AuthorizationFilterContext(actionContext, []);
     }
 
-    private sealed class CapturingPermissionService(bool result) : IEffectivePermissionService
+    [Theory]
+    [InlineData(true)]
+    [InlineData(false)]
+    public async Task OwnScopeRequiresExplicitEndpointSupport(bool supportsOwn)
+    {
+        var service = new CapturingPermissionService(true, own: true);
+        var context = CreateContext(service, BranchId.ToString());
+        await new RequirePermissionAttribute("comercial", "read", supportsOwnRecords: supportsOwn).OnAuthorizationAsync(context);
+        Assert.Equal(supportsOwn, context.Result is null);
+        Assert.Equal(supportsOwn, context.HttpContext.RequestServices.GetRequiredService<RecordPermissionScope>().OwnRecordsOnly);
+    }
+
+    private sealed class CapturingPermissionService(bool result, bool own = false) : IEffectivePermissionService
     {
         public Guid? BranchId { get; private set; }
         public string? Module { get; private set; }
         public string? Action { get; private set; }
         public bool TenantWide { get; private set; }
 
-        public Task<bool> HasPermissionAsync(Guid tenantId, Guid userId, string module, string action,
+        public Task<PermissionAccess> GetAccessAsync(Guid tenantId, Guid userId, string module, string action,
             Guid? branchId, bool tenantWide, CancellationToken cancellationToken)
         {
             Assert.Equal(TenantId, tenantId);
@@ -98,7 +109,7 @@ public sealed class RequirePermissionAttributeTests
             Module = module;
             Action = action;
             TenantWide = tenantWide;
-            return Task.FromResult(result);
+            return Task.FromResult(result ? new PermissionAccess(true, own, []) : PermissionAccess.Denied);
         }
 
         public Task<IReadOnlyCollection<EffectivePermissionDto>> ListAsync(Guid tenantId, Guid userId,

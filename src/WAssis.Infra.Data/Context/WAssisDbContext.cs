@@ -18,17 +18,24 @@ public class WAssisDbContext : DbContext
     private readonly string? _currentTenantId;
     private readonly bool _hasAllBranchesAccess;
     private readonly string[] _branchIds;
+    private readonly RecordPermissionScope _recordScope;
+    private bool OwnOpportunitiesOnly => _recordScope.OwnRecordsOnly && _recordScope.Module == "comercial";
+    private bool OwnCustomersOnly => _recordScope.OwnRecordsOnly && _recordScope.Module == "segurados";
+    private string? OwnerUserId => _recordScope.UserId;
+    private string[] OwnerProducerIds => _recordScope.ProducerIds;
 
     public WAssisDbContext(
         DbContextOptions<WAssisDbContext> options,
         ICurrentUserContext currentUserContext,
-        SystemDataScope? systemScope = null)
+        SystemDataScope? systemScope = null,
+        RecordPermissionScope? recordScope = null)
         : base(options)
     {
         _currentTenantId = systemScope is not null && !currentUserContext.IsAuthenticated
             ? null : ResolveTenantScope(currentUserContext);
         _hasAllBranchesAccess = currentUserContext.HasAllBranchesAccess;
         _branchIds = ResolveBranchScope(currentUserContext);
+        _recordScope = recordScope ?? new RecordPermissionScope();
     }
 
     public DbSet<DocumentSearch> DocumentSearches => Set<DocumentSearch>();
@@ -67,10 +74,13 @@ public class WAssisDbContext : DbContext
             x.TenantId == _currentTenantId && x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId));
         modelBuilder.Entity<InsuredPerson>().HasQueryFilter(x =>
             (_currentTenantId == null || x.TenantId == _currentTenantId) &&
-            (_currentTenantId == null || (x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId))));
+            (_currentTenantId == null || (x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId))) &&
+            (!OwnCustomersOnly || (x.ProducerId != null && OwnerProducerIds.Contains(x.ProducerId)) ||
+                (x.ManagerId != null && OwnerProducerIds.Contains(x.ManagerId))));
         modelBuilder.Entity<Opportunity>().HasQueryFilter(x =>
             (_currentTenantId == null || x.TenantId == _currentTenantId) &&
-            (_currentTenantId == null || (x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId))));
+            (_currentTenantId == null || (x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId))) &&
+            (!OwnOpportunitiesOnly || x.ResponsibleId == OwnerUserId));
         modelBuilder.Entity<BillingSubscription>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
         modelBuilder.Entity<BillingInvoice>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
         modelBuilder.Entity<CommissionReceipt>().HasQueryFilter(x => _currentTenantId == null ||
@@ -128,6 +138,24 @@ public class WAssisDbContext : DbContext
                 if (branch.CurrentValue is not string current || !_branchIds.Contains(current)
                     || (entry.State != EntityState.Added && (branch.OriginalValue is not string original || !_branchIds.Contains(original))))
                     throw new UnauthorizedAccessException("A escrita exige uma filial autorizada.");
+            }
+            if (OwnOpportunitiesOnly && entry.Entity is Opportunity)
+            {
+                var responsible = entry.Property(nameof(Opportunity.ResponsibleId));
+                if (!Equals(responsible.CurrentValue, OwnerUserId) ||
+                    (entry.State != EntityState.Added && !Equals(responsible.OriginalValue, OwnerUserId)))
+                    throw new UnauthorizedAccessException("O escopo próprio exige responsabilidade pelo registro.");
+            }
+            if (OwnCustomersOnly && entry.Entity is InsuredPerson)
+            {
+                var producer = entry.Property(nameof(InsuredPerson.ProducerId));
+                var manager = entry.Property(nameof(InsuredPerson.ManagerId));
+                bool IsOwner(object? p, object? m) =>
+                    (p is string producerId && OwnerProducerIds.Contains(producerId)) ||
+                    (m is string managerId && OwnerProducerIds.Contains(managerId));
+                if (!IsOwner(producer.CurrentValue, manager.CurrentValue) ||
+                    (entry.State != EntityState.Added && !IsOwner(producer.OriginalValue, manager.OriginalValue)))
+                    throw new UnauthorizedAccessException("O escopo próprio exige vínculo de produtor ou gerente.");
             }
         }
     }
