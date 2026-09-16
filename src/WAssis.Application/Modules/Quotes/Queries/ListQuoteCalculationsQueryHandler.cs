@@ -8,9 +8,9 @@ namespace WAssis.Application.Modules.Quotes.Queries;
 public sealed class ListQuoteCalculationsQueryHandler(
     IQuoteRequestRepository repository,
     ICurrentUserContext currentUserContext)
-    : IRequestHandler<ListQuoteCalculationsQuery, IReadOnlyCollection<QuoteRequestDto>>
+    : IRequestHandler<ListQuoteCalculationsQuery, PagedResult<QuoteRequestDto>>
 {
-    public async Task<IReadOnlyCollection<QuoteRequestDto>> Handle(
+    public async Task<PagedResult<QuoteRequestDto>> Handle(
         ListQuoteCalculationsQuery request,
         CancellationToken cancellationToken)
     {
@@ -23,7 +23,13 @@ public sealed class ListQuoteCalculationsQueryHandler(
             throw new UnauthorizedAccessException("Usuario nao possui acesso a filial informada.");
         }
 
-        var requests = await repository.ListAsync(request.OpportunityId, branchId, cancellationToken);
-        return requests.Select(QuoteRequestMappings.ToDto).ToArray();
+        var page = Math.Max(request.Page, 1);
+        var pageSize = Math.Clamp(request.PageSize, 1, 100);
+        var requests = await repository.ListAsync(request.OpportunityId, branchId, page, pageSize, cancellationToken);
+        return new PagedResult<QuoteRequestDto>(
+            requests.Items.Select(QuoteRequestMappings.ToDto).ToArray(),
+            requests.Page,
+            requests.PageSize,
+            requests.TotalCount);
     }
 }

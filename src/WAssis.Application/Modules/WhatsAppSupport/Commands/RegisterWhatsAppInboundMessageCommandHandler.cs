@@ -19,7 +19,8 @@ public sealed class RegisterWhatsAppInboundMessageCommandHandler(
             request.CorrelationId,
             request.CustomerIdentifier,
             request.MessagePreview,
-            request.Priority);
+            request.Priority,
+            currentUserContext.ResolveBranchIdForWrite());
 
         if (request.RequestHumanHandoff)
         {
@@ -35,7 +36,7 @@ public sealed class RegisterWhatsAppInboundMessageCommandHandler(
             request.RequestHumanHandoff ? "InboundWithHandoff" : "InboundMessage",
             nameof(WhatsAppConversation),
             conversation.Id.ToString(),
-            request.MessagePreview,
+            null,
             cancellationToken);
 
         return WhatsAppConversationMappings.ToDto(conversation);

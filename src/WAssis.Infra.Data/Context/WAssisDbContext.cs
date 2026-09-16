@@ -61,25 +61,33 @@ public class WAssisDbContext : DbContext
             if (branch is not null) branch.IsConcurrencyToken = true;
         }
 
-        modelBuilder.Entity<DocumentSearch>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
-        modelBuilder.Entity<ImportedDocument>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
+        modelBuilder.Entity<DocumentSearch>().HasQueryFilter(x => _currentTenantId == null ||
+            x.TenantId == _currentTenantId && x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId));
+        modelBuilder.Entity<ImportedDocument>().HasQueryFilter(x => _currentTenantId == null ||
+            x.TenantId == _currentTenantId && x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId));
         modelBuilder.Entity<InsuredPerson>().HasQueryFilter(x =>
             (_currentTenantId == null || x.TenantId == _currentTenantId) &&
-            (_currentTenantId == null || _hasAllBranchesAccess || (x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId))));
+            (_currentTenantId == null || (x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId))));
         modelBuilder.Entity<Opportunity>().HasQueryFilter(x =>
             (_currentTenantId == null || x.TenantId == _currentTenantId) &&
-            (_currentTenantId == null || _hasAllBranchesAccess || (x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId))));
+            (_currentTenantId == null || (x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId))));
         modelBuilder.Entity<BillingSubscription>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
         modelBuilder.Entity<BillingInvoice>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
-        modelBuilder.Entity<CommissionReceipt>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
-        modelBuilder.Entity<CommissionReconciliation>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
-        modelBuilder.Entity<PolicyDraft>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
+        modelBuilder.Entity<CommissionReceipt>().HasQueryFilter(x => _currentTenantId == null ||
+            x.TenantId == _currentTenantId && x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId));
+        modelBuilder.Entity<CommissionReconciliation>().HasQueryFilter(x => _currentTenantId == null ||
+            x.TenantId == _currentTenantId && x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId));
+        modelBuilder.Entity<PolicyDraft>().HasQueryFilter(x => _currentTenantId == null ||
+            x.TenantId == _currentTenantId && x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId));
         modelBuilder.Entity<QuoteRequest>().HasQueryFilter(x =>
             (_currentTenantId == null || x.TenantId == _currentTenantId) &&
-            (_currentTenantId == null || _hasAllBranchesAccess || (x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId))));
-        modelBuilder.Entity<QuoteOption>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
-        modelBuilder.Entity<WhatsAppConversation>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
-        modelBuilder.Entity<AuditEntry>().HasQueryFilter(x => _currentTenantId == null || x.TenantId == _currentTenantId);
+            (_currentTenantId == null || (x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId))));
+        modelBuilder.Entity<QuoteOption>().HasQueryFilter(x => _currentTenantId == null ||
+            x.TenantId == _currentTenantId && QuoteRequests.Any(q => q.Id == x.QuoteRequestId));
+        modelBuilder.Entity<WhatsAppConversation>().HasQueryFilter(x => _currentTenantId == null ||
+            x.TenantId == _currentTenantId && x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId));
+        modelBuilder.Entity<AuditEntry>().HasQueryFilter(x => _currentTenantId == null ||
+            x.TenantId == _currentTenantId && x.OfficeBranchId != null && _branchIds.Contains(x.OfficeBranchId));
     }
 
     private static string? ResolveTenantScope(ICurrentUserContext currentUserContext)

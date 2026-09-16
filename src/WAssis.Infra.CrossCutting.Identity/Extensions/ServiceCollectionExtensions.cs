@@ -1,4 +1,5 @@
 using System.Text;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
@@ -64,6 +65,28 @@ public static class ServiceCollectionExtensions
                     ValidAudience = jwtOptions.Audience,
                     IssuerSigningKey = signingKey,
                     ClockSkew = TimeSpan.FromMinutes(1)
+                };
+                options.Events = new JwtBearerEvents
+                {
+                    OnMessageReceived = context =>
+                    {
+                        if (string.IsNullOrWhiteSpace(context.Token)
+                            && context.Request.Cookies.TryGetValue("wassis_access", out var cookieToken))
+                            context.Token = cookieToken;
+                        return Task.CompletedTask;
+                    },
+                    OnTokenValidated = async context =>
+                    {
+                        var principal = context.Principal;
+                        var jti = principal?.FindFirstValue(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Jti);
+                        var userId = principal?.FindFirstValue(ClaimTypes.NameIdentifier) ?? principal?.FindFirstValue("sub");
+                        var tenantId = principal?.FindFirstValue(ClaimConstants.TenantId);
+                        var sessions = context.HttpContext.RequestServices.GetRequiredService<IAuthSessionService>();
+                        if (string.IsNullOrWhiteSpace(jti) || string.IsNullOrWhiteSpace(userId)
+                            || string.IsNullOrWhiteSpace(tenantId)
+                            || !await sessions.ValidateAsync(jti, userId, tenantId, context.HttpContext.RequestAborted))
+                            context.Fail("Sessão revogada, expirada ou sem vínculo ativo.");
+                    },
                 };
             });
 

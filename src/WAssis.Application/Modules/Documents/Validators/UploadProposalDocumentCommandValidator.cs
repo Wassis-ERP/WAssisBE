@@ -5,7 +5,7 @@ namespace WAssis.Application.Modules.Documents.Validators;
 
 public sealed class UploadProposalDocumentCommandValidator : AbstractValidator<UploadProposalDocumentCommand>
 {
-    private const int MaxPdfBytes = 20_000_000;
+    private const int MaxPdfBytes = 8_000_000;
     private static readonly byte[] PdfSignature = "%PDF-"u8.ToArray();
 
     public UploadProposalDocumentCommandValidator()

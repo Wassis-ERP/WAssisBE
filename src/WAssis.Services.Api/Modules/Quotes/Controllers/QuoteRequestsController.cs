@@ -2,9 +2,11 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WAssis.Application.Modules.Quotes.Commands;
+using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Quotes.Dtos;
 using WAssis.Application.Modules.Quotes.Queries;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Services.Api.Infrastructure;
 using WAssis.Services.Api.Modules.Quotes.Contracts;
 using WAssis.Services.Api.Modules.Quotes.ViewModels;
 
@@ -16,20 +18,29 @@ namespace WAssis.Services.Api.Modules.Quotes.Controllers;
 public sealed class QuoteRequestsController(IMediator mediator) : ControllerBase
 {
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyCollection<QuoteResponseViewModel>), StatusCodes.Status200OK)]
+    [RequirePermission("comercial", "read")]
+    [ProducesResponseType(typeof(PagedResult<QuoteResponseViewModel>), StatusCodes.Status200OK)]
     public async Task<IActionResult> List(
         [FromQuery] Guid? opportunityId,
         [FromQuery] string? officeBranchId,
-        CancellationToken cancellationToken)
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
     {
         var response = await mediator.Send(
-            new ListQuoteCalculationsQuery(opportunityId, officeBranchId),
+            new ListQuoteCalculationsQuery(opportunityId, officeBranchId, page, pageSize),
             cancellationToken);
 
-        return Ok(response.Select(ToViewModel));
+        return Ok(new PagedResult<QuoteResponseViewModel>(
+            response.Items.Select(ToViewModel).ToArray(),
+            response.Page,
+            response.PageSize,
+            response.TotalCount));
     }
 
     [HttpPost]
+    [RequirePermission("comercial", "create")]
+    [DistributedOperationLimit("quotes.create", 10, 60)]
     [ProducesResponseType(typeof(QuoteResponseViewModel), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create(
         [FromBody] CreateQuoteRequestRequest request,
@@ -83,6 +94,7 @@ public sealed class QuoteRequestsController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [RequirePermission("comercial", "read")]
     [ProducesResponseType(typeof(QuoteResponseViewModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
@@ -92,6 +104,7 @@ public sealed class QuoteRequestsController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet("{id:guid}/results")]
+    [RequirePermission("comercial", "read")]
     [ProducesResponseType(typeof(QuoteResultsViewModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetResults(Guid id, CancellationToken cancellationToken)

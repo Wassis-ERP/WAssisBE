@@ -9,6 +9,7 @@ using WAssis.Application.Modules.Customers.Interfaces;
 using WAssis.Application.Modules.Core.Interfaces;
 using WAssis.Application.Modules.Documents.Interfaces;
 using WAssis.Application.Modules.Financial.Interfaces;
+using WAssis.Application.Modules.Identity.Interfaces;
 using WAssis.Application.Modules.Notifications.Interfaces;
 using WAssis.Application.Modules.Opportunities.Interfaces;
 using WAssis.Application.Modules.Policies.Interfaces;
@@ -36,6 +37,7 @@ using WAssis.Infra.Data.Modules.Customers.Repositories;
 using WAssis.Infra.Data.Modules.Core.Queries;
 using WAssis.Infra.Data.Modules.Documents.Repositories;
 using WAssis.Infra.Data.Modules.Financial.Repositories;
+using WAssis.Infra.Data.Modules.Identity;
 using WAssis.Infra.Data.Modules.Notifications.Queries;
 using WAssis.Infra.Data.Modules.Notifications.Repositories;
 using WAssis.Infra.Data.Modules.Opportunities.Repositories;
@@ -43,6 +45,7 @@ using WAssis.Infra.Data.Modules.Policies.Repositories;
 using WAssis.Infra.Data.Modules.Quotes.Repositories;
 using WAssis.Infra.Data.Modules.WhatsAppSupport.Repositories;
 using WAssis.Infra.Data.Transactions;
+using WAssis.Infra.Data.Security;
 
 namespace WAssis.Infra.Data.DependencyInjection;
 
@@ -96,7 +99,10 @@ public static class InfraDataServiceCollectionExtensions
             configuration.GetSection(JustosAutoQuoteOptions.SectionName).Bind(options));
         services.AddScoped<IBillingRepository, BillingRepository>();
         services.AddScoped<IAdministrationRepository, AdministrationRepository>();
+        services.AddScoped<IEffectivePermissionService, EffectivePermissionService>();
+        services.AddScoped<IAuthSessionService, AuthSessionService>();
         services.AddScoped<ICoreBranchReadRepository, CoreBranchReadRepository>();
+        services.AddScoped<IBusinessReferenceValidator, BusinessReferenceValidator>();
         services.AddScoped<ICoreCatalogReadRepository, CoreCatalogReadRepository>();
         services.AddScoped<IInsuredPersonRepository, InsuredPersonRepository>();
         services.AddScoped<IInsuredPersonReadRepository, InsuredPersonRepository>();
@@ -115,25 +121,26 @@ public static class InfraDataServiceCollectionExtensions
         services.AddScoped<IWhatsAppConversationRepository, WhatsAppConversationRepository>();
         services.AddScoped<IAuditTrailWriter, AuditTrailWriter>();
         services.AddScoped<IApplicationTransaction, EfApplicationTransaction>();
+        services.AddScoped<IDistributedOperationLimiter, PostgresOperationLimiter>();
         services.AddHttpClient<AggilizadorAutoQuoteClient>((serviceProvider, client) =>
         {
             var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<AggilizadorAutoQuoteOptions>>().Value;
             if (!string.IsNullOrWhiteSpace(options.BaseUrl))
             {
-                client.BaseAddress = new Uri(options.BaseUrl);
+                client.BaseAddress = ExternalEndpointPolicy.RequireHttpsAllowlisted(options.BaseUrl, options.AllowedHosts);
             }
         })
         .AddStandardResilienceHandler(ConfigureExternalResilience);
         services.AddHttpClient<JustosBrokerAuthClient>((serviceProvider, client) =>
         {
             var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<JustosAutoQuoteOptions>>().Value;
-            client.BaseAddress = new Uri(options.BaseUrl);
+            client.BaseAddress = ExternalEndpointPolicy.RequireHttpsAllowlisted(options.BaseUrl, options.AllowedHosts);
         })
         .AddStandardResilienceHandler(ConfigureExternalResilience);
         services.AddHttpClient<JustosQuoteClient>((serviceProvider, client) =>
         {
             var options = serviceProvider.GetRequiredService<Microsoft.Extensions.Options.IOptions<JustosAutoQuoteOptions>>().Value;
-            client.BaseAddress = new Uri(options.BaseUrl);
+            client.BaseAddress = ExternalEndpointPolicy.RequireHttpsAllowlisted(options.BaseUrl, options.AllowedHosts);
         })
         .AddStandardResilienceHandler(ConfigureExternalResilience);
         services.AddScoped<IQuoteProvider, AggilizadorAutoQuoteProvider>();

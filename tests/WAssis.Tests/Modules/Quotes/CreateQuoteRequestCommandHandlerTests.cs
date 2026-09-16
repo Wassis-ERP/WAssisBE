@@ -106,13 +106,15 @@ public sealed class CreateQuoteRequestCommandHandlerTests
             return Task.FromResult(Items.SingleOrDefault(x => x.CorrelationId == correlationId));
         }
 
-        public Task<IReadOnlyCollection<QuoteRequest>> ListAsync(Guid? opportunityId, string? officeBranchId, CancellationToken cancellationToken)
+        public Task<WAssis.Application.Abstractions.PagedResult<QuoteRequest>> ListAsync(Guid? opportunityId, string? officeBranchId, int page, int pageSize, CancellationToken cancellationToken)
         {
             IReadOnlyCollection<QuoteRequest> items = Items
                 .Where(x => !opportunityId.HasValue || x.OpportunityId == opportunityId)
                 .Where(x => string.IsNullOrWhiteSpace(officeBranchId) || x.OfficeBranchId == officeBranchId)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToArray();
-            return Task.FromResult(items);
+            return Task.FromResult(new WAssis.Application.Abstractions.PagedResult<QuoteRequest>(items, page, pageSize, items.Count));
         }
 
         public Task<IReadOnlyCollection<QuotePendingDispatchDto>> GetPendingDispatchBatchAsync(int batchSize, CancellationToken cancellationToken)

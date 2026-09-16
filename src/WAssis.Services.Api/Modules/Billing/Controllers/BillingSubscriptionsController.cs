@@ -5,6 +5,7 @@ using WAssis.Application.Modules.Billing.Commands;
 using WAssis.Application.Modules.Billing.Dtos;
 using WAssis.Application.Modules.Billing.Queries;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Services.Api.Infrastructure;
 using WAssis.Services.Api.Extensions;
 using WAssis.Services.Api.Modules.Billing.Contracts;
 using WAssis.Services.Api.Modules.Billing.ViewModels;
@@ -13,10 +14,11 @@ namespace WAssis.Services.Api.Modules.Billing.Controllers;
 
 [ApiController]
 [Route("api/billing")]
-[Authorize(Policy = AccessPolicies.BrokerageAdmin)]
+[Authorize(Policy = AccessPolicies.AuthenticatedUser)]
 public sealed class BillingSubscriptionsController(IMediator mediator) : ControllerBase
 {
     [HttpPost("subscriptions")]
+    [RequirePermission("faturamento", "create", tenantWide: true)]
     [ProducesResponseType(typeof(BillingSubscriptionViewModel), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateSubscription([FromBody] CreateBillingSubscriptionRequest request, CancellationToken cancellationToken)
     {
@@ -37,6 +39,7 @@ public sealed class BillingSubscriptionsController(IMediator mediator) : Control
     }
 
     [HttpGet("subscriptions/{id:guid}")]
+    [RequirePermission("faturamento", "read", tenantWide: true)]
     [ProducesResponseType(typeof(BillingSubscriptionViewModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetSubscriptionById(Guid id, CancellationToken cancellationToken)
@@ -46,6 +49,7 @@ public sealed class BillingSubscriptionsController(IMediator mediator) : Control
     }
 
     [HttpPost("subscriptions/{id:guid}/invoices")]
+    [RequirePermission("faturamento", "create", tenantWide: true)]
     [ProducesResponseType(typeof(BillingInvoiceViewModel), StatusCodes.Status201Created)]
     public async Task<IActionResult> IssueInvoice(Guid id, [FromBody] IssueBillingInvoiceRequest request, CancellationToken cancellationToken)
     {
@@ -64,6 +68,7 @@ public sealed class BillingSubscriptionsController(IMediator mediator) : Control
     }
 
     [HttpGet("invoices/{id:guid}")]
+    [RequirePermission("faturamento", "read", tenantWide: true)]
     [ProducesResponseType(typeof(BillingInvoiceViewModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetInvoiceById(Guid id, CancellationToken cancellationToken)
@@ -73,6 +78,7 @@ public sealed class BillingSubscriptionsController(IMediator mediator) : Control
     }
 
     [HttpPost("invoices/{id:guid}/pay")]
+    [RequirePermission("faturamento", "update", tenantWide: true)]
     [ProducesResponseType(typeof(BillingInvoiceViewModel), StatusCodes.Status200OK)]
     public async Task<IActionResult> MarkPaid(Guid id, [FromBody] MarkBillingInvoicePaidRequest? request, CancellationToken cancellationToken)
     {

@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using WAssis.Application.Modules.Documents.Commands;
 using WAssis.Application.Modules.Documents.Queries;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Services.Api.Infrastructure;
 using WAssis.Services.Api.Modules.Documents.Contracts;
 using WAssis.Services.Api.Modules.Documents.ViewModels;
 
@@ -15,6 +16,7 @@ namespace WAssis.Services.Api.Modules.Documents.Controllers;
 public sealed class DocumentSearchesController(IMediator mediator) : ControllerBase
 {
     [HttpPost]
+    [RequirePermission("documentos", "create")]
     public async Task<IActionResult> Create([FromBody] CreateDocumentSearchRequest request, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(
@@ -34,6 +36,7 @@ public sealed class DocumentSearchesController(IMediator mediator) : ControllerB
     }
 
     [HttpGet("{id:guid}")]
+    [RequirePermission("documentos", "read")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(new GetDocumentSearchQuery(id), cancellationToken);

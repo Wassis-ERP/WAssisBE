@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Core.Interfaces;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Services.Api.Infrastructure;
 using WAssis.Services.Api.Modules.Core.Contracts;
 
 namespace WAssis.Services.Api.Modules.Core.Controllers;
@@ -28,6 +29,7 @@ public sealed class CoreSchemaController(
     ];
 
     [HttpGet("schema")]
+    [RequirePermission("plataforma", "read", tenantWide: true)]
     [ProducesResponseType(typeof(CoreSchemaViewModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public IActionResult GetSchema()
@@ -59,6 +61,7 @@ public sealed class CoreSchemaController(
     }
 
     [HttpGet("branches")]
+    [RequirePermission("plataforma", "read", tenantWide: true)]
     [ProducesResponseType(typeof(IReadOnlyCollection<CoreBranchViewModel>), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status403Forbidden)]
     public async Task<IActionResult> GetBranches(CancellationToken cancellationToken)

@@ -4,23 +4,26 @@ using Microsoft.AspNetCore.Mvc;
 using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Core.Interfaces;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Services.Api.Infrastructure;
 
 namespace WAssis.Services.Api.Modules.Core.Controllers;
 
 [ApiController]
 [Route("api/core/catalogs")]
-[Authorize(Policy = AccessPolicies.BrokerageAdmin)]
+[Authorize(Policy = AccessPolicies.AuthenticatedUser)]
 public sealed class CoreCatalogsController(
     ICurrentUserContext currentUserContext,
     ICoreCatalogReadRepository repository) : ControllerBase
 {
     [HttpGet]
+    [RequirePermission("configuracoes", "read", tenantWide: true)]
     public IActionResult GetSupportedResources()
     {
         return Ok(repository.SupportedResources);
     }
 
     [HttpGet("{resource}")]
+    [RequirePermission("configuracoes", "read", tenantWide: true)]
     public async Task<IActionResult> List(
         string resource,
         [FromQuery] bool activeOnly = true,

@@ -39,10 +39,10 @@ dotnet run --project src\WAssis.Services.Api\WAssis.Services.Api.csproj
 Configurar por variavel de ambiente:
 
 ```powershell
-$env:ConnectionStrings__DefaultConnection="Host=...;Port=5432;Database=wassis;Username=...;Password=...;SSL Mode=Require;Trust Server Certificate=true"
+$env:ConnectionStrings__DefaultConnection="Host=db.example.internal;Port=5432;Database=wassis;Username=wassis_app_login;Password=<secret-provider-reference>;SSL Mode=VerifyFull;Root Certificate=<trusted-ca-path>"
 ```
 
-Em producao, nao usar usuario `postgres` como usuario da aplicacao. Criar um usuario com permissao limitada ao banco/schema da aplicacao.
+Fora de Development a API rejeita conexões que não usem `SSL Mode=VerifyFull`, bem como diagnóstico sensível. Não usar o owner, `postgres`, superuser ou uma role com `BYPASSRLS` na aplicação. O script revisável em `ops/postgres/least-privilege-roles.sql` separa aplicação, worker e migration; a vinculação dos logins e a verificação dos grants continuam sendo uma ação de infraestrutura.
 
 ## Segredos obrigatorios
 
@@ -63,7 +63,7 @@ Build local:
 docker build -t wassisbe-api .
 docker run --rm -p 8080:8080 `
   -e ASPNETCORE_ENVIRONMENT=Production `
-  -e ConnectionStrings__DefaultConnection="Host=host.docker.internal;Port=5432;Database=wassis;Username=postgres;Password=postgres" `
+  -e ConnectionStrings__DefaultConnection="Host=db.example.internal;Port=5432;Database=wassis;Username=wassis_app_login;Password=<secret-provider-reference>;SSL Mode=VerifyFull;Root Certificate=/run/secrets/postgres_ca" `
   -e Identity__Jwt__SigningKey="configure-uma-chave-com-mais-de-32-caracteres" `
   -e Identity__Jwt__RequireHttpsMetadata=true `
   wassisbe-api
@@ -81,7 +81,7 @@ dotnet WAssis.Services.Api.dll --migrate
 
 4. Confirmar o término bem-sucedido da tarefa de migration.
 5. Publicar/atualizar as réplicas da API.
-6. Verificar `/health` e `/health/ready`, conferindo `buildSha` e `instance`.
+6. Verificar `/health`; consultar `/health/ready` somente com credencial administrativa.
 7. Atualizar `VITE_API_BASE_URL` nos frontends se a URL da API mudar.
 8. Validar login e `/api/identity/me`.
 

@@ -32,18 +32,18 @@ public static class ReverseProxyServiceCollectionExtensions
                                        ForwardedHeaders.XForwardedHost |
                                        ForwardedHeaders.XForwardedProto;
             options.ForwardLimit = proxyOptions.ForwardLimit;
-            options.KnownNetworks.Clear();
+            options.KnownIPNetworks.Clear();
             options.KnownProxies.Clear();
             foreach (var network in knownNetworks)
             {
-                options.KnownNetworks.Add(network);
+                options.KnownIPNetworks.Add(network);
             }
         });
 
         return services;
     }
 
-    internal static Microsoft.AspNetCore.HttpOverrides.IPNetwork ParseNetwork(string value)
+    internal static System.Net.IPNetwork ParseNetwork(string value)
     {
         var parts = value.Split('/', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
         if (parts.Length != 2 ||
@@ -59,6 +59,6 @@ public static class ReverseProxyServiceCollectionExtensions
             throw new InvalidOperationException($"Reverse proxy network '{value}' has an invalid prefix length.");
         }
 
-        return new Microsoft.AspNetCore.HttpOverrides.IPNetwork(prefix, prefixLength);
+        return new System.Net.IPNetwork(prefix, prefixLength);
     }
 }

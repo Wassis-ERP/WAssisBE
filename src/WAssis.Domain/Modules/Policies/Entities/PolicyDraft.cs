@@ -6,6 +6,7 @@ namespace WAssis.Domain.Modules.Policies.Entities;
 public class PolicyDraft : AggregateRoot
 {
     public string TenantId { get; private set; } = string.Empty;
+    public string? OfficeBranchId { get; private set; }
     public Guid ImportedDocumentId { get; private set; }
     public string CorrelationId { get; private set; } = string.Empty;
     public string? InsuranceCompanyName { get; private set; }
@@ -40,10 +41,12 @@ public class PolicyDraft : AggregateRoot
         DateTime? coverageEndDateUtc,
         decimal? totalPremiumAmount,
         decimal? commissionAmount,
-        string? notes)
+        string? notes,
+        string? officeBranchId)
     {
         Id = id;
         TenantId = tenantId;
+        OfficeBranchId = officeBranchId;
         ImportedDocumentId = importedDocumentId;
         CorrelationId = correlationId;
         InsuranceCompanyName = insuranceCompanyName;
@@ -71,7 +74,8 @@ public class PolicyDraft : AggregateRoot
         DateTime? coverageEndDateUtc,
         decimal? totalPremiumAmount,
         decimal? commissionAmount,
-        string? notes)
+        string? notes,
+        string? officeBranchId = null)
     {
         return new PolicyDraft(
             Guid.NewGuid(),
@@ -85,7 +89,8 @@ public class PolicyDraft : AggregateRoot
             coverageEndDateUtc,
             totalPremiumAmount,
             commissionAmount,
-            notes);
+            notes,
+            officeBranchId);
     }
 
     public void ApproveReview(string reviewedByUserId, string? notes = null)

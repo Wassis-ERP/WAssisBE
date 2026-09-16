@@ -78,7 +78,8 @@ public sealed class FrontendContractMigrationTests
     [Fact]
     public void CreateUser_ReturnsTrackableProblemDetails()
     {
-        var controller = new IdentityController(new NullCurrentUserContext(), mediator: null!);
+        var controller = new IdentityController(new NullCurrentUserContext(), effectivePermissions: null!,
+            authSessions: null!, environment: null!, mediator: null!);
 
         var result = Assert.IsType<ObjectResult>(controller.CreateUser());
 

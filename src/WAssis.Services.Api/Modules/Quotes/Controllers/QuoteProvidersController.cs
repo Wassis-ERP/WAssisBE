@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WAssis.Application.Modules.Quotes.Queries;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Services.Api.Infrastructure;
 using WAssis.Services.Api.Modules.Quotes.ViewModels;
 
 namespace WAssis.Services.Api.Modules.Quotes.Controllers;
@@ -13,6 +14,7 @@ namespace WAssis.Services.Api.Modules.Quotes.Controllers;
 public sealed class QuoteProvidersController(IMediator mediator) : ControllerBase
 {
     [HttpGet]
+    [RequirePermission("comercial", "read")]
     [ProducesResponseType(typeof(IReadOnlyCollection<QuoteProviderDescriptorViewModel>), StatusCodes.Status200OK)]
     public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
     {

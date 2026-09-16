@@ -9,5 +9,5 @@ namespace WAssis.Services.Api.Controllers;
 public class HealthController : ControllerBase
 {
     [HttpGet]
-    public IActionResult Get() => Ok(new { service = "WAssis.Services.Api" });
+    public IActionResult Get() => Ok(new { status = "ok" });
 }

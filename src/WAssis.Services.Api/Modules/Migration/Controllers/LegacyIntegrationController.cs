@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Services.Api.Infrastructure;
 using WAssis.Services.Api.Modules.Migration;
 
 namespace WAssis.Services.Api.Modules.Migration.Controllers;
@@ -10,6 +11,7 @@ namespace WAssis.Services.Api.Modules.Migration.Controllers;
 public sealed class LegacyIntegrationController : ControllerBase
 {
     [HttpPost("api/storage/{bucket}/{action}")]
+    [RequirePermission("compatibilidade", "manage", tenantWide: true)]
     [ProducesResponseType(StatusCodes.Status501NotImplemented)]
     public IActionResult Storage(string bucket, string action, [FromBody] object? _)
     {
@@ -20,6 +22,7 @@ public sealed class LegacyIntegrationController : ControllerBase
     }
 
     [HttpPost("api/functions/{name}")]
+    [RequirePermission("compatibilidade", "manage", tenantWide: true)]
     [ProducesResponseType(StatusCodes.Status501NotImplemented)]
     public IActionResult Function(string name, [FromBody] object? _)
     {

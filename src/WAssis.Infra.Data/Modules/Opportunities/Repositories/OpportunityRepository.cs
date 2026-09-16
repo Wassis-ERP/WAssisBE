@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using WAssis.Application.Modules.Opportunities.Interfaces;
 using WAssis.Domain.Modules.Opportunities.Entities;
 using WAssis.Infra.Data.Context;
+using WAssis.Application.Abstractions;
 
 namespace WAssis.Infra.Data.Modules.Opportunities.Repositories;
 
@@ -25,7 +26,7 @@ public sealed class OpportunityRepository(WAssisDbContext dbContext)
             .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<Opportunity>> ListAsync(string? pipelineId, string? stageId, string? status, CancellationToken cancellationToken)
+    public async Task<PagedResult<Opportunity>> ListAsync(string? pipelineId, string? stageId, string? status, int page, int pageSize, CancellationToken cancellationToken)
     {
         var query = dbContext.Opportunities.AsNoTracking();
 
@@ -44,10 +45,14 @@ public sealed class OpportunityRepository(WAssisDbContext dbContext)
             query = query.Where(x => x.Status == status.Trim());
         }
 
-        return await query
+        var totalCount = await query.LongCountAsync(cancellationToken);
+        var items = await query
             .OrderByDescending(x => x.UpdatedAtUtc)
-            .Take(300)
+            .ThenBy(x => x.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToArrayAsync(cancellationToken);
+        return new PagedResult<Opportunity>(items, page, pageSize, totalCount);
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken)

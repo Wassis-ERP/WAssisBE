@@ -29,9 +29,11 @@ public sealed class QuoteRequestRepository(WAssisDbContext dbContext) : IQuoteRe
             .SingleOrDefaultAsync(x => x.CorrelationId == correlationId, cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<QuoteRequest>> ListAsync(
+    public async Task<PagedResult<QuoteRequest>> ListAsync(
         Guid? opportunityId,
         string? officeBranchId,
+        int page,
+        int pageSize,
         CancellationToken cancellationToken)
     {
         var query = dbContext.QuoteRequests
@@ -49,9 +51,14 @@ public sealed class QuoteRequestRepository(WAssisDbContext dbContext) : IQuoteRe
             query = query.Where(x => x.OfficeBranchId == officeBranchId);
         }
 
-        return await query
+        var totalCount = await query.LongCountAsync(cancellationToken);
+        var items = await query
             .OrderByDescending(x => x.CreatedAtUtc)
+            .ThenBy(x => x.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToArrayAsync(cancellationToken);
+        return new PagedResult<QuoteRequest>(items, page, pageSize, totalCount);
     }
 
     public async Task<IReadOnlyCollection<QuotePendingDispatchDto>> GetPendingDispatchBatchAsync(int batchSize, CancellationToken cancellationToken)

@@ -2,9 +2,11 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WAssis.Application.Modules.Customers.Commands;
+using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Customers.Dtos;
 using WAssis.Application.Modules.Customers.Queries;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Services.Api.Infrastructure;
 using WAssis.Services.Api.Modules.Customers.Contracts;
 using WAssis.Services.Api.Modules.Customers.ViewModels;
 
@@ -16,14 +18,17 @@ namespace WAssis.Services.Api.Modules.Customers.Controllers;
 public sealed class InsuredPeopleController(IMediator mediator) : ControllerBase
 {
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyCollection<InsuredPersonViewModel>), StatusCodes.Status200OK)]
-    public async Task<IActionResult> List([FromQuery] string? search, [FromQuery] string? status, CancellationToken cancellationToken)
+    [RequirePermission("segurados", "read")]
+    [ProducesResponseType(typeof(PagedResult<InsuredPersonViewModel>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> List([FromQuery] string? search, [FromQuery] string? status,
+        [FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
     {
-        var response = await mediator.Send(new ListInsuredPeopleQuery(search, status), cancellationToken);
-        return Ok(response.Select(ToViewModel).ToArray());
+        var response = await mediator.Send(new ListInsuredPeopleQuery(search, status, page, pageSize), cancellationToken);
+        return Ok(new PagedResult<InsuredPersonViewModel>(response.Items.Select(ToViewModel).ToArray(), response.Page, response.PageSize, response.TotalCount));
     }
 
     [HttpGet("{id:guid}")]
+    [RequirePermission("segurados", "read")]
     [ProducesResponseType(typeof(InsuredPersonViewModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
@@ -33,6 +38,7 @@ public sealed class InsuredPeopleController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission("segurados", "create")]
     [ProducesResponseType(typeof(InsuredPersonViewModel), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] CreateInsuredPersonRequest request, CancellationToken cancellationToken)
     {
@@ -83,6 +89,7 @@ public sealed class InsuredPeopleController(IMediator mediator) : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [RequirePermission("segurados", "update")]
     [ProducesResponseType(typeof(InsuredPersonViewModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateInsuredPersonRequest request, CancellationToken cancellationToken)

@@ -6,6 +6,7 @@ namespace WAssis.Domain.Modules.WhatsAppSupport.Entities;
 public class WhatsAppConversation : AggregateRoot
 {
     public string TenantId { get; private set; } = string.Empty;
+    public string? OfficeBranchId { get; private set; }
     public string CorrelationId { get; private set; } = string.Empty;
     public string CustomerIdentifier { get; private set; } = string.Empty;
     public string LastMessagePreview { get; private set; } = string.Empty;
@@ -23,10 +24,11 @@ public class WhatsAppConversation : AggregateRoot
     {
     }
 
-    private WhatsAppConversation(Guid id, string tenantId, string correlationId, string customerIdentifier, string lastMessagePreview, WhatsAppConversationPriority priority)
+    private WhatsAppConversation(Guid id, string tenantId, string correlationId, string customerIdentifier, string lastMessagePreview, WhatsAppConversationPriority priority, string? officeBranchId)
     {
         Id = id;
         TenantId = tenantId;
+        OfficeBranchId = officeBranchId;
         CorrelationId = correlationId;
         CustomerIdentifier = customerIdentifier;
         LastMessagePreview = lastMessagePreview;
@@ -42,9 +44,10 @@ public class WhatsAppConversation : AggregateRoot
         string correlationId,
         string customerIdentifier,
         string lastMessagePreview,
-        WhatsAppConversationPriority priority)
+        WhatsAppConversationPriority priority,
+        string? officeBranchId = null)
     {
-        return new WhatsAppConversation(Guid.NewGuid(), tenantId, correlationId, customerIdentifier, lastMessagePreview, priority);
+        return new WhatsAppConversation(Guid.NewGuid(), tenantId, correlationId, customerIdentifier, lastMessagePreview, priority, officeBranchId);
     }
 
     public void RequestHumanHandoff()

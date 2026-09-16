@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Services.Api.Infrastructure;
 using WAssis.Services.Api.Modules.Migration;
 using WAssis.Services.Api.Modules.Migration.Contracts;
 
@@ -12,6 +13,7 @@ namespace WAssis.Services.Api.Modules.Migration.Controllers;
 public sealed class DataGatewayController : ControllerBase
 {
     [HttpGet("/api/migration/frontend-contracts")]
+    [RequirePermission("compatibilidade", "manage", tenantWide: true)]
     [ProducesResponseType(typeof(IReadOnlyCollection<FrontendContractGapViewModel>), StatusCodes.Status200OK)]
     public IActionResult FrontendContracts()
     {
@@ -19,6 +21,7 @@ public sealed class DataGatewayController : ControllerBase
     }
 
     [HttpPost("query")]
+    [RequirePermission("compatibilidade", "manage", tenantWide: true)]
     [ProducesResponseType(StatusCodes.Status501NotImplemented)]
     public IActionResult Query([FromBody] DataGatewayQueryRequest request)
     {
@@ -29,6 +32,7 @@ public sealed class DataGatewayController : ControllerBase
     }
 
     [HttpPost("rpc/{name}")]
+    [RequirePermission("compatibilidade", "manage", tenantWide: true)]
     [ProducesResponseType(StatusCodes.Status501NotImplemented)]
     public IActionResult Rpc(string name, [FromBody] Dictionary<string, object?> _)
     {

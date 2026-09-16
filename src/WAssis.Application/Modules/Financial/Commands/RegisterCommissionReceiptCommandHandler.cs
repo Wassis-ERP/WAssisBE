@@ -13,19 +13,22 @@ public sealed class RegisterCommissionReceiptCommandHandler(
 {
     public async Task<CommissionReconciliationDto> Handle(RegisterCommissionReceiptCommand request, CancellationToken cancellationToken)
     {
+        var branchId = currentUserContext.ResolveBranchIdForWrite();
         var receipt = CommissionReceipt.Create(
             currentUserContext.ResolveTenantIdOrPlatform(),
             request.CorrelationId,
             request.InsuranceCompanyCode,
             request.ReceivedAmount,
             request.SourceType,
-            request.ImportedDocumentId);
+            request.ImportedDocumentId,
+            branchId);
 
         var reconciliation = CommissionReconciliation.Create(
             receipt.TenantId,
             receipt.Id,
             request.ExpectedAmount,
-            request.ReceivedAmount);
+            request.ReceivedAmount,
+            branchId);
 
         await repository.AddReceiptAsync(receipt, cancellationToken);
         await repository.AddReconciliationAsync(reconciliation, cancellationToken);

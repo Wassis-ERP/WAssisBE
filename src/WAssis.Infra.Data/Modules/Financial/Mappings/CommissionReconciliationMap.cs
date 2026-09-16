@@ -12,6 +12,7 @@ public sealed class CommissionReconciliationMap : IEntityTypeConfiguration<Commi
 
         builder.HasKey(x => x.Id);
         builder.Property(x => x.TenantId).HasMaxLength(64).IsRequired();
+        builder.Property(x => x.OfficeBranchId).HasColumnName("office_branch_id").HasMaxLength(64);
         builder.Property(x => x.ExpectedAmount).HasColumnType("numeric(18,2)").IsRequired();
         builder.Property(x => x.ReceivedAmount).HasColumnType("numeric(18,2)").IsRequired();
         builder.Property(x => x.DifferenceAmount).HasColumnType("numeric(18,2)").IsRequired();
@@ -21,6 +22,7 @@ public sealed class CommissionReconciliationMap : IEntityTypeConfiguration<Commi
         builder.Property(x => x.CreatedAtUtc).IsRequired();
 
         builder.HasIndex(x => x.CommissionReceiptId);
+        builder.HasIndex(x => new { x.TenantId, x.OfficeBranchId });
 
         builder.HasOne<CommissionReceipt>()
             .WithMany()

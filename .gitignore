@@ -12,6 +12,7 @@ obj/
 *.tmp
 appsettings.Development.json
 appsettings.Local.json
+docker/.env
 *.db
 *.db-shm
 *.db-wal

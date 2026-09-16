@@ -5,6 +5,7 @@ namespace WAssis.Domain.Modules.Financial.Entities;
 public class CommissionReceipt : AggregateRoot
 {
     public string TenantId { get; private set; } = string.Empty;
+    public string? OfficeBranchId { get; private set; }
     public string CorrelationId { get; private set; } = string.Empty;
     public string InsuranceCompanyCode { get; private set; } = string.Empty;
     public decimal ReceivedAmount { get; private set; }
@@ -24,10 +25,12 @@ public class CommissionReceipt : AggregateRoot
         string insuranceCompanyCode,
         decimal receivedAmount,
         string sourceType,
-        Guid? importedDocumentId)
+        Guid? importedDocumentId,
+        string? officeBranchId)
     {
         Id = id;
         TenantId = tenantId;
+        OfficeBranchId = officeBranchId;
         CorrelationId = correlationId;
         InsuranceCompanyCode = insuranceCompanyCode;
         ReceivedAmount = receivedAmount;
@@ -42,8 +45,9 @@ public class CommissionReceipt : AggregateRoot
         string insuranceCompanyCode,
         decimal receivedAmount,
         string sourceType,
-        Guid? importedDocumentId)
+        Guid? importedDocumentId,
+        string? officeBranchId = null)
     {
-        return new CommissionReceipt(Guid.NewGuid(), tenantId, correlationId, insuranceCompanyCode, receivedAmount, sourceType, importedDocumentId);
+        return new CommissionReceipt(Guid.NewGuid(), tenantId, correlationId, insuranceCompanyCode, receivedAmount, sourceType, importedDocumentId, officeBranchId);
     }
 }

@@ -12,6 +12,8 @@ public sealed class WhatsAppConversationMap : IEntityTypeConfiguration<WhatsAppC
 
         builder.HasKey(x => x.Id);
         builder.Property(x => x.TenantId).HasMaxLength(64).IsRequired();
+        builder.Property(x => x.OfficeBranchId).HasColumnName("office_branch_id").HasMaxLength(64);
+        builder.HasIndex(x => new { x.TenantId, x.OfficeBranchId });
         builder.Property(x => x.CorrelationId).HasMaxLength(64).IsRequired();
         builder.Property(x => x.CustomerIdentifier).HasMaxLength(100).IsRequired();
         builder.Property(x => x.LastMessagePreview).HasMaxLength(500).IsRequired();

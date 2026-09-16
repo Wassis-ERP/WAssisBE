@@ -1,5 +1,6 @@
 using MediatR;
 using WAssis.Application.Abstractions;
+using WAssis.Application.Modules.Core.Interfaces;
 using WAssis.Application.Modules.Opportunities.Dtos;
 using WAssis.Application.Modules.Opportunities.Interfaces;
 
@@ -8,7 +9,8 @@ namespace WAssis.Application.Modules.Opportunities.Commands;
 public sealed class UpdateOpportunityCommandHandler(
     IOpportunityRepository repository,
     ICurrentUserContext currentUserContext,
-    IOpportunityScope scope)
+    IOpportunityScope scope,
+    IBusinessReferenceValidator references)
     : IRequestHandler<UpdateOpportunityCommand, OpportunityDto?>
 {
     public async Task<OpportunityDto?> Handle(UpdateOpportunityCommand request, CancellationToken cancellationToken)
@@ -19,11 +21,14 @@ public sealed class UpdateOpportunityCommandHandler(
             return null;
         }
 
-        var stage = await scope.ValidateAsync(request.OfficeBranchId, request.StageId, request.InsuredPersonId, request.Status, cancellationToken);
+        var branchId = currentUserContext.ResolveBranchIdForWrite(request.OfficeBranchId)!;
+        var responsibleId = request.ResponsibleId ?? opportunity.ResponsibleId;
+        await references.ValidateResponsibleAsync(branchId, responsibleId, cancellationToken);
+        var stage = await scope.ValidateAsync(branchId, request.StageId, request.InsuredPersonId, request.Status, cancellationToken);
         opportunity.Update(
-            currentUserContext.ResolveBranchIdForWrite(request.OfficeBranchId),
+            branchId,
             request.Name,
-            request.ResponsibleId ?? opportunity.ResponsibleId,
+            responsibleId,
             request.InsuredPersonId,
             stage.PipelineId,
             request.StageId,

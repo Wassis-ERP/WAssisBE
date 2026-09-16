@@ -24,6 +24,16 @@ builder.Host.UseSerilog((context, configuration) =>
 builder.Host.ConfigureHostOptions(options => options.ShutdownTimeout = TimeSpan.FromSeconds(30));
 
 builder.Services.AddControllers();
+builder.Services.AddAntiforgery(options =>
+{
+    options.HeaderName = "X-CSRF-TOKEN";
+    options.Cookie.Name = "wassis_csrf";
+    options.Cookie.HttpOnly = true;
+    options.Cookie.SameSite = SameSiteMode.Strict;
+    options.Cookie.SecurePolicy = builder.Environment.IsDevelopment()
+        ? CookieSecurePolicy.SameAsRequest
+        : CookieSecurePolicy.Always;
+});
 builder.Services.AddWAssisObservability(builder.Configuration, "WAssis.Api");
 builder.Services.AddConfiguredForwardedHeaders(builder.Configuration);
 builder.Services.AddProblemDetails();
@@ -55,7 +65,8 @@ builder.Services.AddCors(options =>
         policy
             .WithOrigins(allowedOrigins)
             .AllowAnyHeader()
-            .AllowAnyMethod();
+            .AllowAnyMethod()
+            .AllowCredentials();
     });
 });
 builder.Services.Configure<ApiBehaviorOptions>(options =>
@@ -124,9 +135,11 @@ app.UseHttpsRedirection();
 app.UseCors(FrontendCorsPolicy);
 app.UseRateLimiter();
 app.UseAuthentication();
+app.UseMiddleware<CsrfProtectionMiddleware>();
+app.UseMiddleware<RlsTransactionMiddleware>();
 app.UseAuthorization();
 app.MapControllers();
-app.MapGet("/health", () => Results.Ok(new { service = "WAssis.Services.Api", status = "ok", buildSha, instance })).AllowAnonymous();
+app.MapGet("/health", () => Results.Ok(new { status = "ok" })).AllowAnonymous();
 app.MapGet("/health/ready", async (WAssisDbContext dbContext, CancellationToken cancellationToken) =>
 {
     try
@@ -143,7 +156,7 @@ app.MapGet("/health/ready", async (WAssisDbContext dbContext, CancellationToken 
             .ToArray();
 
         return pendingMigrations.Length == 0
-            ? Results.Ok(new { status = "ready", buildSha, instance })
+            ? Results.Ok(new { status = "ready" })
             : Results.Json(
                 new { status = "migrations_pending", pendingMigrations },
                 statusCode: StatusCodes.Status503ServiceUnavailable);
@@ -155,7 +168,7 @@ app.MapGet("/health/ready", async (WAssisDbContext dbContext, CancellationToken 
             new { status = "database_unavailable" },
             statusCode: StatusCodes.Status503ServiceUnavailable);
     }
-}).AllowAnonymous();
+}).RequireAuthorization(WAssis.Infra.CrossCutting.Identity.Authorization.AccessPolicies.PlatformAdmin);
 
 app.Run();
 

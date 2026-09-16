@@ -2,7 +2,7 @@
 
 ## Stack base
 
-- `.NET 8`
+- `.NET 10 LTS`
 - `Clean Architecture + DDD + CQRS logico incremental`
 - `EF Core + PostgreSQL`
 - `MediatR + FluentValidation`

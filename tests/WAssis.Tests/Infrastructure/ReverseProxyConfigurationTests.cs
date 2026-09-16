@@ -26,7 +26,7 @@ public sealed class ReverseProxyConfigurationTests
         using var provider = services.BuildServiceProvider();
         var options = provider.GetRequiredService<IOptions<ForwardedHeadersOptions>>().Value;
         Assert.Equal(1, options.ForwardLimit);
-        Assert.Single(options.KnownNetworks);
+        Assert.Single(options.KnownIPNetworks);
         Assert.Empty(options.KnownProxies);
         Assert.Equal(
             ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedHost | ForwardedHeaders.XForwardedProto,

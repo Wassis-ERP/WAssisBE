@@ -11,12 +11,14 @@ namespace WAssis.Application.Modules.Customers.Commands;
 public sealed class CreateInsuredPersonCommandHandler(
     IInsuredPersonRepository repository,
     ICurrentUserContext currentUserContext,
-    ICoreBranchReadRepository branches)
+    ICoreBranchReadRepository branches,
+    IBusinessReferenceValidator references)
     : IRequestHandler<CreateInsuredPersonCommand, InsuredPersonDto>
 {
     public async Task<InsuredPersonDto> Handle(CreateInsuredPersonCommand request, CancellationToken cancellationToken)
     {
         var branch = await BranchWriteScope.ValidateAsync(currentUserContext, branches, request.OfficeBranchId, cancellationToken);
+        await references.ValidateProducerReferencesAsync(branch, request.ProducerId, request.ManagerId, cancellationToken);
         var insuredPerson = InsuredPerson.Create(
             currentUserContext.ResolveTenantIdOrPlatform(),
             branch,

@@ -14,7 +14,8 @@ public static class DatabaseConnectionPolicy
             || connection.Password is not { Length: >= 20 } password || password.Distinct().Count() < 10
             || password.Contains("configure", StringComparison.OrdinalIgnoreCase)
             || password.Contains("placeholder", StringComparison.OrdinalIgnoreCase)
-            || connection.IncludeErrorDetail || connection.LogParameters)
-            throw new InvalidOperationException("Shared environments require explicit database settings, a strong password, and sensitive database diagnostics disabled.");
+            || connection.IncludeErrorDetail || connection.LogParameters
+            || connection.SslMode != SslMode.VerifyFull)
+            throw new InvalidOperationException("Shared environments require explicit database settings, TLS certificate verification, a strong password, and sensitive database diagnostics disabled.");
     }
 }

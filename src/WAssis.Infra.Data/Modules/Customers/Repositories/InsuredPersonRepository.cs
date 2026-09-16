@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using WAssis.Application.Modules.Customers.Interfaces;
 using WAssis.Domain.Modules.Customers.Entities;
 using WAssis.Infra.Data.Context;
+using WAssis.Application.Abstractions;
 
 namespace WAssis.Infra.Data.Modules.Customers.Repositories;
 
@@ -25,7 +26,7 @@ public sealed class InsuredPersonRepository(WAssisDbContext dbContext)
             .SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<InsuredPerson>> ListAsync(string? search, string? status, CancellationToken cancellationToken)
+    public async Task<PagedResult<InsuredPerson>> ListAsync(string? search, string? status, int page, int pageSize, CancellationToken cancellationToken)
     {
         var query = dbContext.InsuredPeople.AsNoTracking();
 
@@ -43,10 +44,14 @@ public sealed class InsuredPersonRepository(WAssisDbContext dbContext)
             query = query.Where(x => x.Status == status.Trim());
         }
 
-        return await query
+        var totalCount = await query.LongCountAsync(cancellationToken);
+        var items = await query
             .OrderBy(x => x.Name)
-            .Take(200)
+            .ThenBy(x => x.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .ToArrayAsync(cancellationToken);
+        return new PagedResult<InsuredPerson>(items, page, pageSize, totalCount);
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken)

@@ -3,9 +3,11 @@ using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WAssis.Application.Modules.Opportunities.Commands;
+using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Opportunities.Dtos;
 using WAssis.Application.Modules.Opportunities.Queries;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Services.Api.Infrastructure;
 using WAssis.Services.Api.Modules.Opportunities.Contracts;
 using WAssis.Services.Api.Modules.Opportunities.ViewModels;
 
@@ -17,18 +19,22 @@ namespace WAssis.Services.Api.Modules.Opportunities.Controllers;
 public sealed class OpportunitiesController(IMediator mediator) : ControllerBase
 {
     [HttpGet]
-    [ProducesResponseType(typeof(IReadOnlyCollection<OpportunityViewModel>), StatusCodes.Status200OK)]
+    [RequirePermission("comercial", "read")]
+    [ProducesResponseType(typeof(PagedResult<OpportunityViewModel>), StatusCodes.Status200OK)]
     public async Task<IActionResult> List(
         [FromQuery] string? pipelineId,
         [FromQuery] string? stageId,
         [FromQuery] string? status,
-        CancellationToken cancellationToken)
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 50,
+        CancellationToken cancellationToken = default)
     {
-        var response = await mediator.Send(new ListOpportunitiesQuery(pipelineId, stageId, status), cancellationToken);
-        return Ok(response.Select(ToViewModel).ToArray());
+        var response = await mediator.Send(new ListOpportunitiesQuery(pipelineId, stageId, status, page, pageSize), cancellationToken);
+        return Ok(new PagedResult<OpportunityViewModel>(response.Items.Select(ToViewModel).ToArray(), response.Page, response.PageSize, response.TotalCount));
     }
 
     [HttpGet("{id:guid}")]
+    [RequirePermission("comercial", "read")]
     [ProducesResponseType(typeof(OpportunityViewModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
@@ -38,6 +44,7 @@ public sealed class OpportunitiesController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost]
+    [RequirePermission("comercial", "create")]
     [ProducesResponseType(typeof(OpportunityViewModel), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] CreateOpportunityRequest request, CancellationToken cancellationToken)
     {
@@ -86,6 +93,7 @@ public sealed class OpportunitiesController(IMediator mediator) : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
+    [RequirePermission("comercial", "update")]
     [ProducesResponseType(typeof(OpportunityViewModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateOpportunityRequest request, CancellationToken cancellationToken)
@@ -139,6 +147,7 @@ public sealed class OpportunitiesController(IMediator mediator) : ControllerBase
     }
 
     [HttpPatch("{id:guid}/stage")]
+    [RequirePermission("comercial", "update")]
     [ProducesResponseType(typeof(OpportunityViewModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> MoveStage(Guid id, [FromBody] MoveOpportunityStageRequest request, CancellationToken cancellationToken)

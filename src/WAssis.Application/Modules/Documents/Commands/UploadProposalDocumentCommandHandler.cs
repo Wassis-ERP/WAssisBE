@@ -17,14 +17,16 @@ public sealed class UploadProposalDocumentCommandHandler(
     public async Task<ImportedDocumentDto> Handle(UploadProposalDocumentCommand request, CancellationToken cancellationToken)
     {
         var tenantId = currentUserContext.ResolveTenantIdOrPlatform();
-        var storagePath = $"tenants/{tenantId}/documents/proposals/{Guid.NewGuid():N}/{request.FileName}";
+        var branchId = currentUserContext.ResolveBranchIdForWrite();
+        var storagePath = $"tenants/{tenantId}/documents/proposals/{Guid.NewGuid():N}";
         var document = ImportedDocument.Create(
             tenantId,
             request.CorrelationId,
             request.FileName,
             request.ContentType,
             request.Source,
-            storagePath);
+            storagePath,
+            branchId);
 
         document.MarkAsProcessing();
 
@@ -76,21 +78,21 @@ public sealed class UploadProposalDocumentCommandHandler(
         {
             throw;
         }
-        catch (InvalidDataException ex)
+        catch (InvalidDataException)
         {
-            document.MarkAsFailed($"PDF parsing failed: {ex.Message}");
+            document.MarkAsFailed("document_invalid");
         }
-        catch (IOException ex)
+        catch (IOException)
         {
-            document.MarkAsFailed($"PDF parsing failed: {ex.Message}");
+            document.MarkAsFailed("document_read_error");
         }
-        catch (ArgumentException ex)
+        catch (ArgumentException)
         {
-            document.MarkAsFailed($"PDF parsing failed: {ex.Message}");
+            document.MarkAsFailed("document_invalid");
         }
-        catch (FormatException ex)
+        catch (FormatException)
         {
-            document.MarkAsFailed($"PDF parsing failed: {ex.Message}");
+            document.MarkAsFailed("document_format_unsupported");
         }
 
         await repository.SaveChangesAsync(cancellationToken);

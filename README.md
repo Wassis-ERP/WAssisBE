@@ -4,7 +4,7 @@ Plataforma e ERP digital da corretora W.Assis, construída como um monólito mod
 
 ## Stack
 
-- `.NET 8`
+- `.NET 10 LTS` (SDK fixado por `global.json`)
 - `MediatR`
 - `FluentValidation`
 - `EF Core + PostgreSQL`

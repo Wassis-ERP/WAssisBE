@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -25,6 +24,12 @@ public sealed class PostgresReadinessTests
     private const string TenantB = "22222222-2222-2222-2222-222222222223";
     private const string BranchA = "44444444-4444-4444-4444-444444444444";
     private const string BranchB = "44444444-4444-4444-4444-444444444445";
+    private const string BranchTenantB = "44444444-4444-4444-4444-444444444446";
+    private const string UserA = "77777777-7777-7777-7777-777777777770";
+    private const string UserTenantB = "77777777-7777-7777-7777-777777777771";
+    private const string UserBranchB = "77777777-7777-7777-7777-777777777772";
+    private const string ProfileA = "88888888-8888-8888-8888-888888888880";
+    private const string ProfileTenantB = "88888888-8888-8888-8888-888888888881";
     private const string Password = "local-integration-fixture-password";
 
     [Fact]
@@ -42,7 +47,28 @@ public sealed class PostgresReadinessTests
             INSERT INTO erp.tenants (id) VALUES ('22222222-2222-2222-2222-222222222222'), ('22222222-2222-2222-2222-222222222223');
             INSERT INTO erp.filiais (id,tenant_id,matriz_id,ativo) VALUES
               ('44444444-4444-4444-4444-444444444444','22222222-2222-2222-2222-222222222222',null,true),
-              ('44444444-4444-4444-4444-444444444445','22222222-2222-2222-2222-222222222222','44444444-4444-4444-4444-444444444444',true);
+              ('44444444-4444-4444-4444-444444444445','22222222-2222-2222-2222-222222222222','44444444-4444-4444-4444-444444444444',true),
+              ('44444444-4444-4444-4444-444444444446','22222222-2222-2222-2222-222222222223',null,true);
+            INSERT INTO erp.perfis (id,tenant_id,nome,sistema,ativo) VALUES
+              ('88888888-8888-8888-8888-888888888880','22222222-2222-2222-2222-222222222222','Master fixture A',false,true),
+              ('88888888-8888-8888-8888-888888888881','22222222-2222-2222-2222-222222222223','Master fixture B',false,true);
+            INSERT INTO erp.profiles (id,tenant_id,nome_completo,email,status,ativo,convite_status) VALUES
+              ('77777777-7777-7777-7777-777777777770','22222222-2222-2222-2222-222222222222','User A','user0@example.invalid','ATIVO',true,'ACEITO'),
+              ('77777777-7777-7777-7777-777777777771','22222222-2222-2222-2222-222222222223','User B','user1@example.invalid','ATIVO',true,'ACEITO'),
+              ('77777777-7777-7777-7777-777777777772','22222222-2222-2222-2222-222222222222','User branch B','user2@example.invalid','ATIVO',true,'ACEITO');
+            INSERT INTO erp.profile_filiais (id,profile_id,filial_id,perfil_id,principal,ativo) VALUES
+              (gen_random_uuid(),'77777777-7777-7777-7777-777777777770','44444444-4444-4444-4444-444444444444','88888888-8888-8888-8888-888888888880',true,true),
+              (gen_random_uuid(),'77777777-7777-7777-7777-777777777771','44444444-4444-4444-4444-444444444446','88888888-8888-8888-8888-888888888881',true,true),
+              (gen_random_uuid(),'77777777-7777-7777-7777-777777777772','44444444-4444-4444-4444-444444444445','88888888-8888-8888-8888-888888888880',true,true);
+            INSERT INTO erp.role_permissions
+              (id,perfil_id,modulo,escopo,can_read,can_create,can_update,can_delete,can_export,can_manage)
+            SELECT gen_random_uuid(), perfil_id, modulo, 'CORRETORA', true,true,true,true,true,true
+            FROM (VALUES
+              ('88888888-8888-8888-8888-888888888880'::uuid,'segurados'),
+              ('88888888-8888-8888-8888-888888888880'::uuid,'comercial'),
+              ('88888888-8888-8888-8888-888888888881'::uuid,'segurados'),
+              ('88888888-8888-8888-8888-888888888881'::uuid,'comercial')
+            ) permissions(perfil_id,modulo);
             INSERT INTO erp.pipelines (id,tenant_id,filial_id,nome,entidade_tipo,ativo) VALUES
               ('55555555-5555-5555-5555-555555555555','22222222-2222-2222-2222-222222222222','44444444-4444-4444-4444-444444444444','Comercial','oportunidade',true);
             INSERT INTO erp.pipeline_stages (id,pipeline_id,nome,tipo_stage,ativo) VALUES
@@ -54,10 +80,11 @@ public sealed class PostgresReadinessTests
 
         using var factory = new ApiFactory(postgres.GetConnectionString());
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
-        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/health/ready")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/health/ready")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/segurados")).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/identity/login", new { username = "user0@example.invalid", password = "wrong" })).StatusCode);
         await Login(client, 0);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/health/ready")).StatusCode);
         var create = await client.PostAsJsonAsync("/api/segurados", new
         {
             officeBranchId = BranchA, name = "Segurado de integração", personType = "PF", status = "Prospecto",
@@ -72,6 +99,7 @@ public sealed class PostgresReadinessTests
         using var reread = await client.GetFromJsonAsync<JsonDocument>($"/api/segurados/{id}");
         Assert.Equal("Segurado atualizado", reread!.RootElement.GetProperty("name").GetString());
         Assert.Equal("Preservar no PUT", reread.RootElement.GetProperty("socialName").GetString());
+        await VerifyRlsWithEffectiveApplicationRole(postgres.GetConnectionString(), id);
         var stages = await client.GetFromJsonAsync<JsonElement[]>("/api/oportunidades/stages");
         Assert.Equal(3, stages!.Length);
         var opportunityResponse = await client.PostAsJsonAsync("/api/oportunidades", new
@@ -132,8 +160,8 @@ public sealed class PostgresReadinessTests
             await Login(client, otherUser);
             Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/segurados/{id}")).StatusCode);
             Assert.Equal(HttpStatusCode.NotFound, (await client.PutAsJsonAsync($"/api/segurados/{id}", insured)).StatusCode);
-            var list = await client.GetFromJsonAsync<JsonElement[]>("/api/segurados");
-            Assert.DoesNotContain(list!, item => item.GetProperty("id").GetGuid() == id);
+            using var list = await client.GetFromJsonAsync<JsonDocument>("/api/segurados");
+            Assert.DoesNotContain(list!.RootElement.GetProperty("items").EnumerateArray(), item => item.GetProperty("id").GetGuid() == id);
             Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/oportunidades/{opportunityId}")).StatusCode);
             Assert.Empty((await client.GetFromJsonAsync<JsonElement[]>("/api/oportunidades/stages"))!);
             Assert.Equal(HttpStatusCode.Forbidden, (await client.PostAsJsonAsync("/api/oportunidades", new
@@ -146,7 +174,51 @@ public sealed class PostgresReadinessTests
         await VerifyUpgrade(postgres.GetConnectionString());
     }
 
-    private static string iBranch(int user) => user == 2 ? BranchB : BranchA;
+    private static async Task VerifyRlsWithEffectiveApplicationRole(string connectionString, Guid insuredId)
+    {
+        await using (var admin = new NpgsqlConnection(connectionString))
+        {
+            await admin.OpenAsync();
+            await using var setup = new NpgsqlCommand("""
+                CREATE ROLE wassis_test_app NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
+                GRANT USAGE ON SCHEMA public, security TO wassis_test_app;
+                GRANT SELECT, INSERT, UPDATE, DELETE ON public.segurados TO wassis_test_app;
+                GRANT EXECUTE ON FUNCTION security.current_tenant_id(), security.current_branch_id() TO wassis_test_app;
+                """, admin);
+            await setup.ExecuteNonQueryAsync();
+        }
+
+        await using var dataSource = NpgsqlDataSource.Create(connectionString);
+        await using (var scoped = await dataSource.OpenConnectionAsync())
+        await using (var transaction = await scoped.BeginTransactionAsync())
+        {
+            await using var context = new NpgsqlCommand("""
+                SET LOCAL ROLE wassis_test_app;
+                SELECT set_config('app.tenant_id', @tenant, true), set_config('app.branch_id', @branch, true);
+                """, scoped, transaction);
+            context.Parameters.AddWithValue("tenant", TenantA);
+            context.Parameters.AddWithValue("branch", BranchA);
+            await context.ExecuteNonQueryAsync();
+            await using var visible = new NpgsqlCommand("SELECT count(*) FROM public.segurados WHERE id = @id", scoped, transaction);
+            visible.Parameters.AddWithValue("id", insuredId);
+            Assert.Equal(1L, await visible.ExecuteScalarAsync());
+            await transaction.RollbackAsync();
+        }
+
+        // A pooled connection without transaction-local context must deny by default.
+        await using (var reused = await dataSource.OpenConnectionAsync())
+        await using (var transaction = await reused.BeginTransactionAsync())
+        {
+            await using var role = new NpgsqlCommand("SET LOCAL ROLE wassis_test_app", reused, transaction);
+            await role.ExecuteNonQueryAsync();
+            await using var hidden = new NpgsqlCommand("SELECT count(*) FROM public.segurados WHERE id = @id", reused, transaction);
+            hidden.Parameters.AddWithValue("id", insuredId);
+            Assert.Equal(0L, await hidden.ExecuteScalarAsync());
+            await transaction.RollbackAsync();
+        }
+    }
+
+    private static string iBranch(int user) => user == 2 ? BranchB : BranchTenantB;
 
     private static async Task VerifyUpgrade(string connectionString)
     {
@@ -186,11 +258,11 @@ public sealed class PostgresReadinessTests
 
     private static async Task Login(HttpClient client, int user)
     {
-        client.DefaultRequestHeaders.Authorization = null;
         var response = await client.PostAsJsonAsync("/api/identity/login", new { username = $"user{user}@example.invalid", password = Password });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        using var login = await response.Content.ReadFromJsonAsync<JsonDocument>();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", login!.RootElement.GetProperty("accessToken").GetString());
+        using var csrf = await client.GetFromJsonAsync<JsonDocument>("/api/identity/csrf");
+        client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", csrf!.RootElement.GetProperty("token").GetString());
     }
 
     private sealed class ApiFactory(string connection) : WebApplicationFactory<Program>
@@ -213,13 +285,14 @@ public sealed class PostgresReadinessTests
                 var prefix = $"Identity:HomologationAuth:Users:{i}:";
                 settings[prefix + "Username"] = $"user{i}@example.invalid";
                 settings[prefix + "PasswordHash"] = hash;
-                settings[prefix + "UserId"] = Guid.NewGuid().ToString();
+                settings[prefix + "UserId"] = i == 0 ? UserA : i == 1 ? UserTenantB : UserBranchB;
                 settings[prefix + "TenantId"] = i == 1 ? TenantB : TenantA;
                 settings[prefix + "BrokerageId"] = i == 1 ? TenantB : TenantA;
-                settings[prefix + "BranchId"] = i == 2 ? BranchB : BranchA;
+                settings[prefix + "BranchId"] = i == 2 ? BranchB : i == 1 ? BranchTenantB : BranchA;
                 settings[prefix + "BranchIds:0"] = settings[prefix + "BranchId"];
                 settings[prefix + "UserType"] = "brokerage_staff";
                 settings[prefix + "Roles:0"] = "brokerage_admin";
+                if (i == 0) settings[prefix + "Roles:1"] = "platform_admin";
             }
             foreach (var setting in settings) builder.UseSetting(setting.Key, setting.Value);
             builder.ConfigureAppConfiguration((_, configuration) => configuration.AddInMemoryCollection(settings));

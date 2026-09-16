@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using WAssis.Application.Modules.Financial.Commands;
 using WAssis.Application.Modules.Financial.Queries;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Services.Api.Infrastructure;
 using WAssis.Services.Api.Modules.Financial.Contracts;
 using WAssis.Services.Api.Modules.Financial.ViewModels;
 
@@ -15,6 +16,7 @@ namespace WAssis.Services.Api.Modules.Financial.Controllers;
 public sealed class CommissionReceiptsController(IMediator mediator) : ControllerBase
 {
     [HttpPost("commission-receipts")]
+    [RequirePermission("financeiro", "create")]
     public async Task<IActionResult> RegisterReceipt([FromBody] RegisterCommissionReceiptRequest request, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(
@@ -31,8 +33,17 @@ public sealed class CommissionReceiptsController(IMediator mediator) : Controlle
     }
 
     [HttpPost("statement-analyses")]
+    [RequirePermission("financeiro", "create")]
+    [DistributedOperationLimit("financial.statement-analysis", 10, 60)]
+    [RequestSizeLimit(600_000)]
     public async Task<IActionResult> AnalyzeStatement([FromBody] AnalyzeCommissionStatementRequest request, CancellationToken cancellationToken)
     {
+        if (request.RawText.Length > 500_000)
+            return StatusCode(StatusCodes.Status413PayloadTooLarge, new ProblemDetails
+            {
+                Status = StatusCodes.Status413PayloadTooLarge,
+                Title = "Conteúdo excede o limite permitido.",
+            });
         var result = await mediator.Send(
             new AnalyzeCommissionStatementCommand(request.SourceType, request.RawText),
             cancellationToken);
@@ -53,6 +64,7 @@ public sealed class CommissionReceiptsController(IMediator mediator) : Controlle
     }
 
     [HttpGet("reconciliations/{id:guid}")]
+    [RequirePermission("financeiro", "read")]
     public async Task<IActionResult> GetReconciliation(Guid id, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(new GetCommissionReconciliationQuery(id), cancellationToken);
@@ -60,6 +72,7 @@ public sealed class CommissionReceiptsController(IMediator mediator) : Controlle
     }
 
     [HttpPost("reconciliations/{id:guid}/settle")]
+    [RequirePermission("financeiro", "update")]
     public async Task<IActionResult> Settle(Guid id, [FromBody] SettleCommissionReconciliationRequest? request, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(

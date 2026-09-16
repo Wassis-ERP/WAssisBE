@@ -6,6 +6,7 @@ namespace WAssis.Domain.Modules.Documents.Entities;
 public class ImportedDocument : AggregateRoot
 {
     public string TenantId { get; private set; } = string.Empty;
+    public string? OfficeBranchId { get; private set; }
     public string CorrelationId { get; private set; } = string.Empty;
     public string FileName { get; private set; } = string.Empty;
     public string ContentType { get; private set; } = string.Empty;
@@ -33,10 +34,11 @@ public class ImportedDocument : AggregateRoot
     {
     }
 
-    private ImportedDocument(Guid id, string tenantId, string correlationId, string fileName, string contentType, string source, string? storagePath)
+    private ImportedDocument(Guid id, string tenantId, string correlationId, string fileName, string contentType, string source, string? storagePath, string? officeBranchId)
     {
         Id = id;
         TenantId = tenantId;
+        OfficeBranchId = officeBranchId;
         CorrelationId = correlationId;
         FileName = fileName;
         ContentType = contentType;
@@ -52,9 +54,10 @@ public class ImportedDocument : AggregateRoot
         string fileName,
         string contentType,
         string source,
-        string? storagePath = null)
+        string? storagePath = null,
+        string? officeBranchId = null)
     {
-        return new ImportedDocument(Guid.NewGuid(), tenantId, correlationId, fileName, contentType, source, storagePath);
+        return new ImportedDocument(Guid.NewGuid(), tenantId, correlationId, fileName, contentType, source, storagePath, officeBranchId);
     }
 
     public void MarkAsProcessing()

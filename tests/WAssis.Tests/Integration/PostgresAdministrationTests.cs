@@ -1,5 +1,4 @@
 using System.Net;
-using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Security.Cryptography;
 using System.Text.Json;
@@ -138,8 +137,7 @@ public sealed class PostgresAdministrationTests
         var permissions = await client.GetFromJsonAsync<JsonElement[]>("/api/administration/permissions");
         Assert.DoesNotContain(permissions!, permission => permission.GetProperty("id").GetGuid() == Guid.Parse(PermissionB));
 
-        await Login(client, "rogue-a@example.invalid");
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/administration/users")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, await Login(client, "rogue-a@example.invalid"));
 
         await Login(client, "admin-b@example.invalid");
         Assert.Single((await client.GetFromJsonAsync<JsonElement[]>("/api/administration/users"))!);
@@ -177,14 +175,14 @@ public sealed class PostgresAdministrationTests
             options => options.MigrationsHistoryTable("__EFMigrationsHistory", "quotes")).Options,
         new FakeCurrentUserContext());
 
-    private static async Task Login(HttpClient client, string email)
+    private static async Task<HttpStatusCode> Login(HttpClient client, string email)
     {
-        client.DefaultRequestHeaders.Authorization = null;
         var response = await client.PostAsJsonAsync("/api/identity/login", new { username = email, password = Password });
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        using var login = await response.Content.ReadFromJsonAsync<JsonDocument>();
-        client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer",
-            login!.RootElement.GetProperty("accessToken").GetString());
+        if (response.StatusCode != HttpStatusCode.OK) return response.StatusCode;
+        using var csrf = await client.GetFromJsonAsync<JsonDocument>("/api/identity/csrf");
+        client.DefaultRequestHeaders.Remove("X-CSRF-TOKEN");
+        client.DefaultRequestHeaders.Add("X-CSRF-TOKEN", csrf!.RootElement.GetProperty("token").GetString());
+        return response.StatusCode;
     }
 
     private sealed class ApiFactory(string connection) : WebApplicationFactory<Program>

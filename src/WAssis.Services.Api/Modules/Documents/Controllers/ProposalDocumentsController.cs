@@ -5,6 +5,7 @@ using WAssis.Application.Modules.Documents.Commands;
 using WAssis.Application.Modules.Documents.Dtos;
 using WAssis.Application.Modules.Documents.Queries;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Services.Api.Infrastructure;
 using WAssis.Services.Api.Modules.Documents.Contracts;
 using WAssis.Services.Api.Modules.Documents.ViewModels;
 
@@ -16,13 +17,24 @@ namespace WAssis.Services.Api.Modules.Documents.Controllers;
 public sealed class ProposalDocumentsController(IMediator mediator) : ControllerBase
 {
     [HttpPost("uploads")]
-    [RequestSizeLimit(20_000_000)]
+    [RequirePermission("documentos", "create")]
+    [DistributedOperationLimit("documents.upload", 5, 60)]
+    [RequestSizeLimit(8_000_000)]
+    [RequestFormLimits(MultipartBodyLengthLimit = 8_000_000)]
     [ProducesResponseType(typeof(ImportedDocumentViewModel), StatusCodes.Status201Created)]
     public async Task<IActionResult> Upload([FromForm] UploadProposalDocumentRequest request, CancellationToken cancellationToken)
     {
         if (request.File is null || request.File.Length == 0)
         {
             return BadRequest("Arquivo PDF é obrigatório.");
+        }
+        if (request.File.Length > 8_000_000)
+        {
+            return StatusCode(StatusCodes.Status413PayloadTooLarge, new ProblemDetails
+            {
+                Status = StatusCodes.Status413PayloadTooLarge,
+                Title = "Arquivo excede o limite permitido.",
+            });
         }
 
         await using var memoryStream = new MemoryStream();
@@ -41,6 +53,7 @@ public sealed class ProposalDocumentsController(IMediator mediator) : Controller
     }
 
     [HttpGet("{id:guid}")]
+    [RequirePermission("documentos", "read")]
     [ProducesResponseType(typeof(ImportedDocumentViewModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
@@ -50,6 +63,7 @@ public sealed class ProposalDocumentsController(IMediator mediator) : Controller
     }
 
     [HttpPost("{id:guid}/review")]
+    [RequirePermission("documentos", "update")]
     [ProducesResponseType(typeof(ImportedDocumentViewModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Review(Guid id, [FromBody] ReviewImportedDocumentRequest? request, CancellationToken cancellationToken)
@@ -59,6 +73,7 @@ public sealed class ProposalDocumentsController(IMediator mediator) : Controller
     }
 
     [HttpPost("{id:guid}/reprocess")]
+    [RequirePermission("documentos", "manage")]
     [ProducesResponseType(typeof(ImportedDocumentViewModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Reprocess(Guid id, CancellationToken cancellationToken)

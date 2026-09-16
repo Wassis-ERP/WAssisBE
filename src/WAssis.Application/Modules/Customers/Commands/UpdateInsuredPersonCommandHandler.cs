@@ -10,7 +10,8 @@ namespace WAssis.Application.Modules.Customers.Commands;
 public sealed class UpdateInsuredPersonCommandHandler(
     IInsuredPersonRepository repository,
     ICurrentUserContext currentUserContext,
-    ICoreBranchReadRepository branches)
+    ICoreBranchReadRepository branches,
+    IBusinessReferenceValidator references)
     : IRequestHandler<UpdateInsuredPersonCommand, InsuredPersonDto?>
 {
     public async Task<InsuredPersonDto?> Handle(UpdateInsuredPersonCommand request, CancellationToken cancellationToken)
@@ -22,6 +23,7 @@ public sealed class UpdateInsuredPersonCommandHandler(
         }
 
         var branch = await BranchWriteScope.ValidateAsync(currentUserContext, branches, request.OfficeBranchId, cancellationToken);
+        await references.ValidateProducerReferencesAsync(branch, request.ProducerId, request.ManagerId, cancellationToken);
         insuredPerson.Update(
             branch,
             request.Name,

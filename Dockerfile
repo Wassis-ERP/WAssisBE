@@ -1,4 +1,4 @@
-FROM mcr.microsoft.com/dotnet/sdk:8.0@sha256:5ef85cc12cb25be6ec319a7392d1e9efd53c3bc8abb971c53d8058a473f09053 AS build
+FROM mcr.microsoft.com/dotnet/sdk:10.0.401@sha256:2fa828c68761b1b8c23d7662dc134421b9d3b59fe1425fdbc80804e390cdb24d AS build
 WORKDIR /src
 
 COPY WAssisInsurance.sln ./
@@ -14,7 +14,20 @@ COPY src/WAssis.BackgroundTasks/WAssis.BackgroundTasks.csproj src/WAssis.Backgro
 COPY src/WAssis.UI.Web/WAssis.UI.Web.csproj src/WAssis.UI.Web/
 COPY tests/WAssis.Tests/WAssis.Tests.csproj tests/WAssis.Tests/
 
-RUN dotnet restore WAssisInsurance.sln
+COPY global.json ./
+COPY src/WAssis.Domain.Core/packages.lock.json src/WAssis.Domain.Core/
+COPY src/WAssis.Domain/packages.lock.json src/WAssis.Domain/
+COPY src/WAssis.Application/packages.lock.json src/WAssis.Application/
+COPY src/WAssis.Infra.CrossCutting.Bus/packages.lock.json src/WAssis.Infra.CrossCutting.Bus/
+COPY src/WAssis.Infra.CrossCutting.Identity/packages.lock.json src/WAssis.Infra.CrossCutting.Identity/
+COPY src/WAssis.Infra.CrossCutting.IoC/packages.lock.json src/WAssis.Infra.CrossCutting.IoC/
+COPY src/WAssis.Infra.Data/packages.lock.json src/WAssis.Infra.Data/
+COPY src/WAssis.Services.Api/packages.lock.json src/WAssis.Services.Api/
+COPY src/WAssis.BackgroundTasks/packages.lock.json src/WAssis.BackgroundTasks/
+COPY src/WAssis.UI.Web/packages.lock.json src/WAssis.UI.Web/
+COPY tests/WAssis.Tests/packages.lock.json tests/WAssis.Tests/
+
+RUN dotnet restore WAssisInsurance.sln --locked-mode
 
 COPY . .
 RUN dotnet publish src/WAssis.Services.Api/WAssis.Services.Api.csproj \
@@ -23,11 +36,7 @@ RUN dotnet publish src/WAssis.Services.Api/WAssis.Services.Api.csproj \
     --output /app/publish \
     -p:UseAppHost=false
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0@sha256:9a464e9a7e8c6144631020975f703c89034fe386417cb740620df69c2c6cfe24 AS runtime
-# Security patch newer than the pinned upstream image (CVE-2026-86145 / CVE-2026-89161).
-RUN apt-get update \
-    && apt-get install --no-install-recommends --only-upgrade -y libpcre2-8-0=10.42-1+deb12u1 \
-    && rm -rf /var/lib/apt/lists/*
+FROM mcr.microsoft.com/dotnet/aspnet:10.0.12@sha256:6a94333d37514e385650a3c81a55e5350b67253dbe136e9cf17e499c35606a8c AS runtime
 WORKDIR /app
 
 ARG BUILD_SHA=local

@@ -14,8 +14,11 @@ Isso reduz friccao para o time sem obrigar a containerizar a API e o worker agor
 
 Na raiz do repositorio:
 
+Copie `docker/.env.example` para `docker/.env`, gere valores locais aleatorios
+para todos os segredos e mantenha esse arquivo fora do Git. Depois execute:
+
 ```powershell
-docker compose -f docker/docker-compose.yml up -d
+docker compose --env-file docker/.env -f docker/docker-compose.yml up -d
 ```
 
 Para derrubar:
@@ -37,25 +40,17 @@ docker compose -f docker/docker-compose.yml down -v
 - RabbitMQ Management: `http://localhost:15672`
 - Redis: `localhost:6379`
 
-## Credenciais padrao
+As publicacoes estao restritas a `127.0.0.1`; o painel administrativo do
+RabbitMQ nao e exposto nas demais interfaces da maquina. PostgreSQL, RabbitMQ e
+Redis recusam a inicializacao quando os segredos locais obrigatorios nao foram
+informados.
 
-### PostgreSQL
+## String de conexao local
 
-- database: `wassis`
-- user: `postgres`
-- password: `postgres`
-
-### RabbitMQ
-
-- user: `guest`
-- password: `guest`
-
-## String de conexao atual
-
-O backend ja possui fallback local compativel com o container do PostgreSQL:
+Monte a string com os mesmos valores do arquivo local, sem salva-la no Git:
 
 ```text
-Host=localhost;Port=5432;Database=wassis;Username=postgres;Password=postgres
+Host=localhost;Port=5432;Database=<database>;Username=<user>;Password=<secret>
 ```
 
 ## Fluxo sugerido para desenvolvimento
@@ -64,6 +59,5 @@ Host=localhost;Port=5432;Database=wassis;Username=postgres;Password=postgres
 2. Rodar a API com `dotnet run --project src/WAssis.Services.Api/WAssis.Services.Api.csproj`.
 3. Rodar o worker com `dotnet run --project src/WAssis.BackgroundTasks/WAssis.BackgroundTasks.csproj`.
 
-## Observacao
-
-Mesmo que RabbitMQ e Redis ainda nao estejam sendo usados em todo o fluxo, manter esses servicos disponiveis agora ajuda a estabilizar o ambiente local e evita retrabalho quando o uso crescer.
+As imagens usam tags de patch e digests verificaveis. Atualizacoes devem revisar
+release notes, obter o novo digest do registry e validar o compose novamente.

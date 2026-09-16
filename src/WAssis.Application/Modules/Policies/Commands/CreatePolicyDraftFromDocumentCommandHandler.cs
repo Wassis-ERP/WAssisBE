@@ -41,7 +41,8 @@ public sealed class CreatePolicyDraftFromDocumentCommandHandler(
             document.CoverageEndDateUtc,
             document.TotalPremiumAmount,
             document.CommissionAmount,
-            document.ParsingNotes);
+            document.ParsingNotes,
+            document.OfficeBranchId);
 
         await policyDraftRepository.AddAsync(draft, cancellationToken);
         await policyDraftRepository.SaveChangesAsync(cancellationToken);

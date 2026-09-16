@@ -30,8 +30,18 @@ public sealed class AuditTrailWriter(
             action,
             entityType,
             entityId,
-            notes);
+            Sanitize(notes),
+            systemScope is not null && !currentUserContext.IsAuthenticated
+                ? null
+                : currentUserContext.ResolveBranchIdForWrite());
         await dbContext.AuditEntries.AddAsync(entry, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);
+    }
+
+    private static string? Sanitize(string? notes)
+    {
+        if (string.IsNullOrWhiteSpace(notes)) return null;
+        var value = notes.Replace('\r', ' ').Replace('\n', ' ').Trim();
+        return value.Length <= 256 ? value : value[..256];
     }
 }

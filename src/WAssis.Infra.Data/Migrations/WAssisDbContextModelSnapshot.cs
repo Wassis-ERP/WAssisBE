@@ -18,7 +18,7 @@ namespace WAssis.Infra.Data.Migrations
 #pragma warning disable 612, 618
             modelBuilder
                 .HasDefaultSchema("public")
-                .HasAnnotation("ProductVersion", "8.0.11")
+                .HasAnnotation("ProductVersion", "10.0.12")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -61,12 +61,21 @@ namespace WAssis.Infra.Data.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<string>("OfficeBranchId")
+                        .IsConcurrencyToken()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("office_branch_id");
+
                     b.Property<string>("TenantId")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "OfficeBranchId");
 
                     b.ToTable("audit_entries", "operations");
                 });
@@ -123,6 +132,7 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("TenantId")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -195,6 +205,7 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("TenantId")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -353,6 +364,7 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnName("numero");
 
                     b.Property<string>("OfficeBranchId")
+                        .IsConcurrencyToken()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("filial_id");
@@ -410,6 +422,7 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnName("logradouro");
 
                     b.Property<string>("TenantId")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
@@ -464,6 +477,12 @@ namespace WAssis.Infra.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("OfficeBranchId")
+                        .IsConcurrencyToken()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("office_branch_id");
+
                     b.Property<string>("SearchType")
                         .IsRequired()
                         .HasMaxLength(50)
@@ -473,6 +492,7 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("TenantId")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -484,6 +504,8 @@ namespace WAssis.Infra.Data.Migrations
 
                     b.HasIndex("TenantId", "CorrelationId")
                         .IsUnique();
+
+                    b.HasIndex("TenantId", "OfficeBranchId");
 
                     b.ToTable("document_searches", "documents");
                 });
@@ -539,6 +561,12 @@ namespace WAssis.Infra.Data.Migrations
                     b.Property<DateTime?>("LastProcessedAtUtc")
                         .HasColumnType("timestamp with time zone");
 
+                    b.Property<string>("OfficeBranchId")
+                        .IsConcurrencyToken()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("office_branch_id");
+
                     b.Property<decimal>("ParsingConfidence")
                         .HasColumnType("numeric(5,4)");
 
@@ -573,6 +601,7 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("character varying(500)");
 
                     b.Property<string>("TenantId")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -581,6 +610,8 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("numeric(18,2)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "OfficeBranchId");
 
                     b.ToTable("imported_documents", "documents");
                 });
@@ -609,6 +640,12 @@ namespace WAssis.Infra.Data.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("character varying(50)");
 
+                    b.Property<string>("OfficeBranchId")
+                        .IsConcurrencyToken()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("office_branch_id");
+
                     b.Property<decimal>("ReceivedAmount")
                         .HasColumnType("numeric(18,2)");
 
@@ -621,11 +658,14 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("character varying(50)");
 
                     b.Property<string>("TenantId")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "OfficeBranchId");
 
                     b.ToTable("commission_receipts", "financial");
                 });
@@ -652,6 +692,12 @@ namespace WAssis.Infra.Data.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<string>("OfficeBranchId")
+                        .IsConcurrencyToken()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("office_branch_id");
+
                     b.Property<decimal>("ReceivedAmount")
                         .HasColumnType("numeric(18,2)");
 
@@ -666,6 +712,7 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("TenantId")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -673,6 +720,8 @@ namespace WAssis.Infra.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("CommissionReceiptId");
+
+                    b.HasIndex("TenantId", "OfficeBranchId");
 
                     b.ToTable("commission_reconciliations", "financial");
                 });
@@ -821,6 +870,7 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnName("observacoes");
 
                     b.Property<string>("OfficeBranchId")
+                        .IsConcurrencyToken()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
                         .HasColumnName("filial_id");
@@ -876,6 +926,7 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnName("status");
 
                     b.Property<string>("TenantId")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)")
@@ -956,6 +1007,12 @@ namespace WAssis.Infra.Data.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("character varying(2000)");
 
+                    b.Property<string>("OfficeBranchId")
+                        .IsConcurrencyToken()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("office_branch_id");
+
                     b.Property<string>("PolicyNumber")
                         .HasMaxLength(100)
                         .HasColumnType("character varying(100)");
@@ -978,6 +1035,7 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("TenantId")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -988,6 +1046,8 @@ namespace WAssis.Infra.Data.Migrations
                     b.HasKey("Id");
 
                     b.HasIndex("ImportedDocumentId");
+
+                    b.HasIndex("TenantId", "OfficeBranchId");
 
                     b.HasIndex("TenantId", "PolicyNumber")
                         .IsUnique();
@@ -1039,6 +1099,7 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("TenantId")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -1159,6 +1220,7 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("boolean");
 
                     b.Property<string>("OfficeBranchId")
+                        .IsConcurrencyToken()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
 
@@ -1188,6 +1250,7 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("TenantId")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -1296,6 +1359,12 @@ namespace WAssis.Infra.Data.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("character varying(500)");
 
+                    b.Property<string>("OfficeBranchId")
+                        .IsConcurrencyToken()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("office_branch_id");
+
                     b.Property<int>("Priority")
                         .HasColumnType("integer");
 
@@ -1309,6 +1378,7 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("integer");
 
                     b.Property<string>("TenantId")
+                        .IsConcurrencyToken()
                         .IsRequired()
                         .HasMaxLength(64)
                         .HasColumnType("character varying(64)");
@@ -1317,6 +1387,8 @@ namespace WAssis.Infra.Data.Migrations
                         .HasColumnType("timestamp with time zone");
 
                     b.HasKey("Id");
+
+                    b.HasIndex("TenantId", "OfficeBranchId");
 
                     b.ToTable("whatsapp_conversations", "whatsapp_support");
                 });

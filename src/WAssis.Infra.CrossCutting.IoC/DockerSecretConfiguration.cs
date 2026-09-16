@@ -33,7 +33,7 @@ public static class DockerSecretConfiguration
                 new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (identities is null || identities.Count == 0)
                 throw new InvalidOperationException("The homologation identity secret must contain a nonempty user array.");
-            // .NET 8 JSON configuration binds explicit null strings as empty strings.
+            // JSON configuration binds explicit null strings as empty strings.
             // Omit optional values so users without a linked producer retain SellerId=null.
             var wrapped = JsonSerializer.Serialize(new { Identity = new { HomologationAuth = new { Users = identities } } },
                 new JsonSerializerOptions { DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull });

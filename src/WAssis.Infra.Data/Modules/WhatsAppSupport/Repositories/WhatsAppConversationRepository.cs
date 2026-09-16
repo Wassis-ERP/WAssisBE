@@ -4,6 +4,7 @@ using WAssis.Application.Modules.WhatsAppSupport.Interfaces;
 using WAssis.Domain.Modules.WhatsAppSupport.Entities;
 using WAssis.Domain.Modules.WhatsAppSupport.Enums;
 using WAssis.Infra.Data.Context;
+using WAssis.Application.Abstractions;
 
 namespace WAssis.Infra.Data.Modules.WhatsAppSupport.Repositories;
 
@@ -29,13 +30,18 @@ public sealed class WhatsAppConversationRepository(WAssisDbContext dbContext) : 
         return dbContext.WhatsAppConversations.CountAsync(x => x.Status == WhatsAppConversationStatus.HumanActive, cancellationToken);
     }
 
-    public async Task<IReadOnlyCollection<WhatsAppConversationDto>> GetWaitingQueueAsync(CancellationToken cancellationToken)
+    public async Task<PagedResult<WhatsAppConversationDto>> GetWaitingQueueAsync(int page, int pageSize, CancellationToken cancellationToken)
     {
-        return await dbContext.WhatsAppConversations
+        var query = dbContext.WhatsAppConversations
             .AsNoTracking()
-            .Where(x => x.Status == WhatsAppConversationStatus.WaitingHumanHandoff || x.Status == WhatsAppConversationStatus.HumanActive)
+            .Where(x => x.Status == WhatsAppConversationStatus.WaitingHumanHandoff || x.Status == WhatsAppConversationStatus.HumanActive);
+        var totalCount = await query.LongCountAsync(cancellationToken);
+        var items = await query
             .OrderByDescending(x => x.Priority)
             .ThenBy(x => x.SlaDueAtUtc)
+            .ThenBy(x => x.Id)
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
             .Select(x => new WhatsAppConversationDto(
                 x.Id,
                 x.CorrelationId,
@@ -51,6 +57,7 @@ public sealed class WhatsAppConversationRepository(WAssisDbContext dbContext) : 
                 x.ClosedAtUtc,
                 x.UpdatedAtUtc))
             .ToArrayAsync(cancellationToken);
+        return new PagedResult<WhatsAppConversationDto>(items, page, pageSize, totalCount);
     }
 
     public Task SaveChangesAsync(CancellationToken cancellationToken)

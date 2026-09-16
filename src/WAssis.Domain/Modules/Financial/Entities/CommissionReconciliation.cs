@@ -6,6 +6,7 @@ namespace WAssis.Domain.Modules.Financial.Entities;
 public class CommissionReconciliation : AggregateRoot
 {
     public string TenantId { get; private set; } = string.Empty;
+    public string? OfficeBranchId { get; private set; }
     public Guid CommissionReceiptId { get; private set; }
     public decimal ExpectedAmount { get; private set; }
     public decimal ReceivedAmount { get; private set; }
@@ -20,10 +21,11 @@ public class CommissionReconciliation : AggregateRoot
     {
     }
 
-    private CommissionReconciliation(Guid id, string tenantId, Guid commissionReceiptId, decimal expectedAmount, decimal receivedAmount)
+    private CommissionReconciliation(Guid id, string tenantId, Guid commissionReceiptId, decimal expectedAmount, decimal receivedAmount, string? officeBranchId)
     {
         Id = id;
         TenantId = tenantId;
+        OfficeBranchId = officeBranchId;
         CommissionReceiptId = commissionReceiptId;
         ExpectedAmount = expectedAmount;
         ReceivedAmount = receivedAmount;
@@ -32,9 +34,9 @@ public class CommissionReconciliation : AggregateRoot
         CreatedAtUtc = DateTime.UtcNow;
     }
 
-    public static CommissionReconciliation Create(string tenantId, Guid commissionReceiptId, decimal expectedAmount, decimal receivedAmount)
+    public static CommissionReconciliation Create(string tenantId, Guid commissionReceiptId, decimal expectedAmount, decimal receivedAmount, string? officeBranchId = null)
     {
-        return new CommissionReconciliation(Guid.NewGuid(), tenantId, commissionReceiptId, expectedAmount, receivedAmount);
+        return new CommissionReconciliation(Guid.NewGuid(), tenantId, commissionReceiptId, expectedAmount, receivedAmount, officeBranchId);
     }
 
     public void MarkSettled(string? matchedReference, string? settlementNotes)

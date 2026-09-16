@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WAssis.Application.Modules.Notifications.Queries;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Services.Api.Infrastructure;
 using WAssis.Services.Api.Modules.Notifications.ViewModels;
 
 namespace WAssis.Services.Api.Modules.Notifications.Controllers;
@@ -13,6 +14,7 @@ namespace WAssis.Services.Api.Modules.Notifications.Controllers;
 public sealed class OperationsDashboardController(IMediator mediator) : ControllerBase
 {
     [HttpGet]
+    [RequirePermission("auditoria", "read")]
     public async Task<IActionResult> Get(CancellationToken cancellationToken)
     {
         var result = await mediator.Send(new GetOperationsDashboardQuery(), cancellationToken);

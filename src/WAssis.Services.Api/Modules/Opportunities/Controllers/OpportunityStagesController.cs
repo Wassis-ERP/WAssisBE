@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using WAssis.Application.Modules.Opportunities.Interfaces;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Services.Api.Infrastructure;
 
 namespace WAssis.Services.Api.Modules.Opportunities.Controllers;
 
@@ -11,5 +12,6 @@ namespace WAssis.Services.Api.Modules.Opportunities.Controllers;
 public sealed class OpportunityStagesController(IOpportunityScope scope) : ControllerBase
 {
     [HttpGet]
+    [RequirePermission("comercial", "read")]
     public async Task<IActionResult> List(CancellationToken cancellationToken) => Ok(await scope.ListStagesAsync(cancellationToken));
 }

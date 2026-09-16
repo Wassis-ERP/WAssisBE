@@ -6,6 +6,7 @@ public sealed class AggilizadorAutoQuoteOptions
 
     public bool Enabled { get; set; } = true;
     public string BaseUrl { get; set; } = string.Empty;
+    public string[] AllowedHosts { get; set; } = [];
     public int InsuranceBrokerId { get; set; }
     public int PartnerId { get; set; }
     public int DefaultCommissionPercentage { get; set; } = 15;

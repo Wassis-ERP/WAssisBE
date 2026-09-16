@@ -90,10 +90,10 @@ public sealed class QuoteProcessingServiceTests
             return Task.FromResult(correlationId == quoteRequest.CorrelationId ? quoteRequest : null);
         }
 
-        public Task<IReadOnlyCollection<QuoteRequest>> ListAsync(Guid? opportunityId, string? officeBranchId, CancellationToken cancellationToken)
+        public Task<WAssis.Application.Abstractions.PagedResult<QuoteRequest>> ListAsync(Guid? opportunityId, string? officeBranchId, int page, int pageSize, CancellationToken cancellationToken)
         {
             IReadOnlyCollection<QuoteRequest> items = [quoteRequest];
-            return Task.FromResult(items);
+            return Task.FromResult(new WAssis.Application.Abstractions.PagedResult<QuoteRequest>(items, page, pageSize, items.Count));
         }
 
         public Task<IReadOnlyCollection<QuotePendingDispatchDto>> GetPendingDispatchBatchAsync(int batchSize, CancellationToken cancellationToken)

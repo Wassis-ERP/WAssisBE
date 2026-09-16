@@ -5,6 +5,7 @@ namespace WAssis.Domain.Core.Auditing;
 public class AuditEntry : AggregateRoot
 {
     public string TenantId { get; private set; } = string.Empty;
+    public string? OfficeBranchId { get; private set; }
     public string CorrelationId { get; private set; } = string.Empty;
     public string Module { get; private set; } = string.Empty;
     public string Action { get; private set; } = string.Empty;
@@ -25,10 +26,12 @@ public class AuditEntry : AggregateRoot
         string action,
         string entityType,
         string entityId,
-        string? notes)
+        string? notes,
+        string? officeBranchId)
     {
         Id = id;
         TenantId = tenantId;
+        OfficeBranchId = officeBranchId;
         CorrelationId = correlationId;
         Module = module;
         Action = action;
@@ -45,8 +48,9 @@ public class AuditEntry : AggregateRoot
         string action,
         string entityType,
         string entityId,
-        string? notes)
+        string? notes,
+        string? officeBranchId = null)
     {
-        return new AuditEntry(Guid.NewGuid(), tenantId, correlationId, module, action, entityType, entityId, notes);
+        return new AuditEntry(Guid.NewGuid(), tenantId, correlationId, module, action, entityType, entityId, notes, officeBranchId);
     }
 }

@@ -44,4 +44,4 @@ Nenhuma rotação ou mudança na infraestrutura publicada foi realizada nesta en
 
 OIDC Authorization Code + PKCE com provedor real, MFA e políticas de sessão; resolver vínculos de `sub` externo com profiles/grupos/corretoras/filiais no servidor. Claims jamais derivadas de campos enviados pelo navegador. JWT curto com chave assimétrica/JWKS, rotação e revogação/refresh controlados. Preferir BFF/cookie HttpOnly quando origem, CSRF, CORS e operação estiverem definidos. Remover `HomologationAuth` após homologar identidade real; não habilitá-lo em PRD como atalho.
 
-Referência de implementação: [ASP.NET Core Identity](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity-configuration?view=aspnetcore-8.0).
+Referência de implementação: [ASP.NET Core Identity](https://learn.microsoft.com/en-us/aspnet/core/security/authentication/identity-configuration?view=aspnetcore-10.0).

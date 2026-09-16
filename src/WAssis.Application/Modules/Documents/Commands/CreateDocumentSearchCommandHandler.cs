@@ -29,7 +29,8 @@ public sealed class CreateDocumentSearchCommandHandler(
             currentUserContext.ResolveTenantIdOrPlatform(),
             request.CorrelationId,
             request.InsuranceCompanyCode,
-            request.SearchType);
+            request.SearchType,
+            currentUserContext.ResolveBranchIdForWrite());
         await repository.AddAsync(search, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
 

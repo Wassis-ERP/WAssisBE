@@ -5,8 +5,10 @@ using WAssis.Application.Modules.WhatsAppSupport.Commands;
 using WAssis.Application.Modules.WhatsAppSupport.Dtos;
 using WAssis.Application.Modules.WhatsAppSupport.Queries;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Services.Api.Infrastructure;
 using WAssis.Services.Api.Modules.WhatsAppSupport.Contracts;
 using WAssis.Services.Api.Modules.WhatsAppSupport.ViewModels;
+using WAssis.Application.Abstractions;
 
 namespace WAssis.Services.Api.Modules.WhatsAppSupport.Controllers;
 
@@ -16,6 +18,8 @@ namespace WAssis.Services.Api.Modules.WhatsAppSupport.Controllers;
 public sealed class WhatsAppConversationsController(IMediator mediator) : ControllerBase
 {
     [HttpPost("inbound")]
+    [RequirePermission("whatsapp", "create")]
+    [DistributedOperationLimit("whatsapp.inbound", 60, 60)]
     public async Task<IActionResult> RegisterInbound([FromBody] RegisterWhatsAppInboundMessageRequest request, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(
@@ -31,13 +35,19 @@ public sealed class WhatsAppConversationsController(IMediator mediator) : Contro
     }
 
     [HttpGet("queue")]
-    public async Task<IActionResult> GetQueue(CancellationToken cancellationToken)
+    [RequirePermission("whatsapp", "read")]
+    public async Task<IActionResult> GetQueue([FromQuery] int page = 1, [FromQuery] int pageSize = 50, CancellationToken cancellationToken = default)
     {
-        var result = await mediator.Send(new GetWhatsAppQueueQuery(), cancellationToken);
-        return Ok(result.Select(ToViewModel).ToArray());
+        var result = await mediator.Send(new GetWhatsAppQueueQuery(page, pageSize), cancellationToken);
+        return Ok(new PagedResult<WhatsAppConversationViewModel>(
+            result.Items.Select(ToViewModel).ToArray(),
+            result.Page,
+            result.PageSize,
+            result.TotalCount));
     }
 
     [HttpGet("{id:guid}")]
+    [RequirePermission("whatsapp", "read")]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(new GetWhatsAppConversationQuery(id), cancellationToken);
@@ -45,6 +55,7 @@ public sealed class WhatsAppConversationsController(IMediator mediator) : Contro
     }
 
     [HttpPost("{id:guid}/assign")]
+    [RequirePermission("whatsapp", "update")]
     public async Task<IActionResult> Assign(Guid id, [FromBody] AssignWhatsAppConversationRequest request, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(
@@ -55,6 +66,7 @@ public sealed class WhatsAppConversationsController(IMediator mediator) : Contro
     }
 
     [HttpPost("{id:guid}/close")]
+    [RequirePermission("whatsapp", "update")]
     public async Task<IActionResult> Close(Guid id, [FromBody] CloseWhatsAppConversationRequest request, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(new CloseWhatsAppConversationCommand(id, request.LastMessagePreview), cancellationToken);

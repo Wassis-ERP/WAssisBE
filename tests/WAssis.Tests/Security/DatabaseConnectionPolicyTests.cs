@@ -22,9 +22,32 @@ public sealed class DatabaseConnectionPolicyTests
     public void AcceptsStrongConfigurationAndRejectsSensitiveDiagnostics()
     {
         var connection = new NpgsqlConnectionStringBuilder
-        { Host = "localhost", Database = "fixture", Username = "fixture", Password = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)) };
+        {
+            Host = "db.example.test",
+            Database = "fixture",
+            Username = "fixture",
+            Password = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)),
+            SslMode = SslMode.VerifyFull,
+        };
         DatabaseConnectionPolicy.ValidateSharedEnvironment(connection.ConnectionString);
         connection.IncludeErrorDetail = true;
+        Assert.Throws<InvalidOperationException>(() => DatabaseConnectionPolicy.ValidateSharedEnvironment(connection.ConnectionString));
+    }
+
+    [Theory]
+    [InlineData(SslMode.Disable)]
+    [InlineData(SslMode.Require)]
+    [InlineData(SslMode.Prefer)]
+    public void RejectsConnectionsWithoutCertificateVerification(SslMode sslMode)
+    {
+        var connection = new NpgsqlConnectionStringBuilder
+        {
+            Host = "db.example.test",
+            Database = "fixture",
+            Username = "fixture",
+            Password = Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)),
+            SslMode = sslMode,
+        };
         Assert.Throws<InvalidOperationException>(() => DatabaseConnectionPolicy.ValidateSharedEnvironment(connection.ConnectionString));
     }
 }

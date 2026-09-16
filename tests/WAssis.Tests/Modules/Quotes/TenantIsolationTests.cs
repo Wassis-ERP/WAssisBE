@@ -17,8 +17,8 @@ public sealed class TenantIsolationTests
         await using (var seedContext = CreateContext(databaseName, new FakeCurrentUserContext()))
         {
             seedContext.QuoteRequests.AddRange(
-                CreateQuoteRequest("tenant-a", "corr-a"),
-                CreateQuoteRequest("tenant-b", "corr-b"));
+                CreateQuoteRequest("tenant-a", "corr-a", "branch-a"),
+                CreateQuoteRequest("tenant-b", "corr-b", "branch-b"));
             await seedContext.SaveChangesAsync();
         }
 
@@ -27,7 +27,9 @@ public sealed class TenantIsolationTests
             new FakeCurrentUserContext
             {
                 IsAuthenticated = true,
-                TenantId = "tenant-a"
+                TenantId = "tenant-a",
+                BranchId = "branch-a",
+                BranchIds = ["branch-a"]
             });
 
         var repository = new QuoteRequestRepository(tenantAContext);
@@ -48,8 +50,8 @@ public sealed class TenantIsolationTests
         await using (var seedContext = CreateContext(databaseName, new FakeCurrentUserContext()))
         {
             seedContext.QuoteRequests.AddRange(
-                CreateQuoteRequest("tenant-a", "corr-a"),
-                CreateQuoteRequest("tenant-b", "corr-b"));
+                CreateQuoteRequest("tenant-a", "corr-a", "branch-a"),
+                CreateQuoteRequest("tenant-b", "corr-b", "branch-b"));
             await seedContext.SaveChangesAsync();
         }
 
@@ -58,7 +60,9 @@ public sealed class TenantIsolationTests
             new FakeCurrentUserContext
             {
                 IsAuthenticated = true,
-                TenantId = "tenant-a"
+                TenantId = "tenant-a",
+                BranchId = "branch-a",
+                BranchIds = ["branch-a"]
             });
 
         var repository = new OperationsDashboardReadRepository(tenantAContext);

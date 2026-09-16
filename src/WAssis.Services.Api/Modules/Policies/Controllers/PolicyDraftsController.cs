@@ -5,6 +5,7 @@ using WAssis.Application.Modules.Policies.Commands;
 using WAssis.Application.Modules.Policies.Dtos;
 using WAssis.Application.Modules.Policies.Queries;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Services.Api.Infrastructure;
 using WAssis.Services.Api.Extensions;
 using WAssis.Services.Api.Modules.Policies.Contracts;
 using WAssis.Services.Api.Modules.Policies.ViewModels;
@@ -17,6 +18,7 @@ namespace WAssis.Services.Api.Modules.Policies.Controllers;
 public sealed class PolicyDraftsController(IMediator mediator) : ControllerBase
 {
     [HttpPost("from-document")]
+    [RequirePermission("apolices", "create")]
     [ProducesResponseType(typeof(PolicyDraftViewModel), StatusCodes.Status201Created)]
     public async Task<IActionResult> CreateFromDocument([FromBody] CreatePolicyDraftFromDocumentRequest request, CancellationToken cancellationToken)
     {
@@ -26,6 +28,7 @@ public sealed class PolicyDraftsController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [RequirePermission("apolices", "read")]
     [ProducesResponseType(typeof(PolicyDraftViewModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
@@ -35,6 +38,7 @@ public sealed class PolicyDraftsController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost("{id:guid}/ready")]
+    [RequirePermission("apolices", "update")]
     public async Task<IActionResult> MarkReady(Guid id, [FromBody] UpdatePolicyDraftStatusRequest? request, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(new MarkPolicyDraftReadyCommand(id, request?.Notes), cancellationToken);
@@ -42,6 +46,7 @@ public sealed class PolicyDraftsController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost("{id:guid}/approve-review")]
+    [RequirePermission("apolices", "update")]
     public async Task<IActionResult> ApproveReview(Guid id, [FromBody] UpdatePolicyDraftStatusRequest? request, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(new ApprovePolicyDraftReviewCommand(id, request?.Notes), cancellationToken);
@@ -49,6 +54,7 @@ public sealed class PolicyDraftsController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost("{id:guid}/issue")]
+    [RequirePermission("apolices", "manage")]
     public async Task<IActionResult> Issue(Guid id, [FromBody] UpdatePolicyDraftStatusRequest? request, CancellationToken cancellationToken)
     {
         var result = await mediator.Send(new IssuePolicyDraftCommand(id, request?.PolicyNumber, request?.Notes), cancellationToken);

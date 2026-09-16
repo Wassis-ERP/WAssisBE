@@ -1,41 +1,24 @@
 using System.Net.Mail;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Filters;
 using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Administration.Dtos;
 using WAssis.Application.Modules.Administration.Interfaces;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
+using WAssis.Services.Api.Infrastructure;
 
 namespace WAssis.Services.Api.Modules.Administration.Controllers;
 
 [ApiController]
 [Route("api/administration")]
-[Authorize(Policy = AccessPolicies.BrokerageAdmin)]
+[Authorize(Policy = AccessPolicies.AuthenticatedUser)]
 public sealed class AdministrationController(
     ICurrentUserContext currentUser,
     IAdministrationRepository repository,
-    IAuditTrailWriter auditTrail) : ControllerBase, IAsyncActionFilter
+    IAuditTrailWriter auditTrail) : ControllerBase
 {
-    [NonAction]
-    public async Task OnActionExecutionAsync(ActionExecutingContext context, ActionExecutionDelegate next)
-    {
-        if (!TryScope(out var tenantId, out var userId))
-        {
-            context.Result = TenantRequired();
-            return;
-        }
-        var manage = !HttpMethods.IsGet(context.HttpContext.Request.Method);
-        if (!await repository.HasAdministrationPermissionAsync(tenantId, userId, manage,
-                context.HttpContext.RequestAborted))
-        {
-            context.Result = Problem(statusCode: StatusCodes.Status403Forbidden,
-                title: "Permissão administrativa insuficiente.");
-            return;
-        }
-        await next();
-    }
     [HttpGet("organization")]
+    [RequirePermission("configuracoes", "read", tenantWide: true)]
     public async Task<IActionResult> GetOrganization(CancellationToken cancellationToken)
     {
         if (!TryScope(out var tenantId, out _)) return TenantRequired();
@@ -44,6 +27,7 @@ public sealed class AdministrationController(
     }
 
     [HttpPut("organization")]
+    [RequirePermission("configuracoes", "update", tenantWide: true)]
     public async Task<IActionResult> UpdateOrganization([FromBody] OrganizationUpdateDto update, CancellationToken cancellationToken)
     {
         if (!TryScope(out var tenantId, out _)) return TenantRequired();
@@ -58,6 +42,7 @@ public sealed class AdministrationController(
     }
 
     [HttpGet("statistics")]
+    [RequirePermission("configuracoes", "read", tenantWide: true)]
     public async Task<IActionResult> GetStatistics(CancellationToken cancellationToken)
     {
         if (!TryScope(out var tenantId, out _)) return TenantRequired();
@@ -65,6 +50,7 @@ public sealed class AdministrationController(
     }
 
     [HttpGet("branches")]
+    [RequirePermission("configuracoes", "read", tenantWide: true)]
     public async Task<IActionResult> ListBranches(CancellationToken cancellationToken)
     {
         if (!TryScope(out var tenantId, out _)) return TenantRequired();
@@ -72,6 +58,7 @@ public sealed class AdministrationController(
     }
 
     [HttpPost("branches")]
+    [RequirePermission("configuracoes", "create", tenantWide: true)]
     public async Task<IActionResult> CreateBranch([FromBody] AdministrationBranchWriteDto create, CancellationToken cancellationToken)
     {
         if (!TryScope(out var tenantId, out _)) return TenantRequired();
@@ -91,6 +78,7 @@ public sealed class AdministrationController(
     }
 
     [HttpPut("branches/{branchId:guid}")]
+    [RequirePermission("configuracoes", "update", tenantWide: true)]
     public async Task<IActionResult> UpdateBranch(Guid branchId, [FromBody] AdministrationBranchWriteDto update, CancellationToken cancellationToken)
     {
         if (!TryScope(out var tenantId, out _)) return TenantRequired();
@@ -111,6 +99,7 @@ public sealed class AdministrationController(
     }
 
     [HttpGet("users")]
+    [RequirePermission("configuracoes", "read", tenantWide: true)]
     public async Task<IActionResult> ListUsers(CancellationToken cancellationToken)
     {
         if (!TryScope(out var tenantId, out _)) return TenantRequired();
@@ -118,6 +107,7 @@ public sealed class AdministrationController(
     }
 
     [HttpPost("users")]
+    [RequirePermission("configuracoes", "create", tenantWide: true)]
     public async Task<IActionResult> InviteUser([FromBody] UserInvitationDto invitation, CancellationToken cancellationToken)
     {
         if (!TryScope(out var tenantId, out _)) return TenantRequired();
@@ -129,6 +119,7 @@ public sealed class AdministrationController(
     }
 
     [HttpPatch("users/{userId:guid}/status")]
+    [RequirePermission("configuracoes", "manage", tenantWide: true)]
     public async Task<IActionResult> SetUserStatus(Guid userId, [FromBody] UserStatusUpdateDto update, CancellationToken cancellationToken)
     {
         if (!TryScope(out var tenantId, out var actorUserId)) return TenantRequired();
@@ -146,6 +137,7 @@ public sealed class AdministrationController(
     }
 
     [HttpGet("users/{userId:guid}/branches")]
+    [RequirePermission("configuracoes", "read", tenantWide: true)]
     public async Task<IActionResult> ListUserBranches(Guid userId, CancellationToken cancellationToken)
     {
         if (!TryScope(out var tenantId, out _)) return TenantRequired();
@@ -153,6 +145,7 @@ public sealed class AdministrationController(
     }
 
     [HttpPut("users/{userId:guid}/branches/{branchId:guid}")]
+    [RequirePermission("configuracoes", "manage", tenantWide: true)]
     public async Task<IActionResult> SetUserBranch(
         Guid userId, Guid branchId, [FromBody] UserBranchAccessUpdateDto update, CancellationToken cancellationToken)
     {
@@ -174,6 +167,7 @@ public sealed class AdministrationController(
     }
 
     [HttpGet("access-profiles")]
+    [RequirePermission("configuracoes", "read", tenantWide: true)]
     public async Task<IActionResult> ListAccessProfiles(CancellationToken cancellationToken)
     {
         if (!TryScope(out var tenantId, out _)) return TenantRequired();
@@ -181,6 +175,7 @@ public sealed class AdministrationController(
     }
 
     [HttpPost("access-profiles")]
+    [RequirePermission("configuracoes", "create", tenantWide: true)]
     public async Task<IActionResult> CreateAccessProfile([FromBody] AccessProfileCreateDto create, CancellationToken cancellationToken)
     {
         if (!TryScope(out var tenantId, out _)) return TenantRequired();
@@ -191,6 +186,7 @@ public sealed class AdministrationController(
     }
 
     [HttpPut("access-profiles/{profileId:guid}")]
+    [RequirePermission("configuracoes", "update", tenantWide: true)]
     public async Task<IActionResult> UpdateAccessProfile(Guid profileId, [FromBody] AccessProfileUpdateDto update, CancellationToken cancellationToken)
     {
         if (!TryScope(out var tenantId, out _)) return TenantRequired();
@@ -202,6 +198,7 @@ public sealed class AdministrationController(
     }
 
     [HttpGet("permissions")]
+    [RequirePermission("configuracoes", "read", tenantWide: true)]
     public async Task<IActionResult> ListPermissions(CancellationToken cancellationToken)
     {
         if (!TryScope(out var tenantId, out _)) return TenantRequired();
@@ -209,6 +206,7 @@ public sealed class AdministrationController(
     }
 
     [HttpPut("permissions/{permissionId:guid}")]
+    [RequirePermission("configuracoes", "manage", tenantWide: true)]
     public async Task<IActionResult> UpdatePermission(Guid permissionId, [FromBody] AccessPermissionUpdateDto update, CancellationToken cancellationToken)
     {
         if (!TryScope(out var tenantId, out _)) return TenantRequired();
