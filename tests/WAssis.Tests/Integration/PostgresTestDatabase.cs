@@ -82,7 +82,9 @@ internal sealed class PostgresTestDatabase : IAsyncDisposable
                 .WithPassword(Convert.ToBase64String(RandomNumberGenerator.GetBytes(32)))
                 .WithResourceMapping(Encoding.UTF8.GetBytes(certificate.ExportCertificatePem()), "/tmp/server.crt", 999, 999, UnixFileModes.UserRead)
                 .WithResourceMapping(Encoding.UTF8.GetBytes(rsa.ExportPkcs8PrivateKeyPem()), "/tmp/server.key", 999, 999, UnixFileModes.UserRead)
-                .WithCommand("postgres", "-c", "ssl=on", "-c", "ssl_cert_file=/tmp/server.crt", "-c", "ssl_key_file=/tmp/server.key")
+                // PostgreSQLBuilder already runs the image entrypoint with `postgres`.
+                // Supplying it again makes the server receive an invalid positional argument.
+                .WithCommand("-c", "ssl=on", "-c", "ssl_cert_file=/tmp/server.crt", "-c", "ssl_key_file=/tmp/server.key")
                 .Build();
             try { await postgres.StartAsync(); }
             catch { await postgres.DisposeAsync(); File.Delete(certificatePath); throw; }

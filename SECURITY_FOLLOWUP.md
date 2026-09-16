@@ -203,3 +203,31 @@ OIDC confidencial/BFF no ASP.NET Core 10
 e documentação Auth0 de Authorization Code + PKCE e Universal Login
 (`https://auth0.com/docs/get-started/authentication-and-authorization-flow/authorization-code-flow-with-pkce/add-login-using-the-authorization-code-flow-with-pkce`,
 `https://auth0.com/docs/authenticate/login/auth0-universal-login/universal-login-vs-classic-login/universal-experience`).
+
+## Checkpoint corretivo — Testcontainers e imagens
+
+O CI backend do commit `b7f643c` confirmou restore, scanner e build, mas falhou no
+passo de testes. A falha foi reproduzida localmente com Docker Desktop: a fixture
+passava `postgres` como primeiro argumento para uma imagem cujo entrypoint já o
+executa, fazendo o servidor rejeitar esse argumento posicional. A fixture agora
+envia somente as opções `-c` de TLS. As factories HTTP PostgreSQL também recebem um
+diretório privado efêmero e único para documentos, sem relaxar a validação de
+configuração de Staging/Production.
+
+Evidências após a correção:
+
+- suíte backend completa: **133/133 aprovados**, zero falhas e zero ignorados;
+- quatro integrações executadas em PostgreSQL 16 real via Testcontainers, com
+  certificado efêmero e `SslMode=VerifyFull`;
+- cenários cobertos: role comum sem ownership/`BYPASSRLS`, HTTP/CSRF, sessão e
+  replay, permissão/filial alterada durante a sessão, ownership/concorrência,
+  rollback administrativo, RLS/pool e outbox/upgrade;
+- imagens locais API e worker construídas com contexto reduzido (a árvore `.dotnet`
+  é excluída) e usuário não-root UID 1654;
+- Trivy 0.69.3, severidades HIGH/CRITICAL, `--ignore-unfixed` e exit code bloqueante:
+  zero vulnerabilidades corrigíveis nas duas imagens.
+
+Isso comprova a fixture Testcontainers/Docker deste checkpoint; não deve ser
+confundido com evidência de grants, storage, limites de runtime ou deploy em
+Production. Docker Compose completo, migration em banco real e deploy não foram
+executados.

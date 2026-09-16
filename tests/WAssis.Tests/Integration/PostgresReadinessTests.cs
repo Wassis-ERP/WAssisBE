@@ -401,6 +401,7 @@ public sealed partial class PostgresReadinessTests
             {
                 ["ConnectionStrings:DefaultConnection"] = connection,
                 ["Database:AutoMigrate"] = "false",
+                ["Documents:PrivateStorage:RootPath"] = Path.Combine(Path.GetTempPath(), "wassis-test-documents", Guid.NewGuid().ToString("N")),
                 ["Identity:Jwt:SigningKey"] = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48)),
                 ["Identity:Jwt:RequireHttpsMetadata"] = "true",
                 ["Identity:HomologationAuth:Enabled"] = "true",
