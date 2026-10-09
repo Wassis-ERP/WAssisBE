@@ -1,3 +1,4 @@
+using WAssis.Domain.Modules.Quotes.ValueObjects;
 namespace WAssis.Application.Modules.Quotes.Dtos;
 
 public sealed record StartQuoteProcessingDto(
@@ -33,4 +34,5 @@ public sealed record StartQuoteProcessingDto(
     bool IsCurrentlyInsured,
     string? PreviousBonus,
     int? BrokerCommissionPercentage,
-    int? RenewalInsurerCode);
+    int? RenewalInsurerCode,
+    AutoQuoteSubmission? AutoSubmission = null);

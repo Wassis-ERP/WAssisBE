@@ -68,7 +68,11 @@ public sealed class QuoteProcessingService(
 
                 try
                 {
-                    results = await provider.StartQuoteAsync(prepared.Request, cancellationToken);
+                    results = prepared.Request.AutoSubmission is not null && !provider.SupportsAutoSubmission
+                        ? [new QuoteProviderResultDto(provider.ProviderCode, provider.ProviderName,
+                            QuoteOptionStatus.Restriction, string.Empty, null, null, [], [],
+                            [new("unsupported_auto_submission", "Este adaptador ainda não suporta o snapshot Auto; nenhum envio foi realizado.")])]
+                        : await provider.StartQuoteAsync(prepared.Request, cancellationToken);
                 }
                 catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
                 {
@@ -170,7 +174,8 @@ public sealed class QuoteProcessingService(
             quoteRequest.IsCurrentlyInsured,
             quoteRequest.PreviousBonus,
             quoteRequest.BrokerCommissionPercentage,
-            quoteRequest.RenewalInsurerCode);
+            quoteRequest.RenewalInsurerCode,
+            quoteRequest.AutoSubmission?.Copy());
     }
 
     private static QuoteProviderResultDto[] CreateProviderFailureResult(
@@ -201,16 +206,18 @@ public sealed class QuoteProcessingService(
             Guid.NewGuid(),
             quoteRequest.TenantId,
             quoteRequest.Id,
-            result.ProviderCode,
-            result.ProviderName,
-            result.ProviderCode,
-            result.ProviderName,
+            result.InsuranceCompanyCode ?? result.ProviderCode,
+            result.InsuranceCompanyName ?? result.ProviderName,
+            result.ProductCode ?? result.ProviderCode,
+            result.ProductName ?? result.ProviderName,
             result.Status,
             result.PremiumAmount,
             result.CommissionAmount,
             result.ExternalReference,
             result.Coverages.Select(static x => new CoverageSnapshot(x.Code, x.Name, x.InsuredAmount, x.DeductibleAmount)),
             result.Installments.Select(static x => new InstallmentSnapshot(x.Number, x.Amount, x.TotalAmount)),
-            result.Messages.Select(static x => new QuoteStatusMessage(x.Code, x.Description)));
+            result.Messages.Select(static x => new QuoteStatusMessage(x.Code, x.Description)),
+            result.ProviderCode,
+            result.ProviderName);
     }
 }

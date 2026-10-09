@@ -1,3 +1,4 @@
+using WAssis.Domain.Modules.Quotes.ValueObjects;
 namespace WAssis.Services.Api.Modules.Quotes.Contracts;
 
 public sealed record CreateQuoteRequestRequest(
@@ -40,4 +41,5 @@ public sealed record CreateQuoteRequestRequest(
     Guid? InsuredPersonId = null,
     string CalculationType = "AUTO",
     string CalculationOrigin = "PROPRIO",
-    string? VersionLabel = null);
+    string? VersionLabel = null,
+    AutoQuoteSubmission? AutoSubmission = null);

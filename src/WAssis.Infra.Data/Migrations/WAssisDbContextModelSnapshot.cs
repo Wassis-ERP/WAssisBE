@@ -1095,6 +1095,14 @@ namespace WAssis.Infra.Data.Migrations
                         .HasMaxLength(120)
                         .HasColumnType("character varying(120)");
 
+                    b.Property<string>("ProviderCode")
+                        .IsRequired()
+                        .HasColumnType("text");
+
+                    b.Property<string>("ProviderName")
+                        .IsRequired()
+                        .HasColumnType("text");
+
                     b.Property<Guid>("QuoteRequestId")
                         .HasColumnType("uuid");
 
@@ -1518,6 +1526,117 @@ namespace WAssis.Infra.Data.Migrations
                     b.Navigation("_installments");
 
                     b.Navigation("_messages");
+                });
+
+            modelBuilder.Entity("WAssis.Domain.Modules.Quotes.Entities.QuoteRequest", b =>
+                {
+                    b.OwnsOne("WAssis.Domain.Modules.Quotes.ValueObjects.AutoQuoteSubmission", "AutoSubmission", b1 =>
+                        {
+                            b1.Property<Guid>("QuoteRequestId")
+                                .HasColumnType("uuid");
+
+                            b1.Property<int?>("BonusClass")
+                                .HasColumnType("integer");
+
+                            b1.Property<int?>("ClaimCount")
+                                .HasColumnType("integer");
+
+                            b1.Property<DateOnly>("CoverageEndsOn")
+                                .HasColumnType("date");
+
+                            b1.Property<DateOnly>("CoverageStartsOn")
+                                .HasColumnType("date");
+
+                            b1.Property<DateOnly>("DriverBirthDate")
+                                .HasColumnType("date");
+
+                            b1.Property<string>("DriverDocument")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("character varying(32)");
+
+                            b1.Property<string>("DriverGender")
+                                .IsRequired()
+                                .HasMaxLength(1)
+                                .HasColumnType("character varying(1)");
+
+                            b1.Property<int>("DriverLicenseYears")
+                                .HasColumnType("integer");
+
+                            b1.Property<string>("DriverMaritalStatus")
+                                .IsRequired()
+                                .HasMaxLength(64)
+                                .HasColumnType("character varying(64)");
+
+                            b1.Property<string>("DriverName")
+                                .IsRequired()
+                                .HasMaxLength(200)
+                                .HasColumnType("character varying(200)");
+
+                            b1.Property<string>("InsuranceType")
+                                .IsRequired()
+                                .HasMaxLength(32)
+                                .HasColumnType("character varying(32)");
+
+                            b1.Property<DateOnly?>("PreviousCoverageEndsOn")
+                                .HasColumnType("date");
+
+                            b1.Property<string>("PreviousIdentificationCode")
+                                .HasMaxLength(120)
+                                .HasColumnType("character varying(120)");
+
+                            b1.Property<string>("PreviousPolicyNumber")
+                                .HasMaxLength(120)
+                                .HasColumnType("character varying(120)");
+
+                            b1.HasKey("QuoteRequestId");
+
+                            b1.ToTable("quote_auto_submissions", "quotes");
+
+                            b1.WithOwner()
+                                .HasForeignKey("QuoteRequestId");
+
+                            b1.OwnsMany("WAssis.Domain.Modules.Quotes.ValueObjects.RequestedQuoteCoverage", "Coverages", b2 =>
+                                {
+                                    b2.Property<Guid>("QuoteRequestId")
+                                        .HasColumnType("uuid");
+
+                                    b2.Property<string>("Code")
+                                        .HasMaxLength(80)
+                                        .HasColumnType("character varying(80)");
+
+                                    b2.Property<string>("RequestedDeductibleType")
+                                        .HasMaxLength(80)
+                                        .HasColumnType("character varying(80)");
+
+                                    b2.Property<decimal?>("RequestedFipePercentage")
+                                        .HasColumnType("numeric");
+
+                                    b2.Property<decimal?>("RequestedLimit")
+                                        .HasColumnType("numeric");
+
+                                    b2.Property<string>("RequestedOption")
+                                        .HasMaxLength(80)
+                                        .HasColumnType("character varying(80)");
+
+                                    b2.Property<int?>("RequestedQuantity")
+                                        .HasColumnType("integer");
+
+                                    b2.Property<bool>("Selected")
+                                        .HasColumnType("boolean");
+
+                                    b2.HasKey("QuoteRequestId", "Code");
+
+                                    b2.ToTable("quote_requested_coverages", "quotes");
+
+                                    b2.WithOwner()
+                                        .HasForeignKey("QuoteRequestId");
+                                });
+
+                            b1.Navigation("Coverages");
+                        });
+
+                    b.Navigation("AutoSubmission");
                 });
 
             modelBuilder.Entity("WAssis.Domain.Modules.Quotes.Entities.QuoteRequest", b =>

@@ -73,7 +73,8 @@ public sealed class DurableDispatchTests
 
     private static Task<int> Count(WAssisDbContext db, string sql) => db.Database.SqlQueryRaw<int>(sql).SingleAsync();
 
-    internal static QuoteRequest Quote(string correlation, string tenantId = Tenant, string branchId = Branch) => QuoteRequest.Create(
+    internal static QuoteRequest Quote(string correlation, string tenantId = Tenant, string branchId = Branch,
+        WAssis.Domain.Modules.Quotes.ValueObjects.AutoQuoteSubmission? submission = null) => QuoteRequest.Create(
         tenantId: tenantId, correlationId: correlation, customerName: "Fixture", documentNumber: "00000000000",
         email: null, phoneNumber: null, postalCode: null, customerSurname: null, customerGender: null,
         customerMaritalStatusCode: null, customerBirthDateUtc: null, driverLicenseYears: null,
@@ -83,5 +84,5 @@ public sealed class DurableDispatchTests
         vehicleHasAntiTheft: null, vehicleIsFinanced: null, vehicleIsArmored: null, vehicleFuelTypeCode: null,
         vehicleOvernightPostalCode: null, vehicleHasKitGas: null, hasDriverUnder24: false,
         isCurrentlyInsured: false, previousBonus: null, brokerCommissionPercentage: null, renewalInsurerCode: null,
-        officeBranchId: branchId);
+        officeBranchId: branchId, autoSubmission: submission);
 }

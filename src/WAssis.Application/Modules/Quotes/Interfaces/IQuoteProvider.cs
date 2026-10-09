@@ -7,6 +7,7 @@ public interface IQuoteProvider
     string ProviderCode { get; }
     string ProviderName { get; }
     bool IsEnabled { get; }
+    bool SupportsAutoSubmission => false;
     QuoteProviderDescriptorDto Describe();
     Task<IReadOnlyCollection<QuoteProviderResultDto>> StartQuoteAsync(
         StartQuoteProcessingDto request,

@@ -14,4 +14,6 @@ public sealed record QuoteOptionDto(
     string ExternalReference,
     IReadOnlyCollection<CoverageSnapshotDto> Coverages,
     IReadOnlyCollection<InstallmentSnapshotDto> Installments,
-    IReadOnlyCollection<QuoteStatusMessageDto> Messages);
+    IReadOnlyCollection<QuoteStatusMessageDto> Messages,
+    string ProviderCode = "",
+    string ProviderName = "");

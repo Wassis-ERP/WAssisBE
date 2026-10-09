@@ -11,7 +11,11 @@ public sealed record QuoteProviderResultDto(
     decimal? CommissionAmount,
     IReadOnlyCollection<CoverageSnapshotDto> Coverages,
     IReadOnlyCollection<InstallmentSnapshotDto> Installments,
-    IReadOnlyCollection<QuoteStatusMessageDto> Messages);
+    IReadOnlyCollection<QuoteStatusMessageDto> Messages,
+    string? InsuranceCompanyCode = null,
+    string? InsuranceCompanyName = null,
+    string? ProductCode = null,
+    string? ProductName = null);
 
 public sealed record QuoteProviderRequirementDto(
     string Code,

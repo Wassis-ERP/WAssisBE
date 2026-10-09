@@ -60,7 +60,8 @@ public sealed class CreateQuoteRequestCommandHandler(
             request.InsuredPersonId,
             request.CalculationType,
             request.CalculationOrigin,
-            request.VersionLabel);
+            request.VersionLabel,
+            request.AutoSubmission);
 
         await repository.AddAsync(quoteRequest, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);

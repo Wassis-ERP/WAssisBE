@@ -1,3 +1,4 @@
+using WAssis.Domain.Modules.Quotes.ValueObjects;
 using MediatR;
 using WAssis.Application.Modules.Quotes.Dtos;
 
@@ -43,4 +44,5 @@ public sealed record CreateQuoteRequestCommand(
     Guid? InsuredPersonId = null,
     string CalculationType = "AUTO",
     string CalculationOrigin = "PROPRIO",
-    string? VersionLabel = null) : IRequest<QuoteRequestDto>;
+    string? VersionLabel = null,
+    AutoQuoteSubmission? AutoSubmission = null) : IRequest<QuoteRequestDto>;

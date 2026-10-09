@@ -86,7 +86,8 @@ public sealed class QuoteRequestsController(IMediator mediator) : ControllerBase
             request.InsuredPersonId,
             request.CalculationType,
             request.CalculationOrigin,
-            request.VersionLabel);
+            request.VersionLabel,
+            request.AutoSubmission);
 
         var response = await mediator.Send(command, cancellationToken);
 
@@ -139,7 +140,8 @@ public sealed class QuoteRequestsController(IMediator mediator) : ControllerBase
                     installment.TotalAmount)).ToArray(),
                 option.Messages.Select(static message => new QuoteStatusMessageViewModel(
                     message.Code,
-                    message.Description)).ToArray())).ToArray()));
+                    message.Description)).ToArray(),
+                option.ProviderCode, option.ProviderName)).ToArray()));
     }
 
     private static QuoteResponseViewModel ToViewModel(QuoteRequestDto response)
@@ -211,6 +213,8 @@ public sealed class QuoteRequestsController(IMediator mediator) : ControllerBase
                     installment.TotalAmount)).ToArray(),
                 option.Messages.Select(static message => new QuoteStatusMessageViewModel(
                     message.Code,
-                    message.Description)).ToArray())).ToArray());
+                    message.Description)).ToArray(),
+                option.ProviderCode, option.ProviderName)).ToArray(),
+            response.AutoSubmission);
     }
 }

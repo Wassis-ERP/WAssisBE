@@ -7,6 +7,19 @@ public sealed class CreateQuoteRequestCommandValidator : AbstractValidator<Creat
 {
     public CreateQuoteRequestCommandValidator()
     {
+        When(x => x.AutoSubmission is not null, () =>
+        {
+            RuleFor(x => x.AutoSubmission!).SetValidator(new AutoQuoteSubmissionValidator());
+            RuleFor(x => x.CalculationType).Equal("AUTO");
+            RuleFor(x => x.IsCurrentlyInsured).Equal(x => x.AutoSubmission!.InsuranceType != "NOVO");
+            RuleFor(x => x.RenewalInsurerCode).NotNull()
+                .When(x => x.AutoSubmission!.InsuranceType != "NOVO");
+            RuleFor(x => x.RenewalInsurerCode).Null()
+                .When(x => x.AutoSubmission!.InsuranceType == "NOVO");
+            RuleFor(x => x.PreviousBonus).Must((x, bonus) => string.IsNullOrEmpty(bonus) ||
+                bonus == x.AutoSubmission!.BonusClass?.ToString(System.Globalization.CultureInfo.InvariantCulture))
+                .WithMessage("O bônus legado deve coincidir com o snapshot de transmissão.");
+        });
         RuleFor(x => x.CorrelationId).NotEmpty().MaximumLength(64);
         RuleFor(x => x.CustomerName).NotEmpty().MaximumLength(200);
         RuleFor(x => x.DocumentNumber).NotEmpty().MaximumLength(32);
