@@ -14,4 +14,4 @@ Implementados envelope de transmissão, persistência relacional/migration, vali
 
 ImageSharp foi removido após alertas de segurança no restore e exigência de licença na versão corrigida; conversão de pixels para PPM substitui seu único uso no OCR. Sem mudança de política de auditoria.
 
-Restore locked, compilação Release, auditoria NuGet e alinhamento do modelo EF verificados. Duas falhas encontradas em testes foram corrigidas; reexecução bloqueada pelo Controle de Aplicativos do Windows, portanto a suíte final não está aprovada. Testes PostgreSQL e OCR real pendentes. Nenhum banco de usuário foi migrado. Ver `RENATO_MULTICALCULO_CONTINUATION.md` para comandos, resultados e sequência de implementação.
+Restore locked, compilação Release, auditoria NuGet e alinhamento do modelo EF verificados. Duas falhas encontradas em testes foram corrigidas; reexecução bloqueada pelo Controle de Aplicativos do Windows, portanto a suíte final não está aprovada. Testes PostgreSQL e OCR real pendentes. Nenhum banco de usuário foi migrado. A sequência técnica permanece neste plano; o prompt de continuidade é entregue exclusivamente no chat, conforme solicitado.
