@@ -315,3 +315,25 @@ Continuam pendentes tenant/configuração e evidências Auth0/MFA/recuperação/
 OCR real e corpus hostil, limites rígidos do worker/storage compartilhado,
 orçamento de custo por seguradora, reconciliação do legado, grants operacionais,
 retenção e evidências backup/restore/PITR. O sistema não está liberado para Production.
+
+### Gate local de segredos
+
+O ensaio de publicação confirmou um falso negativo do hook: `--pre-commit` sem
+`--staged` examinava zero bytes depois do `git add`. Corrigido nos dois repositórios
+com `--staged`, modo executável e LF explícito. A regressão usa um repositório
+temporário e credencial sintética gerada: o hook real deve impedir o commit em
+stage, aceitar o commit limpo e redigir toda saída. Os dois ensaios Windows
+passaram; o CI ganhou o mesmo gate, além da varredura de histórico existente.
+Nenhum segredo real foi introduzido e os repositórios temporários foram removidos.
+Comandos e fonte oficial constam de `docs/security-scanning.md`.
+
+### CI do checkpoint funcional
+
+BE `aeb00c0`: [run 37982882040](https://github.com/Wassis-ERP/WAssisBE/actions/runs/37982882040)
+integralmente aprovado, incluindo Testcontainers/PostgreSQL, build/publish e scans
+das imagens finais API/worker. CRM `39153b9`:
+[run 37982890014](https://github.com/Wassis-ERP/WassisCRM/actions/runs/37982890014)
+integralmente aprovado, incluindo smoke do bundle Production e scan da imagem CRM.
+Isso comprova os artefatos do CI; não comprova deploy, Auth0 real ou infraestrutura
+operacional. O ajuste posterior de hooks preserva o código funcional validado e
+será reexecutado automaticamente pelo CI do novo HEAD.

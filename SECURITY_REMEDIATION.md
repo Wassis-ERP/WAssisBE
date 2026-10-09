@@ -62,3 +62,8 @@ Total backend local: **158 testes aprovados** em duas execuções complementares
 Windows com a fixture Docker; ela permanece obrigatória no CI. O E2E conectado
 1/1 e o smoke Production 1/1 são evidências diferentes. Auth0 real, OCR real e
 deploy continuam não executados. O relatório original permaneceu inalterado.
+
+SEC-12 adicional: hook local corrigido para examinar stage (`--staged`), com LF e
+modo executável. Teste de regressão real aprovado nos dois repositórios: credencial
+sintética em stage bloqueada, commit limpo aceito e saída completamente redigida.
+O CI mantém histórico completo e executa também `scripts/test-secret-hook.ps1`.
