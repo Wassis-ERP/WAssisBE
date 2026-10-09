@@ -233,3 +233,18 @@ Isso comprova a fixture Testcontainers/Docker deste checkpoint; não deve ser
 confundido com evidência de grants, storage, limites de runtime ou deploy em
 Production. Docker Compose completo, migration em banco real e deploy não foram
 executados.
+
+## Atualização de dependências — 09/10/2026
+
+O run 37962842731 passou scanner de segredos, restore, build, 148 testes e
+auditoria NuGet, mas falhou no scan Trivy da imagem API. A reprodução sobre o
+digest fixado do ASP.NET 10.0.12 encontrou duas ocorrências HIGH corrigíveis da
+mesma `CVE-2026-84782` em `libssl3t64` e `openssl` (3.0.13-0ubuntu3.15). Os
+Dockerfiles da API e do worker agora fixam a republicação oficial corrente do
+mesmo runtime, com OpenSSL 3.0.13-0ubuntu3.16 ou superior.
+
+Trivy 0.75.0, baixado do release oficial e validado pelo checksum publicado,
+retornou zero HIGH/CRITICAL corrigíveis para o novo digest remoto. O SDK permanece
+10.0.401 e o runtime 10.0.12; não houve afrouxamento de severidade, `ignore-unfixed`
+ou exit code. O scan da imagem final, incluindo os assemblies publicados, continua
+sendo repetido pelo CI após o push.
