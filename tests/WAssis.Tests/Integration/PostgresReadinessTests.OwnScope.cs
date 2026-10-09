@@ -55,6 +55,7 @@ public sealed partial class PostgresReadinessTests
             VALUES (gen_random_uuid(),{Guid.Parse(UserA)},{Guid.Parse(BranchB)},{Guid.Parse(ProfileA)},false,true)
             """);
         client.DefaultRequestHeaders.Add("X-Office-Branch-Id", BranchB);
+        await AssertIdentityBranches(client, BranchA, BranchB);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/segurados")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/segurados/{insuredId}")).StatusCode);
         using var selected = await client.GetFromJsonAsync<JsonDocument>("/api/identity/me");
@@ -62,11 +63,25 @@ public sealed partial class PostgresReadinessTests
         await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM erp.profile_filiais WHERE profile_id = {Guid.Parse(UserA)} AND filial_id = {Guid.Parse(BranchB)}");
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/segurados")).StatusCode);
         client.DefaultRequestHeaders.Remove("X-Office-Branch-Id");
+        await AssertIdentityBranches(client, BranchA);
 
         await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE erp.profile_filiais SET ativo = false WHERE profile_id = {Guid.Parse(UserA)}");
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/identity/me")).StatusCode);
+        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/identity/me/branches")).StatusCode);
         await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE erp.profile_filiais SET ativo = true WHERE profile_id = {Guid.Parse(UserA)}");
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/identity/me")).StatusCode);
+    }
+
+    private static async Task AssertIdentityBranches(HttpClient client, params string[] expected)
+    {
+        using var response = await client.GetAsync("/api/identity/me/branches");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadAsStringAsync();
+        Assert.DoesNotContain("documentNumber", body);
+        using var json = JsonDocument.Parse(body);
+        var ids = json.RootElement.EnumerateArray().Select(row => row.GetProperty("id").GetString()).Order().ToArray();
+        Assert.Equal(expected.Order().ToArray(), ids);
+        Assert.All(json.RootElement.EnumerateArray(), row => Assert.True(row.GetProperty("isActive").GetBoolean()));
     }
 
     private static async Task VerifyConcurrentOwnershipChange(WAssisDbContext admin, Guid insuredId, Guid opportunityId, Guid producer)

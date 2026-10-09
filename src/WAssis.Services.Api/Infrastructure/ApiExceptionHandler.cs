@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Npgsql;
 using Microsoft.EntityFrameworkCore;
+using WAssis.Domain.Modules.Quotes;
 
 namespace WAssis.Services.Api.Infrastructure;
 
@@ -18,6 +19,10 @@ public sealed class ApiExceptionHandler(
     {
         var (status, title, detail) = exception switch
         {
+            QuoteRequestConflictException => (
+                StatusCodes.Status409Conflict,
+                "Chave de idempotência em conflito.",
+                "Use uma nova chave para um pedido diferente."),
             UnauthorizedAccessException => (
                 StatusCodes.Status403Forbidden,
                 "Acesso negado.",

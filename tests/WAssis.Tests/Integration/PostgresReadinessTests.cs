@@ -83,6 +83,8 @@ public sealed partial class PostgresReadinessTests
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.PostAsJsonAsync("/api/identity/login", new { username = "user0@example.invalid", password = "wrong" })).StatusCode);
         using var anonymousCsrf = await client.GetFromJsonAsync<JsonDocument>("/api/identity/csrf");
         var sessionCookie = await Login(client, 0);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/core/branches")).StatusCode);
+        await AssertIdentityBranches(client, BranchA);
         using (var staleCsrf = new HttpRequestMessage(HttpMethod.Post, "/api/identity/logout"))
         {
             staleCsrf.Headers.Add("X-CSRF-TOKEN", anonymousCsrf!.RootElement.GetProperty("token").GetString());
@@ -160,6 +162,7 @@ public sealed partial class PostgresReadinessTests
             Assert.Contains(await worker.InsuredPeople.Select(x => x.Id).ToArrayAsync(), item => item == id);
         Assert.Equal("test-queue", auditPurpose);
 
+        await VerifyQuoteIdempotencyHttp(client);
         await VerifyOwnScopeAndLivePermissions(db, client, id, opportunityId);
         Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsync("/api/identity/logout", null)).StatusCode);
         using (var replay = factory.CreateClient(new WebApplicationFactoryClientOptions

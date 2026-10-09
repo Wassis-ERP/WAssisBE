@@ -248,3 +248,70 @@ retornou zero HIGH/CRITICAL corrigíveis para o novo digest remoto. O SDK perman
 10.0.401 e o runtime 10.0.12; não houve afrouxamento de severidade, `ignore-unfixed`
 ou exit code. O scan da imagem final, incluindo os assemblies publicados, continua
 sendo repetido pelo CI após o push.
+
+## Continuação — 09/10/2026: navegador, filiais da sessão e idempotência
+
+Fetch/status/log confirmaram BE `3752478` e CRM `0295172`, com os CIs
+37965321761 e 37965793466 aprovados. As árvores estavam limpas antes deste recorte.
+
+O teste de navegador real revelou regressões que o build e os testes Staging não
+detectavam: DI da API Development dependia do parser registrado só no worker;
+bootstrap Production do CRM omitia o provedor Auth0; seletor de filial exigia
+permissão administrativa GRUPO; conclusão após reload dependia do snapshot de login
+ausente. Esses quatro pontos foram corrigidos e exercitados.
+
+`GET /api/identity/me/branches` entrega somente ID/nome/atividade das filiais
+vigentes da própria sessão. As claims utilizadas são renovadas na autenticação
+pelos vínculos persistidos; o contexto dos repositórios permanece limitado à filial
+selecionada. O diretório `/api/core/branches` continua exigindo `plataforma/read`
+GRUPO. A nova cobertura PostgreSQL verifica negação administrativa, duas filiais,
+concessão/remoção durante a sessão e usuário sem vínculo; não houve ampliação de
+acesso tenant-wide ou de PROPRIO.
+
+O handler legado de quotes aceitava a mesma chave com conteúdo diferente. Agora
+compara a entrada persistida e usa lock transacional PostgreSQL tenant/chave:
+retry equivalente retorna o ID anterior, conteúdo diferente gera 409 sanitizado.
+RLS oculta outra filial, inclusive no conflito do índice único. O teste com oito
+conexões concorrentes confirmou um pedido/uma outbox, e cobre disputa de versões,
+reuso por outro tenant e cancelamento sem gravação parcial. Sem nova migration.
+
+Evidências locais finais:
+
+- SDK 10.0.401 / EF 10.0.12, restore locked `--no-http-cache`, build Release:
+  aprovados, zero avisos/erros; modelo EF sem alteração pendente;
+- 152/152 testes sem PostgreSQL e 6/6 integrações PostgreSQL 16.15 real/TLS
+  `VerifyFull`: aprovados, nenhum ignorado;
+- CRM: 337/337 testes, lint, build backend/Auth0 e 1/1 smoke Production aprovados;
+- Playwright conectado: 1/1 aprovado, com API real e role não-owner/NOBYPASSRLS,
+  criação/edição/reload/ganho/lista/Kanban/logout/nova sessão. GET/POST/PUT do BE
+  observados; destinos externos bloqueados; Cálculos/Tarefas exibem a pendência;
+- revisão visual a 1440×900, sem sobreposição ou overflow horizontal. Capturas
+  sintéticas permanecem em `.screens/e2e`, ignoradas no Git;
+- NuGet e npm audit: zero vulnerabilidades reportadas. Gitleaks 8.30.1 em árvores
+  e histórico local disponível (61 commits BE / 79 CRM antes deste checkpoint):
+  zero achados, saída redigida.
+
+Reprodução: `scripts/test-security-postgres.ps1 -PostgresBinDirectory <bin>
+-ConnectedCrmDirectory <CRM/nexus-crm>`. A opção `-ConnectedOnly` repete só o
+navegador e anuncia explicitamente que não executa a categoria PostgreSQL.
+Fixtures usam cluster/banco/roles exclusivos e credenciais efêmeras. Seus grants
+amplos não são um modelo operacional. Bancos/roles do navegador foram excluídos,
+seus processos encerrados e clusters parados; senha e chave TLS privadas removidas.
+
+Limites: PostgreSQL Windows não comprova Testcontainers/Docker; Docker Desktop
+local está indisponível e imagens finais não foram construídas/examinadas neste
+recorte local. O smoke Production intercepta um 401 da identidade e não comprova
+Auth0 real. Nenhuma migration em dados reais e nenhum deploy foram executados.
+
+Próxima fatia canônica depende de consolidar **Segurados e Oportunidades juntos**:
+as APIs persistem `public.*` e as FKs de cálculo apontam para `erp.*`. Não foram
+copiados vínculos antigos nem criado dual-write. Cálculos, execuções, resultados,
+renovação própria e apresentações conectados continuam pendentes. O CRM não tem
+client Supabase remoto: o arquivo de mesmo nome é adapter demonstrativo em memória,
+recusado em modo conectado/Production. Os testes comprovam BE nos módulos citados,
+não integração de todos os módulos do ERP.
+
+Continuam pendentes tenant/configuração e evidências Auth0/MFA/recuperação/rotação,
+OCR real e corpus hostil, limites rígidos do worker/storage compartilhado,
+orçamento de custo por seguradora, reconciliação do legado, grants operacionais,
+retenção e evidências backup/restore/PITR. O sistema não está liberado para Production.

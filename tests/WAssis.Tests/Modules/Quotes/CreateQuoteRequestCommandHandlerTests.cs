@@ -88,6 +88,12 @@ public sealed class CreateQuoteRequestCommandHandlerTests
 
     private sealed class InMemoryQuoteRequestRepository : IQuoteRequestRepository
     {
+        public Task<QuoteRequest> CreateIdempotentAsync(QuoteRequest quoteRequest, CancellationToken cancellationToken)
+        {
+            Items.Add(quoteRequest);
+            return Task.FromResult(quoteRequest);
+        }
+
         public List<QuoteRequest> Items { get; } = [];
 
         public Task AddAsync(QuoteRequest quoteRequest, CancellationToken cancellationToken)

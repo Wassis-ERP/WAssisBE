@@ -24,6 +24,6 @@ Keep `Database__AutoMigrate=false` on the API service. Before updating replicas,
 dotnet WAssis.Services.Api.dll --migrate
 ```
 
-Only start the rollout after this task exits successfully. `/health` and `/health/ready` expose `buildSha` and `instance`; use both values to verify every task, not only one response routed by Traefik. Keep the background worker at one replica until durable claim/lease and idempotency are implemented.
+Only start an authorized rollout after this task exits successfully and the security release gates are satisfied. Public `/health` exposes only `status`; `/health/ready` requires `PlatformAdmin`. Verify build/instance through protected operational telemetry instead of restoring public details. The worker uses durable claim/lease and fencing, but provider idempotency, resource limits and operational evidence still require validation before increasing replicas. See `SECURITY_REMEDIATION.md` and `SECURITY_FOLLOWUP.md` for the remaining blockers; this document is not evidence of a completed deployment.
 
 If the webhook returns `Error pulling image with the specified tag` and `unauthorized`, the image was built and pushed successfully. Configure `ghcr.io` under Portainer Registries with a GitHub user and a token containing `read:packages`, then associate that registry credential with the service/stack. Recreating the webhook alone does not fix registry authentication.

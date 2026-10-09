@@ -13,12 +13,6 @@ public sealed class CreateQuoteRequestCommandHandler(
 {
     public async Task<QuoteRequestDto> Handle(CreateQuoteRequestCommand request, CancellationToken cancellationToken)
     {
-        var existingQuoteRequest = await repository.GetByCorrelationIdAsync(request.CorrelationId, cancellationToken);
-        if (existingQuoteRequest is not null)
-        {
-            return QuoteRequestMappings.ToDto(existingQuoteRequest);
-        }
-
         var quoteRequest = QuoteRequest.Create(
             currentUserContext.ResolveTenantIdOrPlatform(),
             request.CorrelationId,
@@ -63,9 +57,7 @@ public sealed class CreateQuoteRequestCommandHandler(
             request.VersionLabel,
             request.AutoSubmission);
 
-        await repository.AddAsync(quoteRequest, cancellationToken);
-        await repository.SaveChangesAsync(cancellationToken);
-
-        return QuoteRequestMappings.ToDto(quoteRequest);
+        var persisted = await repository.CreateIdempotentAsync(quoteRequest, cancellationToken);
+        return QuoteRequestMappings.ToDto(persisted);
     }
 }

@@ -87,6 +87,9 @@ public sealed class QuoteProcessingServiceTests
 
     private sealed class InMemoryQuoteRequestRepository(QuoteRequest quoteRequest) : IQuoteRequestRepository
     {
+        public Task<QuoteRequest> CreateIdempotentAsync(QuoteRequest candidate, CancellationToken cancellationToken)
+            => throw new InvalidOperationException("Processing must not create another quote request.");
+
         public Task AddAsync(QuoteRequest item, CancellationToken cancellationToken) => Task.CompletedTask;
 
         public Task<QuoteRequest?> GetByIdAsync(Guid id, CancellationToken cancellationToken)

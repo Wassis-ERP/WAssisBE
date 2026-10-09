@@ -5,6 +5,7 @@ using WAssis.BackgroundTasks;
 using WAssis.Infra.CrossCutting.IoC;
 using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Documents.Interfaces;
+using WAssis.Application.Modules.Documents.Services;
 
 if (args.Length == 3 && string.Equals(args[0], "--document-parser", StringComparison.Ordinal))
 {
@@ -30,6 +31,7 @@ builder.Services.AddOptions<DocumentProcessingOptions>()
         "Documents:Processing limits are outside the supported safety bounds.")
     .ValidateOnStart();
 builder.Services.AddSingleton<IIsolatedDocumentProcessor, ProcessIsolatedDocumentProcessor>();
+builder.Services.AddScoped<IDocumentProcessingService, DocumentProcessingService>();
 builder.Services.AddScoped(provider => SystemDataScope.ForWorker("BackgroundTasks:durable-queues", purpose =>
     provider.GetRequiredService<ILogger<Worker>>().LogInformation("System data scope opened for {Purpose}", purpose)));
 builder.Services.AddHostedService<Worker>();

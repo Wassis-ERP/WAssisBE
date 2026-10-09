@@ -5,11 +5,42 @@ using WAssis.Domain.Modules.Quotes.Entities;
 using WAssis.Domain.Modules.Quotes.Enums;
 using WAssis.Infra.Data.Context;
 using WAssis.Application.Abstractions;
+using WAssis.Domain.Modules.Quotes;
+using Npgsql;
 
 namespace WAssis.Infra.Data.Modules.Quotes.Repositories;
 
 public sealed class QuoteRequestRepository(WAssisDbContext dbContext) : IQuoteRequestRepository
 {
+    public async Task<QuoteRequest> CreateIdempotentAsync(QuoteRequest quoteRequest, CancellationToken cancellationToken)
+    {
+        await using var transaction = dbContext.Database.CurrentTransaction is null
+            ? await dbContext.Database.BeginTransactionAsync(cancellationToken) : null;
+        // Same key, across API instances: hold the lock until the request transaction commits.
+        // A hash collision only serializes unrelated requests; equality still uses persisted fields.
+        var lockKey = $"quotes.create:{quoteRequest.TenantId.Length}:{quoteRequest.TenantId}:{quoteRequest.CorrelationId}";
+        await dbContext.Database.ExecuteSqlInterpolatedAsync(
+            $"SELECT pg_advisory_xact_lock(hashtextextended({lockKey}, 0))", cancellationToken);
+        var existing = await GetByCorrelationIdAsync(quoteRequest.CorrelationId, cancellationToken);
+        if (existing is not null)
+        {
+            if (!QuoteSubmissionComparer.Matches(existing, quoteRequest)) throw new QuoteRequestConflictException();
+            if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+            return existing;
+        }
+
+        await AddAsync(quoteRequest, cancellationToken);
+        try { await SaveChangesAsync(cancellationToken); }
+        catch (DbUpdateException exception) when (exception.InnerException is PostgresException
+            { SqlState: PostgresErrorCodes.UniqueViolation, ConstraintName: "IX_quote_requests_TenantId_CorrelationId" })
+        {
+            // A tenant key outside the current branch is deliberately not read through RLS.
+            throw new QuoteRequestConflictException();
+        }
+        if (transaction is not null) await transaction.CommitAsync(cancellationToken);
+        return quoteRequest;
+    }
+
     public async Task AddAsync(QuoteRequest quoteRequest, CancellationToken cancellationToken)
     {
         await dbContext.QuoteRequests.AddAsync(quoteRequest, cancellationToken);

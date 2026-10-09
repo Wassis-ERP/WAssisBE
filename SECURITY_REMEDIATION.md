@@ -35,3 +35,30 @@ Este registro documenta a implementação realizada nos repositórios `WAssisBE`
 ## Parecer de liberação
 
 O sistema **não está pronto para Production**. Permanecem bloqueadores em SEC-03 (provisionamento e evidência Auth0/MFA/recuperação), SEC-04 (limites rígidos no runtime, storage/volume operacional, corpus hostil e orçamento por seguradora), na validação real do novo RLS/fila de worker e nas evidências de infraestrutura. Nenhuma migration foi aplicada a dados reais e nenhum deploy foi realizado.
+
+## Atualização verificável — 09/10/2026
+
+Esta tabela complementa as evidências históricas acima; não reclassifica o sistema
+como pronto. Detalhes e reprodução estão em `SECURITY_FOLLOWUP.md` e
+`docs/multicalculo-transmissao-plan.md`. Nenhum segredo ou dado real foi usado.
+
+| SEC-ID | Condição atual / correção deste recorte | Arquivos principais | Evidência executada | Pendência / status do achado completo |
+|---|---|---|---|---|
+| SEC-01 | Seletor conectado consultava diretório GRUPO e bloqueava usuário operacional. Adicionada consulta da própria identidade sem ampliar a filial de dados. | `IdentityController.cs`, `IdentityBranchViewModel.cs`, CRM `backendLookups.ts`/`useMyBranches.ts` | HTTP PostgreSQL com role comum: diretório administrativo 403, vínculos próprios vigentes, concessão/remoção/inatividade na sessão; E2E conectado aprovado. | Completar matriz dos demais módulos/GRUPO/worker: **implementado sem validação completa**. |
+| SEC-02 | Quotes de outra filial não podem ser retornados por retry de chave. Raízes `public.segurados/oportunidades` ainda divergem das FKs ERP do multicálculo. | `QuoteRequestRepository.cs`, testes PostgreSQL; plano de transmissão | Outra filial gera conflito sem vazamento; seis integrações reais aprovadas com dois tenants/filiais e RLS. | Consolidar raízes e reconciliar dados antigos explicitamente: **implementado sem validação completa**. |
+| SEC-03 | Bundle Production falhava por omitir Auth0 no validador; corrigido e gate de navegador adicionado. | CRM `main.tsx`, `production-bootstrap.pw.ts`, workflow | Build e smoke Production 1/1 aprovados; autenticação conectada Development exercitada separadamente com BE real. | Provisionamento e jornada Auth0/MFA/recuperação reais não executados: **implementado sem validação completa**. |
+| SEC-04 | Reuso concorrente de chave podia repetir/cruzar versões de envio. Lock distribuído transacional + comparação de conteúdo preservam pedido/outbox atômicos. DI de processamento ficou exclusivamente no worker. | `QuoteSubmissionComparer.cs`, repository/handler, `ApplicationServiceCollectionExtensions.cs`, worker `Program.cs` | Oito retries, disputa de versões, cancelamento e uma outbox no PostgreSQL; startup Development aprovado; suíte não-PG 152/152. | Limites rígidos, corpus/OCR, storage operacional e orçamento por seguradora: **implementado sem validação completa**. |
+| SEC-05 | Após reload, adapters perdiam o tenant, embora o cookie estivesse válido. Contexto confirmado por `/me` agora fica só em memória e é limpo em logout/401; não recria credencial/expiração. | CRM `backendApi.ts`, `backendDomainApi.ts` e testes | CRM 337/337; E2E grava após reload e valida logout/nova sessão; replay/revogação PostgreSQL aprovados. | Sessão/rotação/logout do IdP real ainda pendentes: **implementado sem validação completa**. |
+| SEC-06 | TLS da validação foi efetivamente verificado no cluster descartável. | scripts PostgreSQL/E2E, fixture SQL | PostgreSQL 16.15 `VerifyFull`, senha/certificado efêmeros, app role comum. | Grants de fixture não comprovam operação; KMS/backup/restore/PITR/retention externos: **parcialmente corrigido**. |
+| SEC-07 | SDK/EF e lockfiles preservados; nenhum pacote foi alterado neste recorte. | `global.json`/manifesto/locks existentes, testes novos | Restore locked sem cache, build Release sem avisos, modelo sem divergência, NuGet audit zero advisories. | Corpus representativo e imagem final do novo checkpoint no CI: **implementado sem validação completa**. |
+| SEC-08 | Paginação existente preservada, sem truncamento novo. | adapters e testes existentes | 337 testes CRM / 152 não-PG, seis PostgreSQL; E2E lista/Kanban aprovado. | **Corrigido e verificado** no escopo documentado. |
+| SEC-09 | RLS e contexto transacional não foram relaxados para idempotência ou filial da identidade. | repository quotes, testes `QuoteIdempotencyPostgresTests` e `PostgresReadinessTests*` | Seis PostgreSQL reais, role não-owner/NOBYPASSRLS, pool/rollback/cancelamento/worker/outbox; E2E mesma restrição. | Grants reais e backfill explícito continuam externos: **implementado sem validação completa**. |
+| SEC-10 | Conflito 409 não inclui conteúdo do pedido; runbook deixou de prometer detalhes no health público. | `ApiExceptionHandler.cs`, controller quotes, `docs/portainer-deployment.md` | HTTP testa ausência de nome/documento/chave no problema; health mínimo no teste de startup. | Edge publicado ainda externo: **corrigido e verificado** no código/ambiente isolado. |
+| SEC-11 | Compose não foi alterado neste recorte. | controles existentes | Revisão preservada; Docker Desktop indisponível, Compose e scans locais finais não executados. | Evidência operacional pendente: **implementado sem validação completa**. |
+| SEC-12 | Gates existentes mantidos e smoke Production adicionado ao CI CRM. | workflow CRM, configs/testes Playwright, scripts existentes | Lint e auditorias aprovados; Gitleaks redigido sem achados nas duas árvores/históricos disponíveis (61/79 commits antes do checkpoint). | CI do novo commit é verificado após push; **corrigido e verificado** localmente. |
+
+Total backend local: **158 testes aprovados** em duas execuções complementares
+(152 sem PostgreSQL + seis com PostgreSQL), sem ignorados. Não confundir o runner
+Windows com a fixture Docker; ela permanece obrigatória no CI. O E2E conectado
+1/1 e o smoke Production 1/1 são evidências diferentes. Auth0 real, OCR real e
+deploy continuam não executados. O relatório original permaneceu inalterado.

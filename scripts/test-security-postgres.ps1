@@ -1,8 +1,11 @@
 param(
     [Parameter(Mandatory)][string]$PostgresBinDirectory,
-    [string]$Filter = 'Category=Postgres'
+    [string]$Filter = 'Category=Postgres',
+    [string]$ConnectedCrmDirectory,
+    [switch]$ConnectedOnly
 )
 $ErrorActionPreference = 'Stop'
+if ($ConnectedOnly -and !$ConnectedCrmDirectory) { throw 'ConnectedOnly requires ConnectedCrmDirectory.' }
 $cluster = Join-Path ([IO.Path]::GetTempPath()) ('wassis-security-' + [Guid]::NewGuid().ToString('N'))
 $null = New-Item -ItemType Directory -Path $cluster
 $data = Join-Path $cluster 'data'
@@ -37,8 +40,15 @@ try {
     if ($LASTEXITCODE -ne 0) { throw 'Could not start disposable PostgreSQL.' }
     $started = $true
     $env:WASSIS_TEST_POSTGRES_CONNECTION = "Host=127.0.0.1;Port=$port;Database=postgres;Username=wassis_fixture;Password=$password;Ssl Mode=VerifyFull;Root Certificate=$rootCertificate"
-    & dotnet test tests/WAssis.Tests/WAssis.Tests.csproj --configuration Release --no-restore --filter $Filter --logger 'console;verbosity=normal' --verbosity quiet
-    $testExitCode = $LASTEXITCODE
+    $testExitCode = 0
+    if (!$ConnectedOnly) {
+        & dotnet test tests/WAssis.Tests/WAssis.Tests.csproj --configuration Release --no-restore --filter $Filter --logger 'console;verbosity=normal' --verbosity quiet
+        $testExitCode = $LASTEXITCODE
+    } else { Write-Output 'Connected browser journey only; PostgreSQL test category is not run by this invocation.' }
+    if ($testExitCode -eq 0 -and $ConnectedCrmDirectory) {
+        & (Join-Path $PSScriptRoot 'test-connected-crm.ps1') -PostgresBinDirectory $PostgresBinDirectory -CrmDirectory $ConnectedCrmDirectory
+        $testExitCode = $LASTEXITCODE
+    }
 } finally {
     $env:WASSIS_TEST_POSTGRES_CONNECTION = $oldConnection
     if ($started) { & (Join-Path $PostgresBinDirectory 'pg_ctl.exe') -D $data -w -m fast stop }

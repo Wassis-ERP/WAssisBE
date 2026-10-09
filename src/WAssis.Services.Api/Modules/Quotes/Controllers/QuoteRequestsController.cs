@@ -42,6 +42,7 @@ public sealed class QuoteRequestsController(IMediator mediator) : ControllerBase
     [RequirePermission("comercial", "create")]
     [DistributedOperationLimit("quotes.create", 10, 60)]
     [ProducesResponseType(typeof(QuoteResponseViewModel), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create(
         [FromBody] CreateQuoteRequestRequest request,
         CancellationToken cancellationToken)

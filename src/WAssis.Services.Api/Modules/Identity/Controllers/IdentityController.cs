@@ -11,8 +11,10 @@ using WAssis.Application.Abstractions;
 using WAssis.Application.Modules.Identity.Commands;
 using WAssis.Application.Modules.Identity.Dtos;
 using WAssis.Application.Modules.Identity.Interfaces;
+using WAssis.Application.Modules.Core.Interfaces;
 using WAssis.Infra.CrossCutting.Identity.Authorization;
 using WAssis.Infra.CrossCutting.Identity.Authentication;
+using WAssis.Infra.CrossCutting.Identity.Models;
 using WAssis.Services.Api.Extensions;
 using WAssis.Services.Api.Infrastructure;
 using WAssis.Services.Api.Modules.Identity.Contracts;
@@ -135,6 +137,25 @@ public sealed class IdentityController(
             currentUserContext.SellerId,
             currentUserContext.UserType,
             currentUserContext.Roles));
+    }
+
+    [Authorize(Policy = AccessPolicies.AuthenticatedUser)]
+    [HttpGet("me/branches")]
+    [ProducesResponseType(typeof(IReadOnlyCollection<IdentityBranchViewModel>), StatusCodes.Status200OK)]
+    public async Task<IActionResult> MyBranches(
+        [FromServices] ICoreBranchReadRepository branchesRepository,
+        CancellationToken cancellationToken)
+    {
+        if (!Guid.TryParse(currentUserContext.TenantId, out var tenantId)) return Forbid();
+        // Authentication replaces these claims with the currently active persisted bindings.
+        // This is identity context, not an administrative tenant-wide directory.
+        // ICurrentUserContext.BranchIds deliberately contains only the selected data branch.
+        // Use the principal claims refreshed by OnTokenValidated, without widening that scope.
+        var allowed = User.FindAll(ClaimConstants.BranchIds).Select(claim => claim.Value)
+            .Where(value => Guid.TryParse(value, out _)).Select(Guid.Parse).Distinct().ToArray();
+        var branches = await branchesRepository.ListAsync(tenantId, allowed, false, cancellationToken);
+        return Ok(branches.Where(branch => branch.IsActive)
+            .Select(branch => new IdentityBranchViewModel(branch.Id, branch.Name, branch.IsActive)).ToArray());
     }
 
     [Authorize(Policy = AccessPolicies.AuthenticatedUser)]
