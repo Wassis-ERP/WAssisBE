@@ -95,7 +95,7 @@ public sealed partial class PostgresReadinessTests
         {
             var opportunity = await stale.Opportunities.SingleAsync(x => x.Id == opportunityId);
             await admin.Database.ExecuteSqlInterpolatedAsync($"UPDATE erp.oportunidades SET responsavel_id = {Guid.Parse(UserBranchB)} WHERE id = {opportunityId}");
-            stale.Entry(opportunity).Property(x => x.Name).CurrentValue = "Stale overwrite";
+            stale.Entry(opportunity).Property(x => x.Title).CurrentValue = "Stale overwrite";
             await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => stale.SaveChangesAsync());
         }
         await admin.Database.ExecuteSqlInterpolatedAsync($"UPDATE erp.oportunidades SET responsavel_id = {Guid.Parse(UserA)} WHERE id = {opportunityId}");

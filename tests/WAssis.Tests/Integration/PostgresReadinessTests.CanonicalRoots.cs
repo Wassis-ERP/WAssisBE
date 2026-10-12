@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using WAssis.Infra.Data.Context;
 
 namespace WAssis.Tests.Integration;
@@ -26,5 +27,17 @@ public sealed partial class PostgresReadinessTests
             JOIN erp.segurados s ON s.id = c.segurado_id
             WHERE c.id = {calculation} AND o.id = {opportunityId} AND s.id = {insuredId}
             """).SingleAsync());
+
+        // Database enforcement also protects writes that bypass API validation.
+        var otherBranchInsured = Guid.NewGuid();
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO erp.segurados (id,tenant_id,filial_id,nome,tipo,status,lgpd_autorizado,created_at,updated_at)
+            VALUES ({otherBranchInsured},{Guid.Parse(TenantA)},{Guid.Parse(BranchB)},'Outra corretora','PF','Prospecto',false,now(),now())
+            """);
+        var conflict = await Assert.ThrowsAsync<PostgresException>(() => db.Database.ExecuteSqlInterpolatedAsync($"""
+            UPDATE erp.oportunidades SET segurado_id = {otherBranchInsured} WHERE id = {opportunityId}
+            """));
+        Assert.Equal(PostgresErrorCodes.CheckViolation, conflict.SqlState);
+        Assert.Equal(insuredId, (await db.Opportunities.AsNoTracking().SingleAsync(x => x.Id == opportunityId)).InsuredPersonId);
     }
 }
