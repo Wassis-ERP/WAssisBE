@@ -58,6 +58,19 @@ public sealed class ExecutionIdempotencyPostgresTests
             await transaction.CommitAsync(); return result;
         }
         var selection = new CreateCalculationExecution { InsurerId = insurer };
+        await using (var lookupDb = Context(user))
+        {
+            await using var lookupTransaction = await lookupDb.Database.BeginTransactionAsync(); await SetScope(lookupDb, user);
+            var lookups = new CanonicalCalculationLookupStore(lookupDb, user, new LookupClock());
+            var calendar = (await lookups.GetContextAsync(opportunity, line, default))!;
+            Assert.Equal("2026-10-11", calendar.BranchDate); // 01:30 UTC is still the previous day in the group timezone.
+            Assert.Single((await lookups.ListInsurersAsync(opportunity, 1, 50, null, default))!.Items);
+            var forbiddenScope = new RecordPermissionScope(); forbiddenScope.RestrictToOwner("comercial", Guid.NewGuid().ToString(), []);
+            await using var hiddenDb = Context(user, forbiddenScope);
+            await using var hiddenTransaction = await hiddenDb.Database.BeginTransactionAsync(); await SetScope(hiddenDb, user);
+            Assert.Null(await new CanonicalCalculationLookupStore(hiddenDb, user, new LookupClock()).GetContextAsync(opportunity, line, default));
+            await hiddenTransaction.CommitAsync(); await lookupTransaction.CommitAsync();
+        }
         var executions = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => Run(s => s.CreateAsync(calculationId, "same-execution", selection, default))));
         var execution = executions[0]!;
         Assert.Single(executions.Select(x => x!.Id).Distinct()); Assert.Equal(15, execution.AppliedCommission);
@@ -149,5 +162,10 @@ public sealed class ExecutionIdempotencyPostgresTests
         var resultImmutable = await Assert.ThrowsAsync<PostgresException>(() => admin.Database.ExecuteSqlInterpolatedAsync($"UPDATE erp.cotacoes SET premio_total=999 WHERE id={result.Quote.Id}"));
         Assert.Equal(PostgresErrorCodes.CheckViolation, resultImmutable.SqlState);
         await Assert.ThrowsAsync<ValidationException>(() => Run(s => s.RecordManualQuoteAsync(execution.Id, "invalid-array", quote with { Coverages = [null!] }, default)));
+    }
+
+    private sealed class LookupClock : TimeProvider
+    {
+        public override DateTimeOffset GetUtcNow() => new(2026, 10, 12, 1, 30, 0, TimeSpan.Zero);
     }
 }

@@ -128,6 +128,7 @@ public sealed partial class PostgresReadinessTests
         var calculationId = await VerifyCanonicalCalculationHttp(db, client, opportunityId, id);
         var manualResult = await VerifyCanonicalManualExecutionHttp(db, client, opportunityId, calculationId);
         var presentationId = await VerifyCanonicalPresentationHttp(db, client, opportunityId, calculationId, manualResult.Quote);
+        await VerifyCalculationLookupsHttp(db, client, opportunityId, calculationId);
 
         // New context proves persistence, not an EF tracking/in-memory artifact.
         await using (var verification = Context(postgres.GetConnectionString(), TenantA, BranchA))
@@ -188,6 +189,8 @@ public sealed partial class PostgresReadinessTests
             Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/execucoes/{manualResult.Execution}")).StatusCode);
             Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/cotacoes/{manualResult.Quote}")).StatusCode);
             Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/apresentacoes/{presentationId}")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/oportunidades/{opportunityId}/calculos/lookups/seguradoras")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/oportunidades/{opportunityId}/calculos/contexto")).StatusCode);
             using var hiddenMutation = new HttpRequestMessage(HttpMethod.Post, $"/api/execucoes/{manualResult.Execution}/cancelar");
             hiddenMutation.Headers.Add("Idempotency-Key", "hidden-cancel");
             Assert.Equal(HttpStatusCode.NotFound, (await client.SendAsync(hiddenMutation)).StatusCode);
