@@ -48,7 +48,7 @@ try {
     $env:WASSIS_TEST_POSTGRES_CONNECTION = "Host=127.0.0.1;Port=$port;Database=postgres;Username=wassis_fixture;Password=$password;Ssl Mode=VerifyFull;Root Certificate=$rootCertificate"
     $testExitCode = 0
     if (!$ConnectedOnly) {
-        & dotnet test tests/WAssis.Tests/WAssis.Tests.csproj --configuration Release --no-restore --filter $Filter --logger 'console;verbosity=normal' --verbosity quiet
+        & dotnet test tests/WAssis.Tests/WAssis.Tests.csproj --configuration Release --no-restore --filter $Filter --logger 'console;verbosity=normal' --verbosity quiet -m:1 -nodeReuse:false -p:UseSharedCompilation=false
         $testExitCode = $LASTEXITCODE
     } else { Write-Output 'Connected browser journey only; PostgreSQL test category is not run by this invocation.' }
     if ($testExitCode -eq 0 -and $ConnectedCrmDirectory) {
