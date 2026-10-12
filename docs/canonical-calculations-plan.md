@@ -8,7 +8,7 @@ Vigência nova deriva a data atual no timezone do grupo, herdado pela filial no 
 
 - [x] DTOs/validação, serviço transacional, auditoria de criação e RLS descendente. Snapshots bloqueiam UPDATE/DELETE no banco. Rótulo com ordinal gerado sob lock da oportunidade.
 - [x] CI inicial 38251301576 aprovado integralmente; versão ef0a5e3. Local: 156 testes sem PostgreSQL e seis integrações PostgreSQL/TLS aprovadas.
-- [~] Cobertura adicional: HTTP de renovação própria/rollback, oito retries concorrentes com role NOBYPASSRLS e normalização decimal aprovados em PostgreSQL local; CI do checkpoint final pendente.
+- [x] Cobertura adicional: HTTP de renovação própria/rollback, oito retries concorrentes com role NOBYPASSRLS e normalização decimal aprovados localmente e no [CI funcional 38254084220](https://github.com/Wassis-ERP/WAssisBE/actions/runs/38254084220), commit 1b54cb4; build/testes/publish/scans aprovados integralmente.
 - [ ] Conectar frontend após APIs de execução/resultados estarem disponíveis.
 
 Sem chamada externa ou envio automático neste recorte. Outros formulários são etapas posteriores. Micro-plano frontend será atualizado com o contrato; `database.ts` permanece v3.1.
