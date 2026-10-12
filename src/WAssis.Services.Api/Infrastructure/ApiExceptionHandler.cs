@@ -20,6 +20,14 @@ public sealed class ApiExceptionHandler(
     {
         var (status, title, detail) = exception switch
         {
+            PresentationConflictException => (
+                StatusCodes.Status409Conflict,
+                "Apresentação em conflito.",
+                "Releia a apresentação e sua revisão antes de salvar novamente com uma nova chave."),
+            ExecutionStateConflictException => (
+                StatusCodes.Status409Conflict,
+                "Tentativa em conflito.",
+                "Atualize o histórico. Uma tentativa encerrada exige reexecução e uma tentativa aberta não pode ser duplicada."),
             CalculationConflictException => (
                 StatusCodes.Status409Conflict,
                 "Chave de idempotência em conflito.",

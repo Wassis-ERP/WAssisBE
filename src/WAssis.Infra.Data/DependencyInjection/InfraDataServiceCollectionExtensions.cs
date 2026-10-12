@@ -134,6 +134,8 @@ public static class InfraDataServiceCollectionExtensions
         services.AddScoped<IInsuredPersonReadRepository, InsuredPersonRepository>();
         services.AddScoped<IOpportunityRepository, OpportunityRepository>();
         services.AddScoped<ICanonicalCalculationStore, CanonicalCalculationStore>();
+        services.AddScoped<ICanonicalExecutionStore, CanonicalExecutionStore>();
+        services.AddScoped<ICanonicalPresentationStore, CanonicalPresentationStore>();
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IOpportunityReadRepository, OpportunityRepository>();
         services.AddScoped<IOpportunityScope, OpportunityScope>();
