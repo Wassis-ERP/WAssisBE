@@ -1,3 +1,5 @@
+using WAssis.Application.Modules.Calculations;
+using WAssis.Infra.Data.Modules.Calculations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -131,6 +133,8 @@ public static class InfraDataServiceCollectionExtensions
         services.AddScoped<IInsuredPersonRepository, InsuredPersonRepository>();
         services.AddScoped<IInsuredPersonReadRepository, InsuredPersonRepository>();
         services.AddScoped<IOpportunityRepository, OpportunityRepository>();
+        services.AddScoped<ICanonicalCalculationStore, CanonicalCalculationStore>();
+        services.AddSingleton(TimeProvider.System);
         services.AddScoped<IOpportunityReadRepository, OpportunityRepository>();
         services.AddScoped<IOpportunityScope, OpportunityScope>();
         services.AddScoped<IDocumentSearchRepository, DocumentSearchRepository>();

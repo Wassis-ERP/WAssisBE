@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Routing;
 using Npgsql;
 using Microsoft.EntityFrameworkCore;
 using WAssis.Domain.Modules.Quotes;
+using WAssis.Application.Modules.Calculations;
 
 namespace WAssis.Services.Api.Infrastructure;
 
@@ -19,6 +20,10 @@ public sealed class ApiExceptionHandler(
     {
         var (status, title, detail) = exception switch
         {
+            CalculationConflictException => (
+                StatusCodes.Status409Conflict,
+                "Chave de idempotência em conflito.",
+                "Use uma nova chave para uma nova versão do cálculo."),
             QuoteRequestConflictException => (
                 StatusCodes.Status409Conflict,
                 "Chave de idempotência em conflito.",
