@@ -63,17 +63,23 @@ public sealed class PostgresAdministrationTests
                 VALUES
                   ('{PermissionA}', '{MasterA}', 'configuracoes', 'GRUPO', true, true, true, true, true, true),
                   ('{PermissionB}', '{MasterB}', 'configuracoes', 'GRUPO', true, true, true, true, true, true);
-                INSERT INTO public.segurados
+                INSERT INTO erp.segurados
                   (id, tenant_id, filial_id, nome, tipo, status, lgpd_autorizado, created_at, updated_at)
                 VALUES
                   (gen_random_uuid(), '{TenantA}', '{BranchA}', 'Pessoa A', 'PF', 'active', true, now(), now()),
                   (gen_random_uuid(), '{TenantB}', '{BranchB}', 'Pessoa B', 'PF', 'active', true, now(), now());
-                INSERT INTO public.oportunidades
-                  (id, tenant_id, filial_id, nome, responsavel_id, status, created_at, updated_at)
+                INSERT INTO erp.pipelines (id,tenant_id,entidade_tipo,ativo) VALUES
+                  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1','{TenantA}','oportunidade',true),
+                  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2','{TenantB}','oportunidade',true);
+                INSERT INTO erp.pipeline_stages (id,pipeline_id,ativo) VALUES
+                  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',true),
+                  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2',true);
+                INSERT INTO erp.oportunidades
+                  (id, tenant_id, filial_id, titulo, responsavel_id, stage_id, ganha_em, perdida_em, created_at, updated_at)
                 VALUES
-                  (gen_random_uuid(), '{TenantA}', '{BranchA}', 'Aberta A', '{UserA}', 'pending', now(), now()),
-                  (gen_random_uuid(), '{TenantA}', '{BranchA}', 'Ganha A', '{UserA}', 'won', now(), now()),
-                  (gen_random_uuid(), '{TenantB}', '{BranchB}', 'Perdida B', '{UserB}', 'lost', now(), now());
+                  (gen_random_uuid(), '{TenantA}', '{BranchA}', 'Aberta A', '{UserA}', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1', null, null, now(), now()),
+                  (gen_random_uuid(), '{TenantA}', '{BranchA}', 'Ganha A', '{UserA}', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1', now(), null, now(), now()),
+                  (gen_random_uuid(), '{TenantB}', '{BranchB}', 'Perdida B', '{UserB}', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2', null, now(), now(), now());
                 """);
         }
 

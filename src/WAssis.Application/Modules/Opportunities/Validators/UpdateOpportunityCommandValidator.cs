@@ -9,6 +9,20 @@ public sealed class UpdateOpportunityCommandValidator : AbstractValidator<Update
     {
         RuleFor(x => x.Id).NotEmpty();
         RuleFor(x => x.Name).NotEmpty().MaximumLength(200);
+        RuleFor(x => x.OfficeBranchId).Must(id => string.IsNullOrWhiteSpace(id) || Guid.TryParse(id, out var parsed) && parsed != Guid.Empty).WithMessage("Referência deve ser UUID válido.");
+        RuleFor(x => x.StageId).Must(id => string.IsNullOrWhiteSpace(id) || Guid.TryParse(id, out var parsed) && parsed != Guid.Empty).WithMessage("Referência deve ser UUID válido.");
+        RuleFor(x => x.ResponsibleId).Must(id => string.IsNullOrWhiteSpace(id) || Guid.TryParse(id, out var parsed) && parsed != Guid.Empty).WithMessage("Referência deve ser UUID válido.");
+        RuleFor(x => x.PipelineId).Must(id => string.IsNullOrWhiteSpace(id) || Guid.TryParse(id, out var parsed) && parsed != Guid.Empty).WithMessage("Referência deve ser UUID válido.");
+        RuleFor(x => x.InsuranceLineId).Must(id => string.IsNullOrWhiteSpace(id) || Guid.TryParse(id, out var parsed) && parsed != Guid.Empty).WithMessage("Referência deve ser UUID válido.");
+        RuleFor(x => x.OriginId).Must(id => string.IsNullOrWhiteSpace(id) || Guid.TryParse(id, out var parsed) && parsed != Guid.Empty).WithMessage("Referência deve ser UUID válido.");
+        RuleFor(x => x.InsurerId).Empty().WithMessage("Campo legado sem destino no contrato canônico.");
+        RuleFor(x => x.BusinessType).Empty().WithMessage("Campo legado sem destino no contrato canônico.");
+        RuleFor(x => x.ContactType).Empty().WithMessage("Campo legado sem destino no contrato canônico.");
+        RuleFor(x => x.ValidityStartUtc).Empty().WithMessage("Campo legado sem destino no contrato canônico.");
+        RuleFor(x => x.ValidityEndUtc).Empty().WithMessage("Campo legado sem destino no contrato canônico.");
+        RuleFor(x => x.NextFollowUpUtc).Empty().WithMessage("Campo legado sem destino no contrato canônico.");
+        RuleFor(x => x.Referrer).Empty().WithMessage("Campo legado sem destino no contrato canônico.");
+        RuleFor(x => x.ProductionAmount).Empty().WithMessage("Campo legado sem destino no contrato canônico.");
         RuleFor(x => x.OfficeBranchId).NotEmpty().MaximumLength(64);
         RuleFor(x => x.StageId).NotEmpty().MaximumLength(64);
         RuleFor(x => x.ResponsibleId).MaximumLength(64);
@@ -36,7 +50,7 @@ public sealed class UpdateOpportunityCommandValidator : AbstractValidator<Update
             .WithMessage("Lost opportunities must include ConcludedAtUtc or LostAtUtc.");
         RuleFor(x => x.MetadataJson)
             .Must(BeJsonObject)
-            .WithMessage("Metadata must be a JSON object.");
+            .WithMessage("Metadata legado deve permanecer vazio.");
     }
 
     private static bool BeSupportedStatus(string? status)
@@ -54,7 +68,7 @@ public sealed class UpdateOpportunityCommandValidator : AbstractValidator<Update
         try
         {
             using var document = System.Text.Json.JsonDocument.Parse(metadataJson);
-            return document.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object;
+            return document.RootElement.ValueKind == System.Text.Json.JsonValueKind.Object && !document.RootElement.EnumerateObject().Any();
         }
         catch (System.Text.Json.JsonException)
         {

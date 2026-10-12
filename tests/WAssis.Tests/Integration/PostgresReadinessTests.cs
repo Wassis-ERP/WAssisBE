@@ -117,6 +117,7 @@ public sealed partial class PostgresReadinessTests
         Assert.Equal(HttpStatusCode.Created, opportunityResponse.StatusCode);
         var opportunity = await opportunityResponse.Content.ReadFromJsonAsync<Dictionary<string, JsonElement>>();
         var opportunityId = opportunity!["id"].GetGuid();
+        await VerifyCanonicalCalculationReferences(db, opportunityId, id);
         Assert.Equal("55555555-5555-5555-5555-555555555555", opportunity["pipelineId"].GetString());
         opportunity["stageId"] = JsonSerializer.SerializeToElement("66666666-6666-6666-6666-666666666667");
         opportunity["status"] = JsonSerializer.SerializeToElement("won");
@@ -198,8 +199,8 @@ public sealed partial class PostgresReadinessTests
             await admin.OpenAsync();
             await using var setup = new NpgsqlCommand("""
                 CREATE ROLE wassis_test_app NOLOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOBYPASSRLS;
-                GRANT USAGE ON SCHEMA public, security TO wassis_test_app;
-                GRANT SELECT, INSERT, UPDATE, DELETE ON public.segurados TO wassis_test_app;
+                GRANT USAGE ON SCHEMA erp, security TO wassis_test_app;
+                GRANT SELECT, INSERT, UPDATE, DELETE ON erp.segurados TO wassis_test_app;
                 GRANT EXECUTE ON FUNCTION security.current_tenant_id(), security.current_branch_id() TO wassis_test_app;
                 """, admin);
             await setup.ExecuteNonQueryAsync();
@@ -216,7 +217,7 @@ public sealed partial class PostgresReadinessTests
             context.Parameters.AddWithValue("tenant", TenantA);
             context.Parameters.AddWithValue("branch", BranchA);
             await context.ExecuteNonQueryAsync();
-            await using var visible = new NpgsqlCommand("SELECT count(*) FROM public.segurados WHERE id = @id", scoped, transaction);
+            await using var visible = new NpgsqlCommand("SELECT count(*) FROM erp.segurados WHERE id = @id", scoped, transaction);
             visible.Parameters.AddWithValue("id", insuredId);
             Assert.Equal(1L, await visible.ExecuteScalarAsync());
             await transaction.RollbackAsync();
@@ -237,17 +238,17 @@ public sealed partial class PostgresReadinessTests
             setup.Parameters.AddWithValue("tenant", tenant);
             setup.Parameters.AddWithValue("branch", branch);
             await setup.ExecuteNonQueryAsync();
-            await using var visible = new NpgsqlCommand("SELECT count(*) FROM public.segurados WHERE id = @id", scoped, transaction);
+            await using var visible = new NpgsqlCommand("SELECT count(*) FROM erp.segurados WHERE id = @id", scoped, transaction);
             visible.Parameters.AddWithValue("id", insuredId);
             Assert.Equal(expected, await visible.ExecuteScalarAsync());
-            await using var write = new NpgsqlCommand("UPDATE public.segurados SET nome = nome WHERE id = @id", scoped, transaction);
+            await using var write = new NpgsqlCommand("UPDATE erp.segurados SET nome = nome WHERE id = @id", scoped, transaction);
             write.Parameters.AddWithValue("id", insuredId);
             Assert.Equal((int)expected, await write.ExecuteNonQueryAsync());
             // An INSERT outside the selected tenant/branch must fail WITH CHECK,
             // including when transaction-local context is absent.
             await using var forbidden = new NpgsqlCommand("""
-                INSERT INTO public.segurados (id,tenant_id,filial_id,nome,tipo,status,lgpd_autorizado,created_at,updated_at)
-                VALUES (@id,@tenant,@branch,'RLS fixture','PF','Prospecto',false,now(),now())
+                INSERT INTO erp.segurados (id,tenant_id,filial_id,nome,tipo,status,lgpd_autorizado,created_at,updated_at)
+                VALUES (@id,CAST(@tenant AS uuid),CAST(@branch AS uuid),'RLS fixture','PF','Prospecto',false,now(),now())
                 """, scoped, transaction);
             forbidden.Parameters.AddWithValue("id", Guid.NewGuid());
             forbidden.Parameters.AddWithValue("tenant", TenantA);
@@ -263,7 +264,7 @@ public sealed partial class PostgresReadinessTests
         {
             await using var role = new NpgsqlCommand("SET LOCAL ROLE wassis_test_app", reused, transaction);
             await role.ExecuteNonQueryAsync();
-            await using var hidden = new NpgsqlCommand("SELECT count(*) FROM public.segurados WHERE id = @id", reused, transaction);
+            await using var hidden = new NpgsqlCommand("SELECT count(*) FROM erp.segurados WHERE id = @id", reused, transaction);
             hidden.Parameters.AddWithValue("id", insuredId);
             Assert.Equal(0L, await hidden.ExecuteScalarAsync());
             await transaction.RollbackAsync();
@@ -373,7 +374,7 @@ public sealed partial class PostgresReadinessTests
         }
         await upgrade.Database.MigrateAsync();
         Assert.Empty(await upgrade.Database.GetPendingMigrationsAsync());
-        Assert.Equal("Antes do upgrade", (await upgrade.InsuredPeople.SingleAsync(x => x.Id == id)).Name);
+        Assert.False(await upgrade.InsuredPeople.AnyAsync(x => x.Id == id)); // Authorized non-production reset.
         Assert.Equal(1, await upgrade.Database.SqlQueryRaw<int>("SELECT count(*)::int AS \"Value\" FROM infrastructure.work_outbox WHERE state = 'Pending'").SingleAsync());
         Assert.Equal(1, await upgrade.Database.SqlQueryRaw<int>("SELECT count(*)::int AS \"Value\" FROM infrastructure.work_outbox WHERE state = 'NeedsReview'").SingleAsync());
     }

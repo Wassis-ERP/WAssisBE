@@ -14,7 +14,7 @@ public sealed class InsuredPersonReadRepositoryTests
         var options = new DbContextOptionsBuilder<WAssisDbContext>()
             .UseInMemoryDatabase($"insured-read-{Guid.NewGuid():N}")
             .Options;
-        await using var dbContext = new WAssisDbContext(options, new FakeCurrentUserContext { IsAuthenticated = true, TenantId = "tenant-1", BranchId = "branch-1" });
+        await using var dbContext = new WAssisDbContext(options, new FakeCurrentUserContext { IsAuthenticated = true, TenantId = "22222222-2222-2222-2222-222222222222", BranchId = "44444444-4444-4444-4444-444444444444" });
         var insuredPerson = CreateInsuredPerson();
         dbContext.InsuredPeople.Add(insuredPerson);
         await dbContext.SaveChangesAsync();
@@ -33,7 +33,7 @@ public sealed class InsuredPersonReadRepositoryTests
         var options = new DbContextOptionsBuilder<WAssisDbContext>()
             .UseInMemoryDatabase($"insured-write-{Guid.NewGuid():N}")
             .Options;
-        await using var dbContext = new WAssisDbContext(options, new FakeCurrentUserContext { IsAuthenticated = true, TenantId = "tenant-1", BranchId = "branch-1" });
+        await using var dbContext = new WAssisDbContext(options, new FakeCurrentUserContext { IsAuthenticated = true, TenantId = "22222222-2222-2222-2222-222222222222", BranchId = "44444444-4444-4444-4444-444444444444" });
         var insuredPerson = CreateInsuredPerson();
         dbContext.InsuredPeople.Add(insuredPerson);
         await dbContext.SaveChangesAsync();
@@ -49,8 +49,8 @@ public sealed class InsuredPersonReadRepositoryTests
     private static InsuredPerson CreateInsuredPerson()
     {
         return InsuredPerson.Create(
-            tenantId: "tenant-1",
-            officeBranchId: "branch-1",
+            tenantId: "22222222-2222-2222-2222-222222222222",
+            officeBranchId: "44444444-4444-4444-4444-444444444444",
             name: "Cliente",
             personType: "PF",
             status: "Ativo",
@@ -76,6 +76,6 @@ public sealed class InsuredPersonReadRepositoryTests
             managerId: null,
             chatwootId: null,
             lgpdAuthorized: false,
-            createdBy: "user-1");
+            createdBy: "77777777-7777-7777-7777-777777777777");
     }
 }

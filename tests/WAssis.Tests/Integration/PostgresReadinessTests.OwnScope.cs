@@ -17,12 +17,12 @@ public sealed partial class PostgresReadinessTests
         var producer = Guid.NewGuid();
         await db.Database.ExecuteSqlInterpolatedAsync($"""
             INSERT INTO erp.produtores (id,tenant_id,profile_id,ativo) VALUES ({producer},{Guid.Parse(TenantA)},{Guid.Parse(UserA)},true);
-            UPDATE public.segurados SET produtor_id = {producer.ToString()} WHERE id = {insuredId};
-            UPDATE public.oportunidades SET responsavel_id = {UserA} WHERE id = {opportunityId};
-            INSERT INTO public.segurados (id,tenant_id,filial_id,nome,tipo,status,lgpd_autorizado,created_at,updated_at)
-            VALUES ({otherInsured},{TenantA},{BranchA},'Outro produtor','PF','Prospecto',false,now(),now());
-            INSERT INTO public.oportunidades (id,tenant_id,filial_id,nome,responsavel_id,status,created_at,updated_at)
-            VALUES ({otherOpportunity},{TenantA},{BranchA},'Outro responsável',{UserBranchB},'pending',now(),now());
+            UPDATE erp.segurados SET produtor_id = {producer} WHERE id = {insuredId};
+            UPDATE erp.oportunidades SET responsavel_id = {Guid.Parse(UserA)} WHERE id = {opportunityId};
+            INSERT INTO erp.segurados (id,tenant_id,filial_id,nome,tipo,status,lgpd_autorizado,created_at,updated_at)
+            VALUES ({otherInsured},{Guid.Parse(TenantA)},{Guid.Parse(BranchA)},'Outro produtor','PF','Prospecto',false,now(),now());
+            INSERT INTO erp.oportunidades (id,tenant_id,filial_id,titulo,responsavel_id,stage_id,created_at,updated_at)
+            VALUES ({otherOpportunity},{Guid.Parse(TenantA)},{Guid.Parse(BranchA)},'Outro responsável',{Guid.Parse(UserBranchB)},'66666666-6666-6666-6666-666666666666',now(),now());
             UPDATE erp.role_permissions SET escopo = 'PROPRIO' WHERE perfil_id = {Guid.Parse(ProfileA)};
             """);
 
@@ -94,20 +94,20 @@ public sealed partial class PostgresReadinessTests
         await using (var stale = new WAssisDbContext(options, user, recordScope: scope))
         {
             var opportunity = await stale.Opportunities.SingleAsync(x => x.Id == opportunityId);
-            await admin.Database.ExecuteSqlInterpolatedAsync($"UPDATE public.oportunidades SET responsavel_id = {UserBranchB} WHERE id = {opportunityId}");
+            await admin.Database.ExecuteSqlInterpolatedAsync($"UPDATE erp.oportunidades SET responsavel_id = {Guid.Parse(UserBranchB)} WHERE id = {opportunityId}");
             stale.Entry(opportunity).Property(x => x.Name).CurrentValue = "Stale overwrite";
             await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => stale.SaveChangesAsync());
         }
-        await admin.Database.ExecuteSqlInterpolatedAsync($"UPDATE public.oportunidades SET responsavel_id = {UserA} WHERE id = {opportunityId}");
+        await admin.Database.ExecuteSqlInterpolatedAsync($"UPDATE erp.oportunidades SET responsavel_id = {Guid.Parse(UserA)} WHERE id = {opportunityId}");
         scope = new RecordPermissionScope();
         scope.RestrictToOwner("segurados", UserA, [producer.ToString()]);
         await using (var stale = new WAssisDbContext(options, user, recordScope: scope))
         {
             var insured = await stale.InsuredPeople.SingleAsync(x => x.Id == insuredId);
-            await admin.Database.ExecuteSqlInterpolatedAsync($"UPDATE public.segurados SET produtor_id = NULL WHERE id = {insuredId}");
+            await admin.Database.ExecuteSqlInterpolatedAsync($"UPDATE erp.segurados SET produtor_id = NULL WHERE id = {insuredId}");
             stale.Entry(insured).Property(x => x.Name).CurrentValue = "Stale overwrite";
             await Assert.ThrowsAsync<DbUpdateConcurrencyException>(() => stale.SaveChangesAsync());
         }
-        await admin.Database.ExecuteSqlInterpolatedAsync($"UPDATE public.segurados SET produtor_id = {producer.ToString()} WHERE id = {insuredId}");
+        await admin.Database.ExecuteSqlInterpolatedAsync($"UPDATE erp.segurados SET produtor_id = {producer} WHERE id = {insuredId}");
     }
 }

@@ -36,8 +36,14 @@ try {
     [IO.File]::WriteAllText((Join-Path $data 'server.key'), $rsa.ExportPkcs8PrivateKeyPem())
     $certificate.Dispose()
     $rsa.Dispose()
-    & (Join-Path $PostgresBinDirectory 'pg_ctl.exe') -D $data -l (Join-Path $cluster 'postgres.log') -o "-h 127.0.0.1 -p $port -c ssl=on" -w start
-    if ($LASTEXITCODE -ne 0) { throw 'Could not start disposable PostgreSQL.' }
+    # PostgreSQL must not inherit the runner's stdout/stderr pipes: those stay
+    # open in the server and can prevent PowerShell from returning from pg_ctl.
+    $serverStart = Start-Process -FilePath (Join-Path $PostgresBinDirectory 'pg_ctl.exe') -WindowStyle Hidden -PassThru `
+        -ArgumentList @('-D', ('"' + $data + '"'), '-l', ('"' + (Join-Path $cluster 'postgres.log') + '"'),
+            '-o', ('"-h 127.0.0.1 -p ' + $port + ' -c ssl=on"'), '-w', 'start') `
+        -RedirectStandardOutput (Join-Path $cluster 'pg-start.out') -RedirectStandardError (Join-Path $cluster 'pg-start.err')
+    $serverStart.WaitForExit() # Wait for pg_ctl only, not its long-lived server descendants.
+    if ($serverStart.ExitCode -ne 0) { throw 'Could not start disposable PostgreSQL.' }
     $started = $true
     $env:WASSIS_TEST_POSTGRES_CONNECTION = "Host=127.0.0.1;Port=$port;Database=postgres;Username=wassis_fixture;Password=$password;Ssl Mode=VerifyFull;Root Certificate=$rootCertificate"
     $testExitCode = 0
@@ -51,7 +57,13 @@ try {
     }
 } finally {
     $env:WASSIS_TEST_POSTGRES_CONNECTION = $oldConnection
-    if ($started) { & (Join-Path $PostgresBinDirectory 'pg_ctl.exe') -D $data -w -m fast stop }
+    if ($started) {
+        $serverStop = Start-Process -FilePath (Join-Path $PostgresBinDirectory 'pg_ctl.exe') -WindowStyle Hidden -PassThru `
+            -ArgumentList @('-D', ('"' + $data + '"'), '-w', '-m', 'fast', 'stop') `
+            -RedirectStandardOutput (Join-Path $cluster 'pg-stop.out') -RedirectStandardError (Join-Path $cluster 'pg-stop.err')
+        $serverStop.WaitForExit()
+        if ($serverStop.ExitCode -ne 0) { Write-Warning 'Disposable PostgreSQL did not stop cleanly.' }
+    }
     Remove-Item -LiteralPath $passwordFile -ErrorAction SilentlyContinue
     Remove-Item -LiteralPath (Join-Path $data 'server.key') -ErrorAction SilentlyContinue
 }

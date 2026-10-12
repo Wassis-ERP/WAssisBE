@@ -93,10 +93,10 @@ public sealed class AdministrationRepository(WAssisDbContext dbContext) : IAdmin
               (SELECT count(*)::int FROM erp.profiles WHERE tenant_id = @TenantId AND status = 'INATIVO') AS InactiveUsers,
               (SELECT count(*)::int FROM erp.profiles WHERE tenant_id = @TenantId AND convite_status = 'PENDENTE'
                  AND status <> 'INATIVO') AS PendingInvitations,
-              (SELECT count(*)::int FROM public.segurados WHERE tenant_id = CAST(@TenantId AS text)) AS InsuredPeople,
-              (SELECT count(*)::int FROM public.oportunidades WHERE tenant_id = CAST(@TenantId AS text) AND status = 'pending') AS OpenOpportunities,
-              (SELECT count(*)::int FROM public.oportunidades WHERE tenant_id = CAST(@TenantId AS text) AND status = 'won') AS WonOpportunities,
-              (SELECT count(*)::int FROM public.oportunidades WHERE tenant_id = CAST(@TenantId AS text) AND status = 'lost') AS LostOpportunities
+              (SELECT count(*)::int FROM erp.segurados WHERE tenant_id = @TenantId) AS InsuredPeople,
+              (SELECT count(*)::int FROM erp.oportunidades WHERE tenant_id = @TenantId AND ganha_em IS NULL AND perdida_em IS NULL) AS OpenOpportunities,
+              (SELECT count(*)::int FROM erp.oportunidades WHERE tenant_id = @TenantId AND ganha_em IS NOT NULL) AS WonOpportunities,
+              (SELECT count(*)::int FROM erp.oportunidades WHERE tenant_id = @TenantId AND ganha_em IS NULL AND perdida_em IS NOT NULL) AS LostOpportunities
             """;
         return await (await OpenAsync(cancellationToken)).QuerySingleAsync<OrganizationStatisticsDto>(
             new CommandDefinition(sql, new { TenantId = tenantId }, cancellationToken: cancellationToken));

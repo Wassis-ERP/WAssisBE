@@ -6,29 +6,32 @@ public class Opportunity : AggregateRoot
 {
     public string TenantId { get; private set; } = string.Empty;
     public string? OfficeBranchId { get; private set; }
-    public string Name { get; private set; } = string.Empty;
+    public string Name { get => Title ?? string.Empty; private set => Title = value; }
     public string ResponsibleId { get; private set; } = string.Empty;
     public Guid? InsuredPersonId { get; private set; }
-    public string? PipelineId { get; private set; }
+    private string? _pipelineId;
+    public OpportunityStageReference? Stage { get; private set; }
+    public string? PipelineId { get => Stage?.PipelineId ?? _pipelineId; private set => _pipelineId = value; }
     public string? StageId { get; private set; }
     public string? InsuranceLineId { get; private set; }
     public string? InsurerId { get; private set; }
     public string? OriginId { get; private set; }
     public string? LossReasonId { get; private set; }
-    public string Status { get; private set; } = "pending";
+    private string _status = "pending";
+    public string Status { get => WonAtUtc.HasValue ? "won" : LostAtUtc.HasValue ? "lost" : _status; private set => _status = value; }
     public string? BusinessType { get; private set; }
     public bool? ContactType { get; private set; }
-    public decimal? NetPremium { get; private set; }
-    public decimal? CommissionPercentage { get; private set; }
+    public decimal? NetPremium { get => EstimatedPremiumAmount; private set { } }
+    public decimal? CommissionPercentage { get => EstimatedCommissionPercentage; private set { } }
     public decimal? AgencyPercentage { get; private set; }
     public decimal? ProductionAmount { get; private set; }
     public DateTime? ValidityStartUtc { get; private set; }
     public DateTime? ValidityEndUtc { get; private set; }
     public DateTime? NextFollowUpUtc { get; private set; }
-    public DateTime? ConcludedAtUtc { get; private set; }
+    public DateTime? ConcludedAtUtc { get => WonAtUtc ?? LostAtUtc; private set { } }
     public string? Referrer { get; private set; }
-    public string? Notes { get; private set; }
-    public string MetadataJson { get; private set; } = "{}";
+    public string? Notes { get => Description; private set => Description = value; }
+    public string MetadataJson { get => "{}"; private set { } }
     public Guid? OriginPolicyId { get; private set; }
     public string? LeadName { get; private set; }
     public string? LeadDocumentNumber { get; private set; }
@@ -282,6 +285,7 @@ public class Opportunity : AggregateRoot
         ResponsibleId = string.IsNullOrWhiteSpace(responsibleId) ? ResponsibleId : responsibleId.Trim();
         InsuredPersonId = insuredPersonId;
         PipelineId = Normalize(pipelineId);
+        Stage = null;
         StageId = Normalize(stageId);
         InsuranceLineId = Normalize(insuranceLineId);
         InsurerId = Normalize(insurerId);
@@ -313,13 +317,13 @@ public class Opportunity : AggregateRoot
         EstimatedCommissionPercentage = estimatedCommissionPercentage ?? commissionPercentage;
         OpenedOn = openedOn ?? DateOnly.FromDateTime(CreatedAtUtc);
         ExpectedCloseDate = expectedCloseDate;
-        if (Status == "won")
+        if (_status == "won")
         {
             WonAtUtc = wonAtUtc ?? concludedAtUtc;
             LostAtUtc = null;
             ConcludedAtUtc = concludedAtUtc ?? WonAtUtc;
         }
-        else if (Status == "lost")
+        else if (_status == "lost")
         {
             WonAtUtc = null;
             LostAtUtc = lostAtUtc ?? concludedAtUtc;
@@ -339,6 +343,9 @@ public class Opportunity : AggregateRoot
 
     public void MoveToStage(string? stageId)
     {
+        var pipelineId = PipelineId;
+        Stage = null;
+        PipelineId = pipelineId;
         StageId = Normalize(stageId);
         UpdatedAtUtc = DateTime.UtcNow;
     }
