@@ -17,8 +17,26 @@ public sealed class ImportedDocumentRepository(WAssisDbContext dbContext) : IImp
         return dbContext.ImportedDocuments.SingleOrDefaultAsync(x => x.Id == id, cancellationToken);
     }
 
-    public Task SaveChangesAsync(CancellationToken cancellationToken)
+    public async Task SaveChangesAsync(CancellationToken cancellationToken)
     {
-        return dbContext.SaveChangesAsync(cancellationToken);
+        var added = dbContext.ChangeTracker.Entries<ImportedDocument>()
+            .Where(entry => entry.State == EntityState.Added)
+            .Select(entry => entry.Entity)
+            .ToArray();
+        if (added.Length == 0)
+        {
+            await dbContext.SaveChangesAsync(cancellationToken);
+            return;
+        }
+        await using var transaction = dbContext.Database.CurrentTransaction is null
+            ? await dbContext.Database.BeginTransactionAsync(cancellationToken)
+            : null;
+        await dbContext.SaveChangesAsync(cancellationToken);
+        foreach (var document in added)
+            await dbContext.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO infrastructure.work_outbox (id,tenant_id,branch_id,kind,aggregate_id)
+                VALUES ({Guid.NewGuid()},{document.TenantId},{document.OfficeBranchId},'documents.parse',{document.Id})
+                """, cancellationToken);
+        if (transaction is not null) await transaction.CommitAsync(cancellationToken);
     }
 }

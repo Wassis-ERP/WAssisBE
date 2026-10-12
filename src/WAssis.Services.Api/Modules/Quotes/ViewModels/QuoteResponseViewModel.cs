@@ -1,3 +1,4 @@
+using WAssis.Domain.Modules.Quotes.ValueObjects;
 using WAssis.Domain.Modules.Quotes.Enums;
 
 namespace WAssis.Services.Api.Modules.Quotes.ViewModels;
@@ -48,7 +49,8 @@ public sealed record QuoteResponseViewModel(
     string? ShareToken,
     DateTime CreatedAtUtc,
     DateTime? UpdatedAtUtc,
-    IReadOnlyCollection<QuoteOptionViewModel> Options);
+    IReadOnlyCollection<QuoteOptionViewModel> Options,
+    AutoQuoteSubmission? AutoSubmission = null);
 
 public sealed record QuoteOptionViewModel(
     Guid Id,
@@ -62,7 +64,9 @@ public sealed record QuoteOptionViewModel(
     string ExternalReference,
     IReadOnlyCollection<CoverageSnapshotViewModel> Coverages,
     IReadOnlyCollection<InstallmentSnapshotViewModel> Installments,
-    IReadOnlyCollection<QuoteStatusMessageViewModel> Messages);
+    IReadOnlyCollection<QuoteStatusMessageViewModel> Messages,
+    string ProviderCode = "",
+    string ProviderName = "");
 
 public sealed record CoverageSnapshotViewModel(
     string Code,

@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Routing;
 using Npgsql;
+using Microsoft.EntityFrameworkCore;
+using WAssis.Domain.Modules.Quotes;
+using WAssis.Application.Modules.Calculations;
 
 namespace WAssis.Services.Api.Infrastructure;
 
@@ -17,6 +20,22 @@ public sealed class ApiExceptionHandler(
     {
         var (status, title, detail) = exception switch
         {
+            PresentationConflictException => (
+                StatusCodes.Status409Conflict,
+                "Apresentação em conflito.",
+                "Releia a apresentação e sua revisão antes de salvar novamente com uma nova chave."),
+            ExecutionStateConflictException => (
+                StatusCodes.Status409Conflict,
+                "Tentativa em conflito.",
+                "Atualize o histórico. Uma tentativa encerrada exige reexecução e uma tentativa aberta não pode ser duplicada."),
+            CalculationConflictException => (
+                StatusCodes.Status409Conflict,
+                "Chave de idempotência em conflito.",
+                "Use uma nova chave para uma nova versão do cálculo."),
+            QuoteRequestConflictException => (
+                StatusCodes.Status409Conflict,
+                "Chave de idempotência em conflito.",
+                "Use uma nova chave para um pedido diferente."),
             UnauthorizedAccessException => (
                 StatusCodes.Status403Forbidden,
                 "Acesso negado.",
@@ -25,6 +44,10 @@ public sealed class ApiExceptionHandler(
                 StatusCodes.Status400BadRequest,
                 "Dados invalidos.",
                 "Revise os campos enviados e tente novamente."),
+            DbUpdateConcurrencyException => (
+                StatusCodes.Status409Conflict,
+                "O registro foi alterado.",
+                "Atualize os dados antes de tentar novamente."),
             PostgresException postgres when postgres.SqlState is
                 PostgresErrorCodes.UniqueViolation or
                 PostgresErrorCodes.ForeignKeyViolation or

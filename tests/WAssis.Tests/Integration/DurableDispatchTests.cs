@@ -1,6 +1,5 @@
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
-using Testcontainers.PostgreSql;
 using WAssis.Application.Abstractions;
 using WAssis.Domain.Modules.Quotes.Entities;
 using WAssis.Infra.Data.Configuration;
@@ -14,6 +13,7 @@ namespace WAssis.Tests.Integration;
 public sealed class DurableDispatchTests
 {
     private const string Tenant = "22222222-2222-2222-2222-222222222222";
+    private const string Branch = "33333333-3333-3333-3333-333333333333";
     private static SystemDataScope Scope() => SystemDataScope.ForWorker("test-durable-dispatch", _ => { });
     private static WAssisDbContext Context(string connection) => new(
         new DbContextOptionsBuilder<WAssisDbContext>().UseNpgsql(connection).Options, new FakeCurrentUserContext(), Scope());
@@ -22,9 +22,7 @@ public sealed class DurableDispatchTests
     [Trait("Category", "Postgres")]
     public async Task AtomicOutboxClaimReceiptAndExpiredLease_UseRealPostgres()
     {
-        await using var postgres = new PostgreSqlBuilder("postgres:16-alpine")
-            .WithPassword(Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))).Build();
-        await postgres.StartAsync();
+        await using var postgres = await PostgresTestDatabase.StartAsync();
         await using var db = Context(postgres.GetConnectionString());
         await DatabaseMigrationGate.MigrateSingletonAsync(db);
         var repository = new QuoteRequestRepository(db);
@@ -49,6 +47,7 @@ public sealed class DurableDispatchTests
         var lease = Assert.Single(claims, item => item is not null)!;
         Assert.Equal(quote.Id, lease.AggregateId);
         Assert.Equal(Tenant, lease.TenantId);
+        Assert.Equal(Branch, lease.BranchId);
         await Assert.ThrowsAsync<InvalidOperationException>(() => queue.CompleteAsync(lease with { Token = Guid.NewGuid() }, default));
         await queue.RenewAsync(lease, default);
         quote.MarkAsProcessing();
@@ -74,8 +73,9 @@ public sealed class DurableDispatchTests
 
     private static Task<int> Count(WAssisDbContext db, string sql) => db.Database.SqlQueryRaw<int>(sql).SingleAsync();
 
-    internal static QuoteRequest Quote(string correlation) => QuoteRequest.Create(
-        tenantId: Tenant, correlationId: correlation, customerName: "Fixture", documentNumber: "00000000000",
+    internal static QuoteRequest Quote(string correlation, string tenantId = Tenant, string branchId = Branch,
+        WAssis.Domain.Modules.Quotes.ValueObjects.AutoQuoteSubmission? submission = null) => QuoteRequest.Create(
+        tenantId: tenantId, correlationId: correlation, customerName: "Fixture", documentNumber: "00000000000",
         email: null, phoneNumber: null, postalCode: null, customerSurname: null, customerGender: null,
         customerMaritalStatusCode: null, customerBirthDateUtc: null, driverLicenseYears: null,
         driverLicenseNumber: null, insuredDriverRelationshipCode: null, vehicleChassisNumber: null,
@@ -83,5 +83,6 @@ public sealed class DurableDispatchTests
         vehicleManufactureYear: null, vehicleModelYear: 2026, vehicleIsZeroKm: null, vehicleHasTracker: null,
         vehicleHasAntiTheft: null, vehicleIsFinanced: null, vehicleIsArmored: null, vehicleFuelTypeCode: null,
         vehicleOvernightPostalCode: null, vehicleHasKitGas: null, hasDriverUnder24: false,
-        isCurrentlyInsured: false, previousBonus: null, brokerCommissionPercentage: null, renewalInsurerCode: null);
+        isCurrentlyInsured: false, previousBonus: null, brokerCommissionPercentage: null, renewalInsurerCode: null,
+        officeBranchId: branchId, autoSubmission: submission);
 }

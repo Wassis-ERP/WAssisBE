@@ -178,6 +178,14 @@
           "Microsoft.IdentityModel.Protocols.OpenIdConnect": "8.19.2"
         }
       },
+      "Microsoft.AspNetCore.Authentication.OpenIdConnect": {
+        "type": "Transitive",
+        "resolved": "10.0.12",
+        "contentHash": "UfkKr9EP+LBgnFfxwkfnZzta7XkalCroZWoxg2yW9dt8iPXO7bJYpcmyFIeM+FLcAlOKZeduP93XhuCcfWaYIQ==",
+        "dependencies": {
+          "Microsoft.IdentityModel.Protocols.OpenIdConnect": "8.19.2"
+        }
+      },
       "Microsoft.AspNetCore.TestHost": {
         "type": "Transitive",
         "resolved": "10.0.12",
@@ -902,11 +910,6 @@
         "resolved": "1.4.2",
         "contentHash": "yjj+3zgz8zgXpiiC3ZdF/iyTBbz2fFvMxZFEBPUcwZjIvXOf37Ylm+K58hqMfIBt5JgU/Z2uoUS67JmTLe973A=="
       },
-      "SixLabors.ImageSharp": {
-        "type": "Transitive",
-        "resolved": "3.1.12",
-        "contentHash": "iAg6zifihXEFS/t7fiHhZBGAdCp3FavsF4i2ZIDp0JfeYeDVzvmlbY1CNhhIKimaIzrzSi5M/NBFcWvZT2rB/A=="
-      },
       "SSH.NET": {
         "type": "Transitive",
         "resolved": "2026.0.0",
@@ -1029,6 +1032,19 @@
           "WAssis.Domain.Core": "[1.0.0, )"
         }
       },
+      "wassis.backgroundtasks": {
+        "type": "Project",
+        "dependencies": {
+          "Microsoft.Bcl.Memory": "[10.0.7, )",
+          "Serilog.Extensions.Hosting": "[10.0.0, )",
+          "Serilog.Settings.Configuration": "[10.0.1, )",
+          "WAssis.Application": "[1.0.0, )",
+          "WAssis.Domain.Core": "[1.0.0, )",
+          "WAssis.Infra.CrossCutting.Bus": "[1.0.0, )",
+          "WAssis.Infra.CrossCutting.IoC": "[1.0.0, )",
+          "WAssis.Infra.Data": "[1.0.0, )"
+        }
+      },
       "wassis.domain": {
         "type": "Project",
         "dependencies": {
@@ -1048,6 +1064,7 @@
         "type": "Project",
         "dependencies": {
           "Microsoft.AspNetCore.Authentication.JwtBearer": "[10.0.12, )",
+          "Microsoft.AspNetCore.Authentication.OpenIdConnect": "[10.0.12, )",
           "WAssis.Application": "[1.0.0, )",
           "WAssis.Domain.Core": "[1.0.0, )"
         }
@@ -1081,7 +1098,6 @@
           "Microsoft.Extensions.Http.Resilience": "[10.10.0, )",
           "Npgsql.EntityFrameworkCore.PostgreSQL": "[10.0.3, )",
           "PdfPig": "[0.1.16, )",
-          "SixLabors.ImageSharp": "[3.1.12, )",
           "System.IdentityModel.Tokens.Jwt": "[8.22.0, )",
           "WAssis.Application": "[1.0.0, )",
           "WAssis.Domain": "[1.0.0, )",

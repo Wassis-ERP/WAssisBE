@@ -8,95 +8,26 @@ namespace WAssis.Application.Modules.Documents.Commands;
 
 public sealed class UploadProposalDocumentCommandHandler(
     ICurrentUserContext currentUserContext,
-    IImportedDocumentRepository repository,
-    IPdfTextExtractor pdfTextExtractor,
-    IOcrTextExtractor ocrTextExtractor,
-    IProposalDocumentParser proposalDocumentParser)
+    IImportedDocumentRepository repository)
     : IRequestHandler<UploadProposalDocumentCommand, ImportedDocumentDto>
 {
     public async Task<ImportedDocumentDto> Handle(UploadProposalDocumentCommand request, CancellationToken cancellationToken)
     {
         var tenantId = currentUserContext.ResolveTenantIdOrPlatform();
-        var branchId = currentUserContext.ResolveBranchIdForWrite();
-        var storagePath = $"tenants/{tenantId}/documents/proposals/{Guid.NewGuid():N}";
-        var document = ImportedDocument.Create(
+        var branchId = currentUserContext.ResolveBranchIdForWrite()
+            ?? throw new UnauthorizedAccessException("Filial ativa é obrigatória para armazenar documentos.");
+        var document = ImportedDocument.CreateStored(
+            request.DocumentId,
             tenantId,
             request.CorrelationId,
             request.FileName,
             request.ContentType,
             request.Source,
-            storagePath,
+            request.StorageKey,
             branchId);
-
-        document.MarkAsProcessing();
 
         await repository.AddAsync(document, cancellationToken);
         await repository.SaveChangesAsync(cancellationToken);
-
-        try
-        {
-            var extractedText = await pdfTextExtractor.ExtractTextAsync(request.Content, cancellationToken);
-            var parsingOrigin = "pdf_text_layer";
-
-            if (string.IsNullOrWhiteSpace(extractedText))
-            {
-                var ocrText = await ocrTextExtractor.ExtractTextAsync(request.Content, cancellationToken);
-                if (!string.IsNullOrWhiteSpace(ocrText))
-                {
-                    extractedText = ocrText;
-                    parsingOrigin = "ocr_fallback";
-                }
-            }
-
-            if (string.IsNullOrWhiteSpace(extractedText))
-            {
-                document.MarkAsFailed("PDF sem camada textual utilizável e OCR não retornou conteúdo legível.");
-                await repository.SaveChangesAsync(cancellationToken);
-                return ImportedDocumentMappings.ToDto(document);
-            }
-
-            var parsingResult = proposalDocumentParser.Parse(extractedText);
-            var parsingNotes = string.IsNullOrWhiteSpace(parsingResult.ParsingNotes)
-                ? $"Parser executado usando {parsingOrigin}."
-                : $"{parsingResult.ParsingNotes} Origem do texto: {parsingOrigin}.";
-
-            document.MarkAsParsed(
-                parsingResult.DocumentType,
-                parsingResult.ExtractedText,
-                parsingResult.InsuranceCompanyName,
-                parsingResult.ProposalNumber,
-                parsingResult.InsuredName,
-                parsingResult.CoverageStartDateUtc,
-                parsingResult.CoverageEndDateUtc,
-                parsingResult.TotalPremiumAmount,
-                parsingResult.CommissionAmount,
-                parsingResult.ParsingConfidence,
-                parsingResult.RequiresHumanReview,
-                parsingNotes);
-        }
-        catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested)
-        {
-            throw;
-        }
-        catch (InvalidDataException)
-        {
-            document.MarkAsFailed("document_invalid");
-        }
-        catch (IOException)
-        {
-            document.MarkAsFailed("document_read_error");
-        }
-        catch (ArgumentException)
-        {
-            document.MarkAsFailed("document_invalid");
-        }
-        catch (FormatException)
-        {
-            document.MarkAsFailed("document_format_unsupported");
-        }
-
-        await repository.SaveChangesAsync(cancellationToken);
-
         return ImportedDocumentMappings.ToDto(document);
     }
 }

@@ -1,0 +1,70 @@
+param(
+    [Parameter(Mandatory)][string]$PostgresBinDirectory,
+    [string]$Filter = 'Category=Postgres',
+    [string]$ConnectedCrmDirectory,
+    [switch]$ConnectedOnly
+)
+$ErrorActionPreference = 'Stop'
+if ($ConnectedOnly -and !$ConnectedCrmDirectory) { throw 'ConnectedOnly requires ConnectedCrmDirectory.' }
+$cluster = Join-Path ([IO.Path]::GetTempPath()) ('wassis-security-' + [Guid]::NewGuid().ToString('N'))
+$null = New-Item -ItemType Directory -Path $cluster
+$data = Join-Path $cluster 'data'
+$passwordFile = Join-Path $cluster 'password.txt'
+$password = [Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))
+[IO.File]::WriteAllText($passwordFile, $password)
+$portProbe = [Net.Sockets.TcpListener]::new([Net.IPAddress]::Loopback, 0)
+$portProbe.Start()
+$port = $portProbe.LocalEndpoint.Port
+$portProbe.Stop()
+$started = $false
+$oldConnection = $env:WASSIS_TEST_POSTGRES_CONNECTION
+try {
+    & (Join-Path $PostgresBinDirectory 'initdb.exe') -D $data -U wassis_fixture --pwfile=$passwordFile --auth=scram-sha-256 --encoding=UTF8 --locale=C
+    if ($LASTEXITCODE -ne 0) { throw 'Could not initialize disposable PostgreSQL.' }
+    $rsa = [Security.Cryptography.RSA]::Create(2048)
+    $request = [Security.Cryptography.X509Certificates.CertificateRequest]::new('CN=localhost', $rsa, [Security.Cryptography.HashAlgorithmName]::SHA256, [Security.Cryptography.RSASignaturePadding]::Pkcs1)
+    $request.CertificateExtensions.Add([Security.Cryptography.X509Certificates.X509BasicConstraintsExtension]::new($true, $false, 0, $true))
+    $keyUsage = [Security.Cryptography.X509Certificates.X509KeyUsageFlags]::DigitalSignature -bor [Security.Cryptography.X509Certificates.X509KeyUsageFlags]::KeyCertSign
+    $request.CertificateExtensions.Add([Security.Cryptography.X509Certificates.X509KeyUsageExtension]::new($keyUsage, $true))
+    $names = [Security.Cryptography.X509Certificates.SubjectAlternativeNameBuilder]::new()
+    $names.AddDnsName('localhost')
+    $names.AddIpAddress([Net.IPAddress]::Loopback)
+    $request.CertificateExtensions.Add($names.Build())
+    $certificate = $request.CreateSelfSigned([DateTimeOffset]::UtcNow.AddMinutes(-5), [DateTimeOffset]::UtcNow.AddDays(1))
+    $rootCertificate = Join-Path $data 'server.crt'
+    [IO.File]::WriteAllText($rootCertificate, $certificate.ExportCertificatePem())
+    [IO.File]::WriteAllText((Join-Path $data 'server.key'), $rsa.ExportPkcs8PrivateKeyPem())
+    $certificate.Dispose()
+    $rsa.Dispose()
+    # PostgreSQL must not inherit the runner's stdout/stderr pipes: those stay
+    # open in the server and can prevent PowerShell from returning from pg_ctl.
+    $serverStart = Start-Process -FilePath (Join-Path $PostgresBinDirectory 'pg_ctl.exe') -WindowStyle Hidden -PassThru `
+        -ArgumentList @('-D', ('"' + $data + '"'), '-l', ('"' + (Join-Path $cluster 'postgres.log') + '"'),
+            '-o', ('"-h 127.0.0.1 -p ' + $port + ' -c ssl=on"'), '-w', 'start') `
+        -RedirectStandardOutput (Join-Path $cluster 'pg-start.out') -RedirectStandardError (Join-Path $cluster 'pg-start.err')
+    $serverStart.WaitForExit() # Wait for pg_ctl only, not its long-lived server descendants.
+    if ($serverStart.ExitCode -ne 0) { throw 'Could not start disposable PostgreSQL.' }
+    $started = $true
+    $env:WASSIS_TEST_POSTGRES_CONNECTION = "Host=127.0.0.1;Port=$port;Database=postgres;Username=wassis_fixture;Password=$password;Ssl Mode=VerifyFull;Root Certificate=$rootCertificate"
+    $testExitCode = 0
+    if (!$ConnectedOnly) {
+        & dotnet test tests/WAssis.Tests/WAssis.Tests.csproj --configuration Release --no-restore --filter $Filter --logger 'console;verbosity=normal' --verbosity quiet -m:1 -nodeReuse:false -p:UseSharedCompilation=false
+        $testExitCode = $LASTEXITCODE
+    } else { Write-Output 'Connected browser journey only; PostgreSQL test category is not run by this invocation.' }
+    if ($testExitCode -eq 0 -and $ConnectedCrmDirectory) {
+        & (Join-Path $PSScriptRoot 'test-connected-crm.ps1') -PostgresBinDirectory $PostgresBinDirectory -CrmDirectory $ConnectedCrmDirectory
+        $testExitCode = $LASTEXITCODE
+    }
+} finally {
+    $env:WASSIS_TEST_POSTGRES_CONNECTION = $oldConnection
+    if ($started) {
+        $serverStop = Start-Process -FilePath (Join-Path $PostgresBinDirectory 'pg_ctl.exe') -WindowStyle Hidden -PassThru `
+            -ArgumentList @('-D', ('"' + $data + '"'), '-w', '-m', 'fast', 'stop') `
+            -RedirectStandardOutput (Join-Path $cluster 'pg-stop.out') -RedirectStandardError (Join-Path $cluster 'pg-stop.err')
+        $serverStop.WaitForExit()
+        if ($serverStop.ExitCode -ne 0) { Write-Warning 'Disposable PostgreSQL did not stop cleanly.' }
+    }
+    Remove-Item -LiteralPath $passwordFile -ErrorAction SilentlyContinue
+    Remove-Item -LiteralPath (Join-Path $data 'server.key') -ErrorAction SilentlyContinue
+}
+exit $testExitCode

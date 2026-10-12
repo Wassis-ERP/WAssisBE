@@ -12,6 +12,6 @@ namespace WAssis.Services.Api.Modules.Opportunities.Controllers;
 public sealed class OpportunityStagesController(IOpportunityScope scope) : ControllerBase
 {
     [HttpGet]
-    [RequirePermission("comercial", "read")]
+    [RequirePermission("comercial", "read", supportsOwnRecords: true)]
     public async Task<IActionResult> List(CancellationToken cancellationToken) => Ok(await scope.ListStagesAsync(cancellationToken));
 }

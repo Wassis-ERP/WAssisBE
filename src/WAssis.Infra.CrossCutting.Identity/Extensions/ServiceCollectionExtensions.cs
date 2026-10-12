@@ -1,6 +1,9 @@
 using System.Text;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Authentication.OpenIdConnect;
+using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,21 +37,35 @@ public static class ServiceCollectionExtensions
         services.AddOptions<HomologationAuthOptions>()
             .Bind(configuration.GetSection(HomologationAuthOptions.SectionName))
             .ValidateOnStart();
+        services.AddSingleton<IValidateOptions<Auth0Options>, Auth0OptionsValidator>();
+        services.AddOptions<Auth0Options>()
+            .Bind(configuration.GetSection(Auth0Options.SectionName))
+            .ValidateOnStart();
 
         var jwtOptions = new JwtAccessOptions();
         configuration.GetSection(JwtAccessOptions.SectionName).Bind(jwtOptions);
         var signingKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtOptions.SigningKey));
+        var validationKeys = jwtOptions.PreviousSigningKeys
+            .Prepend(jwtOptions.SigningKey)
+            .Select(static key => new SymmetricSecurityKey(Encoding.UTF8.GetBytes(key)))
+            .Cast<SecurityKey>()
+            .ToArray();
 
         services.AddHttpContextAccessor();
         services.AddScoped<ICurrentUserContext, HttpContextCurrentUserContext>();
         services.AddScoped<DevelopmentIdentityAuthenticationService>();
         services.AddScoped<HomologationIdentityAuthenticationService>();
+        services.AddScoped<ProductionPasswordAuthenticationService>();
+        services.AddScoped<IInternalAccessTokenIssuer, InternalAccessTokenIssuer>();
         services.AddScoped<IIdentityAuthenticationService>(provider =>
-            provider.GetRequiredService<IHostEnvironment>().IsDevelopment()
-                ? provider.GetRequiredService<DevelopmentIdentityAuthenticationService>()
-                : provider.GetRequiredService<HomologationIdentityAuthenticationService>());
+        {
+            var environment = provider.GetRequiredService<IHostEnvironment>();
+            if (environment.IsDevelopment()) return provider.GetRequiredService<DevelopmentIdentityAuthenticationService>();
+            if (environment.IsStaging()) return provider.GetRequiredService<HomologationIdentityAuthenticationService>();
+            return provider.GetRequiredService<ProductionPasswordAuthenticationService>();
+        });
 
-        services
+        var authentication = services
             .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             .AddJwtBearer(options =>
             {
@@ -63,7 +80,7 @@ public static class ServiceCollectionExtensions
                     RequireSignedTokens = true,
                     ValidIssuer = jwtOptions.Issuer,
                     ValidAudience = jwtOptions.Audience,
-                    IssuerSigningKey = signingKey,
+                    IssuerSigningKeys = validationKeys,
                     ClockSkew = TimeSpan.FromMinutes(1)
                 };
                 options.Events = new JwtBearerEvents
@@ -83,12 +100,63 @@ public static class ServiceCollectionExtensions
                         var tenantId = principal?.FindFirstValue(ClaimConstants.TenantId);
                         var sessions = context.HttpContext.RequestServices.GetRequiredService<IAuthSessionService>();
                         if (string.IsNullOrWhiteSpace(jti) || string.IsNullOrWhiteSpace(userId)
-                            || string.IsNullOrWhiteSpace(tenantId)
-                            || !await sessions.ValidateAsync(jti, userId, tenantId, context.HttpContext.RequestAborted))
+                            || string.IsNullOrWhiteSpace(tenantId))
+                        {
                             context.Fail("Sessão revogada, expirada ou sem vínculo ativo.");
+                            return;
+                        }
+                        var branches = await sessions.GetAuthorizedBranchesAsync(jti, userId, tenantId, context.HttpContext.RequestAborted);
+                        if (branches.Count == 0 || principal?.Identity is not ClaimsIdentity identity)
+                        {
+                            context.Fail("Sessão revogada, expirada ou sem vínculo ativo.");
+                            return;
+                        }
+                        // The signed token identifies the session. Branch bindings are live
+                        // database permissions, including grants/revocations since login.
+                        var previousBranch = identity.FindFirst(ClaimConstants.BranchId)?.Value;
+                        foreach (var claim in identity.Claims.Where(c => c.Type is ClaimConstants.BranchId or ClaimConstants.BranchIds).ToArray())
+                            identity.RemoveClaim(claim);
+                        foreach (var branch in branches) identity.AddClaim(new Claim(ClaimConstants.BranchIds, branch));
+                        identity.AddClaim(new Claim(ClaimConstants.BranchId,
+                            previousBranch is not null && branches.Contains(previousBranch) ? previousBranch : branches[0]));
                     },
                 };
+            })
+            .AddCookie(ExternalAuthenticationSchemes.TemporaryCookie, options =>
+            {
+                options.Cookie.Name = "wassis_external";
+                options.Cookie.HttpOnly = true;
+                options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                options.Cookie.SameSite = SameSiteMode.Lax;
+                options.ExpireTimeSpan = TimeSpan.FromMinutes(5);
+                options.SlidingExpiration = false;
             });
+
+        var auth0Options = new Auth0Options();
+        configuration.GetSection(Auth0Options.SectionName).Bind(auth0Options);
+        if (auth0Options.Enabled)
+        {
+            authentication.AddOpenIdConnect(ExternalAuthenticationSchemes.Auth0, options =>
+            {
+                options.Authority = auth0Options.Authority.TrimEnd('/');
+                options.ClientId = auth0Options.ClientId;
+                options.ClientSecret = auth0Options.ClientSecret;
+                options.ResponseType = "code";
+                options.UsePkce = true;
+                options.RequireHttpsMetadata = true;
+                options.MapInboundClaims = false;
+                options.SaveTokens = false;
+                options.SignInScheme = ExternalAuthenticationSchemes.TemporaryCookie;
+                options.CallbackPath = "/signin-auth0";
+                options.Scope.Clear();
+                options.Scope.Add("openid");
+                options.Scope.Add("profile");
+                options.Scope.Add("email");
+                options.ClaimActions.Remove("amr");
+                options.TokenValidationParameters.NameClaimType = "name";
+                options.TokenValidationParameters.RoleClaimType = "roles";
+            });
+        }
 
         services.AddAuthorization(options =>
         {

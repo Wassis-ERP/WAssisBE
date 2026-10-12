@@ -74,6 +74,8 @@ internal static class QuoteRequestMappings
                     installment.TotalAmount)).ToArray(),
                 option.Messages.Select(static message => new QuoteStatusMessageDto(
                     message.Code,
-                    message.Description)).ToArray())).ToArray());
+                    message.Description)).ToArray(),
+                option.ProviderCode, option.ProviderName)).ToArray(),
+            quoteRequest.AutoSubmission?.Copy());
     }
 }

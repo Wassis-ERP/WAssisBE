@@ -8,11 +8,11 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Npgsql;
-using Testcontainers.PostgreSql;
 using WAssis.Infra.CrossCutting.Identity.Authentication;
 using WAssis.Infra.Data.Configuration;
 using WAssis.Infra.Data.Context;
 using WAssis.Infra.Data.Modules.Administration;
+using WAssis.Application.Modules.Administration.Dtos;
 using WAssis.Tests.TestDoubles;
 
 namespace WAssis.Tests.Integration;
@@ -37,9 +37,7 @@ public sealed class PostgresAdministrationTests
     [Trait("Category", "Postgres")]
     public async Task AdministrationHttp_RejectsCrossTenantAndUnsafeLifecycleChanges()
     {
-        await using var postgres = new PostgreSqlBuilder("postgres:16-alpine")
-            .WithPassword(Convert.ToBase64String(RandomNumberGenerator.GetBytes(32))).Build();
-        await postgres.StartAsync();
+        await using var postgres = await PostgresTestDatabase.StartAsync();
         await using (var migration = Context(postgres.GetConnectionString()))
         {
             await DatabaseMigrationGate.MigrateSingletonAsync(migration);
@@ -65,17 +63,23 @@ public sealed class PostgresAdministrationTests
                 VALUES
                   ('{PermissionA}', '{MasterA}', 'configuracoes', 'GRUPO', true, true, true, true, true, true),
                   ('{PermissionB}', '{MasterB}', 'configuracoes', 'GRUPO', true, true, true, true, true, true);
-                INSERT INTO public.segurados
+                INSERT INTO erp.segurados
                   (id, tenant_id, filial_id, nome, tipo, status, lgpd_autorizado, created_at, updated_at)
                 VALUES
                   (gen_random_uuid(), '{TenantA}', '{BranchA}', 'Pessoa A', 'PF', 'active', true, now(), now()),
                   (gen_random_uuid(), '{TenantB}', '{BranchB}', 'Pessoa B', 'PF', 'active', true, now(), now());
-                INSERT INTO public.oportunidades
-                  (id, tenant_id, filial_id, nome, responsavel_id, status, created_at, updated_at)
+                INSERT INTO erp.pipelines (id,tenant_id,entidade_tipo,ativo) VALUES
+                  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1','{TenantA}','oportunidade',true),
+                  ('bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2','{TenantB}','oportunidade',true);
+                INSERT INTO erp.pipeline_stages (id,pipeline_id,ativo) VALUES
+                  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb1',true),
+                  ('aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2','bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb2',true);
+                INSERT INTO erp.oportunidades
+                  (id, tenant_id, filial_id, titulo, responsavel_id, stage_id, ganha_em, perdida_em, created_at, updated_at)
                 VALUES
-                  (gen_random_uuid(), '{TenantA}', '{BranchA}', 'Aberta A', '{UserA}', 'pending', now(), now()),
-                  (gen_random_uuid(), '{TenantA}', '{BranchA}', 'Ganha A', '{UserA}', 'won', now(), now()),
-                  (gen_random_uuid(), '{TenantB}', '{BranchB}', 'Perdida B', '{UserB}', 'lost', now(), now());
+                  (gen_random_uuid(), '{TenantA}', '{BranchA}', 'Aberta A', '{UserA}', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1', null, null, now(), now()),
+                  (gen_random_uuid(), '{TenantA}', '{BranchA}', 'Ganha A', '{UserA}', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1', now(), null, now(), now()),
+                  (gen_random_uuid(), '{TenantB}', '{BranchB}', 'Perdida B', '{UserB}', 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa2', null, now(), now(), now());
                 """);
         }
 
@@ -87,9 +91,26 @@ public sealed class PostgresAdministrationTests
             Assert.Equal(2, (await administration.ListUsersAsync(Guid.Parse(TenantA), default)).Count);
             Assert.Empty(await administration.ListUserBranchAccessAsync(
                 Guid.Parse(TenantA), Guid.Parse(UserB), default));
+
+            // A rejected change rolls back its savepoint even if the caller catches it.
+            // A successful repository operation must still obey the caller's rollback.
+            Guid rolledBackProfile;
+            await using (var outer = await direct.Database.BeginTransactionAsync())
+            {
+                await Assert.ThrowsAsync<InvalidOperationException>(() => administration.UpsertUserBranchAccessAsync(
+                    Guid.Parse(TenantB), Guid.Parse(UserB), Guid.Parse(BranchB),
+                    new UserBranchAccessUpdateDto(Guid.Parse(MasterB), false, false, null, null), default));
+                var preserved = Assert.Single(await administration.ListUserBranchAccessAsync(Guid.Parse(TenantB), Guid.Parse(UserB), default));
+                Assert.True(preserved.IsActive);
+                Assert.True(preserved.IsPrimary);
+                rolledBackProfile = (await administration.CreateAccessProfileAsync(Guid.Parse(TenantB),
+                    new AccessProfileCreateDto("Rollback fixture", null, null), default)).Id;
+                await outer.RollbackAsync();
+            }
+            Assert.DoesNotContain(await administration.ListAccessProfilesAsync(Guid.Parse(TenantB), default), p => p.Id == rolledBackProfile);
         }
 
-        using var factory = new ApiFactory(postgres.GetConnectionString());
+        using var factory = new ApiFactory(await postgres.CreateApplicationConnectionAsync());
         using var client = factory.CreateClient(new WebApplicationFactoryClientOptions { BaseAddress = new Uri("https://localhost") });
         Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync("/api/administration/users")).StatusCode);
         await Login(client, "admin-a@example.invalid");
@@ -108,6 +129,15 @@ public sealed class PostgresAdministrationTests
             $"/api/administration/users/{UserA}/branches/{BranchA}", Access(MasterA, "2027-01-02", "2027-01-01"))).StatusCode);
         Assert.Equal(HttpStatusCode.Conflict, (await client.PatchAsJsonAsync(
             $"/api/administration/users/{UserA}/status", new { isActive = false })).StatusCode);
+
+        var updatedAccess = await client.PutAsJsonAsync(
+            $"/api/administration/users/{OtherMasterA}/branches/{BranchA}", Access(MasterA, "2000-01-01", "2099-12-31"));
+        Assert.Equal(HttpStatusCode.OK, updatedAccess.StatusCode);
+        using var accessBody = await updatedAccess.Content.ReadFromJsonAsync<JsonDocument>();
+        Assert.Equal("2000-01-01", accessBody!.RootElement.GetProperty("startsOn").GetString());
+        Assert.Equal("2099-12-31", accessBody.RootElement.GetProperty("endsOn").GetString());
+        Assert.Equal(HttpStatusCode.Created, (await client.PostAsJsonAsync("/api/administration/access-profiles",
+            new { name = "Leitura futura", description = "Fixture", accessLevel = "OPERACIONAL" })).StatusCode);
 
         var created = await client.PostAsJsonAsync("/api/administration/users", new
         { name = "Novo usuário", email = "new@example.invalid" });
@@ -194,6 +224,7 @@ public sealed class PostgresAdministrationTests
             {
                 ["ConnectionStrings:DefaultConnection"] = connection,
                 ["Database:AutoMigrate"] = "false",
+                ["Documents:PrivateStorage:RootPath"] = Path.Combine(Path.GetTempPath(), "wassis-test-documents", Guid.NewGuid().ToString("N")),
                 ["Identity:Jwt:SigningKey"] = Convert.ToBase64String(RandomNumberGenerator.GetBytes(48)),
                 ["Identity:Jwt:RequireHttpsMetadata"] = "true",
                 ["Identity:HomologationAuth:Enabled"] = "true",

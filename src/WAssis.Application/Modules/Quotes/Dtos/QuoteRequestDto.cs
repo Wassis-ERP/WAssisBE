@@ -1,3 +1,4 @@
+using WAssis.Domain.Modules.Quotes.ValueObjects;
 using WAssis.Domain.Modules.Quotes.Enums;
 
 namespace WAssis.Application.Modules.Quotes.Dtos;
@@ -48,4 +49,5 @@ public sealed record QuoteRequestDto(
     string? ShareToken,
     DateTime CreatedAtUtc,
     DateTime? UpdatedAtUtc,
-    IReadOnlyCollection<QuoteOptionDto> Options);
+    IReadOnlyCollection<QuoteOptionDto> Options,
+    AutoQuoteSubmission? AutoSubmission = null);

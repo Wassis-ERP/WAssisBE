@@ -7,6 +7,7 @@ on:
   push:
     branches:
       - main
+      - codex/security-remediation-followup
   workflow_dispatch:
 
 permissions:
@@ -28,9 +29,13 @@ jobs:
           fetch-depth: 0
 
       - name: Secret scan (history included)
-        uses: gitleaks/gitleaks-action@dcedce43c6f43de0b836d1fe38946645c9c638dc # v2
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: pwsh
+        run: |
+          $scanner = ./scripts/install-gitleaks.ps1
+          & $scanner git --redact=100 --log-opts='--all' --no-banner .
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          ./scripts/test-secret-hook.ps1 -GitleaksPath $scanner
+          exit $LASTEXITCODE
 
       - name: Setup .NET
         uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9 # v4
@@ -50,11 +55,14 @@ jobs:
       - name: Test
         run: dotnet test tests/WAssis.Tests/WAssis.Tests.csproj --configuration Release --no-restore -p:UseSharedCompilation=false -nodeReuse:false
 
-      - name: Vulnerable package audit
-        run: dotnet list src/WAssis.Services.Api/WAssis.Services.Api.csproj package --vulnerable --include-transitive
+      - name: Vulnerability report (restore enforces audit errors)
+        run: dotnet list WAssisInsurance.sln package --vulnerable --include-transitive
 
       - name: Publish API
         run: dotnet publish src/WAssis.Services.Api/WAssis.Services.Api.csproj --configuration Release --no-build --output ./artifacts/api -p:UseAppHost=false
+
+      - name: Publish Worker
+        run: dotnet publish src/WAssis.BackgroundTasks/WAssis.BackgroundTasks.csproj --configuration Release --no-build --output ./artifacts/worker -p:UseAppHost=false
 
       - name: Build API Docker image
         run: docker build -t wassisbe-api:${{ github.sha }} .
@@ -67,8 +75,25 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
 
+      - name: Build Worker Docker image
+        run: docker build -f Dockerfile.worker -t wassisbe-worker:${{ github.sha }} .
+
+      - name: Scan Worker image
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          image-ref: wassisbe-worker:${{ github.sha }}
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          exit-code: '1'
+
       - name: Upload API artifact
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: wassisbe-api
           path: ./artifacts/api
+
+      - name: Upload Worker artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: wassisbe-worker
+          path: ./artifacts/worker

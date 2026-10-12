@@ -42,6 +42,7 @@ public sealed class QuoteRequestsController(IMediator mediator) : ControllerBase
     [RequirePermission("comercial", "create")]
     [DistributedOperationLimit("quotes.create", 10, 60)]
     [ProducesResponseType(typeof(QuoteResponseViewModel), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Create(
         [FromBody] CreateQuoteRequestRequest request,
         CancellationToken cancellationToken)
@@ -86,7 +87,8 @@ public sealed class QuoteRequestsController(IMediator mediator) : ControllerBase
             request.InsuredPersonId,
             request.CalculationType,
             request.CalculationOrigin,
-            request.VersionLabel);
+            request.VersionLabel,
+            request.AutoSubmission);
 
         var response = await mediator.Send(command, cancellationToken);
 
@@ -139,7 +141,8 @@ public sealed class QuoteRequestsController(IMediator mediator) : ControllerBase
                     installment.TotalAmount)).ToArray(),
                 option.Messages.Select(static message => new QuoteStatusMessageViewModel(
                     message.Code,
-                    message.Description)).ToArray())).ToArray()));
+                    message.Description)).ToArray(),
+                option.ProviderCode, option.ProviderName)).ToArray()));
     }
 
     private static QuoteResponseViewModel ToViewModel(QuoteRequestDto response)
@@ -211,6 +214,8 @@ public sealed class QuoteRequestsController(IMediator mediator) : ControllerBase
                     installment.TotalAmount)).ToArray(),
                 option.Messages.Select(static message => new QuoteStatusMessageViewModel(
                     message.Code,
-                    message.Description)).ToArray())).ToArray());
+                    message.Description)).ToArray(),
+                option.ProviderCode, option.ProviderName)).ToArray(),
+            response.AutoSubmission);
     }
 }

@@ -19,7 +19,7 @@ namespace WAssis.Services.Api.Modules.Opportunities.Controllers;
 public sealed class OpportunitiesController(IMediator mediator) : ControllerBase
 {
     [HttpGet]
-    [RequirePermission("comercial", "read")]
+    [RequirePermission("comercial", "read", supportsOwnRecords: true)]
     [ProducesResponseType(typeof(PagedResult<OpportunityViewModel>), StatusCodes.Status200OK)]
     public async Task<IActionResult> List(
         [FromQuery] string? pipelineId,
@@ -34,7 +34,7 @@ public sealed class OpportunitiesController(IMediator mediator) : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
-    [RequirePermission("comercial", "read")]
+    [RequirePermission("comercial", "read", supportsOwnRecords: true)]
     [ProducesResponseType(typeof(OpportunityViewModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> GetById(Guid id, CancellationToken cancellationToken)
@@ -44,7 +44,7 @@ public sealed class OpportunitiesController(IMediator mediator) : ControllerBase
     }
 
     [HttpPost]
-    [RequirePermission("comercial", "create")]
+    [RequirePermission("comercial", "create", supportsOwnRecords: true)]
     [ProducesResponseType(typeof(OpportunityViewModel), StatusCodes.Status201Created)]
     public async Task<IActionResult> Create([FromBody] CreateOpportunityRequest request, CancellationToken cancellationToken)
     {
@@ -93,7 +93,7 @@ public sealed class OpportunitiesController(IMediator mediator) : ControllerBase
     }
 
     [HttpPut("{id:guid}")]
-    [RequirePermission("comercial", "update")]
+    [RequirePermission("comercial", "update", supportsOwnRecords: true)]
     [ProducesResponseType(typeof(OpportunityViewModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> Update(Guid id, [FromBody] UpdateOpportunityRequest request, CancellationToken cancellationToken)
@@ -147,7 +147,7 @@ public sealed class OpportunitiesController(IMediator mediator) : ControllerBase
     }
 
     [HttpPatch("{id:guid}/stage")]
-    [RequirePermission("comercial", "update")]
+    [RequirePermission("comercial", "update", supportsOwnRecords: true)]
     [ProducesResponseType(typeof(OpportunityViewModel), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> MoveStage(Guid id, [FromBody] MoveOpportunityStageRequest request, CancellationToken cancellationToken)

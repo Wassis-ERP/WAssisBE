@@ -1,4 +1,5 @@
 **/.git
+**/.dotnet
 **/.vs
 **/bin
 **/obj

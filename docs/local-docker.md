@@ -59,5 +59,12 @@ Host=localhost;Port=5432;Database=<database>;Username=<user>;Password=<secret>
 2. Rodar a API com `dotnet run --project src/WAssis.Services.Api/WAssis.Services.Api.csproj`.
 3. Rodar o worker com `dotnet run --project src/WAssis.BackgroundTasks/WAssis.BackgroundTasks.csproj`.
 
+API e worker devem receber o mesmo diretório absoluto privado por
+`Documents__PrivateStorage__RootPath`. Crie o diretório fora da árvore publicada,
+restrinja a ACL ao usuário dos serviços e não o compartilhe por HTTP. Em container,
+monte o mesmo volume privado nos dois serviços; `Dockerfile.worker` não declara nem
+cria esse recurso automaticamente. Configure `Ocr__ExecutablePath` somente
+para um binário administrado e mantenha os limites `Documents__Processing__*`.
+
 As imagens usam tags de patch e digests verificaveis. Atualizacoes devem revisar
 release notes, obter o novo digest do registry e validar o compose novamente.

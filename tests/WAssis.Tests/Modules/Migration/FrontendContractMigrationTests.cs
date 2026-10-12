@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Options;
+using WAssis.Infra.CrossCutting.Identity.Authentication;
 using WAssis.Services.Api.Modules.Identity.Controllers;
 using WAssis.Services.Api.Modules.Migration;
 using WAssis.Services.Api.Modules.Migration.Contracts;
@@ -79,7 +81,8 @@ public sealed class FrontendContractMigrationTests
     public void CreateUser_ReturnsTrackableProblemDetails()
     {
         var controller = new IdentityController(new NullCurrentUserContext(), effectivePermissions: null!,
-            authSessions: null!, environment: null!, mediator: null!);
+            authSessions: null!, externalIdentities: null!, internalTokens: null!,
+            auth0Options: Options.Create(new Auth0Options()), environment: null!, mediator: null!);
 
         var result = Assert.IsType<ObjectResult>(controller.CreateUser());
 

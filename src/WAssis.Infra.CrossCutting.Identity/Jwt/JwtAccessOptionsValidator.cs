@@ -41,6 +41,17 @@ public sealed class JwtAccessOptionsValidator(IHostEnvironment hostEnvironment) 
             failures.Add("Identity:Jwt:SigningKey must be a base64-encoded random secret of at least 32 bytes outside Development.");
         }
 
+        foreach (var previousKey in options.PreviousSigningKeys)
+        {
+            if (!IsStrongKey(previousKey))
+                failures.Add("Every Identity:Jwt:PreviousSigningKeys entry must be a base64-encoded random secret of at least 32 bytes.");
+        }
+        if (options.PreviousSigningKeys.Append(options.SigningKey)
+            .Where(static key => !string.IsNullOrWhiteSpace(key))
+            .Distinct(StringComparer.Ordinal).Count()
+            != options.PreviousSigningKeys.Length + 1)
+            failures.Add("Identity JWT signing keys must be unique during rotation.");
+
         if (!hostEnvironment.IsDevelopment() && !options.RequireHttpsMetadata)
         {
             failures.Add("Identity:Jwt:RequireHttpsMetadata must be enabled outside Development.");

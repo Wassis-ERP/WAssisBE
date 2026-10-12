@@ -3,8 +3,6 @@ using System.Diagnostics;
 using Docnet.Core;
 using Docnet.Core.Models;
 using Microsoft.Extensions.Options;
-using SixLabors.ImageSharp;
-using SixLabors.ImageSharp.PixelFormats;
 using WAssis.Application.Modules.Documents.Interfaces;
 using WAssis.Infra.Data.Configuration;
 
@@ -48,13 +46,10 @@ public sealed class TesseractOcrTextExtractor(IOptions<TesseractOcrOptions> opti
                     continue;
                 }
 
-                var imagePath = Path.Join(workingDirectory, $"page-{pageIndex + 1:D2}.png");
+                var imagePath = Path.Join(workingDirectory, $"page-{pageIndex + 1:D2}.ppm");
                 var outputBasePath = Path.Join(workingDirectory, $"page-{pageIndex + 1:D2}");
 
-                using (var image = Image.LoadPixelData<Bgra32>(rawBytes, width, height))
-                {
-                    await image.SaveAsPngAsync(imagePath, cancellationToken);
-                }
+                await PortablePixmapWriter.WriteAsync(imagePath, rawBytes, width, height, cancellationToken);
 
                 var extractedText = await RunTesseractAsync(executablePath, imagePath, outputBasePath, cancellationToken);
                 if (!string.IsNullOrWhiteSpace(extractedText))

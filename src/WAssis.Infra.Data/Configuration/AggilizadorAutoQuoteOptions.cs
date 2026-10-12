@@ -34,4 +34,11 @@ public sealed class AggilizadorAutoQuoteOptions
     public string DefaultGlassCoverageCode { get; set; } = "1";
     public string DefaultReserveCarCode { get; set; } = "1";
     public string DefaultAdjustmentFactor { get; set; } = "100";
+
+    // Explicit, verified adapter mappings. Never persist wire codes as business choices.
+    public Dictionary<string, string> InsuranceTypeCodes { get; set; } = [];
+    public Dictionary<string, string> DriverMaritalStatusCodes { get; set; } = [];
+    public Dictionary<string, string> DeductibleTypeCodes { get; set; } = [];
+    // Key: normalized coverage code + ':' + normalized requested option.
+    public Dictionary<string, string> CoverageOptionCodes { get; set; } = [];
 }

@@ -8,7 +8,6 @@ public sealed record ImportedDocumentViewModel(
     string FileName,
     string ContentType,
     string Source,
-    string? StoragePath,
     ImportedDocumentStatus Status,
     string? DocumentType,
     string? InsuranceCompanyName,

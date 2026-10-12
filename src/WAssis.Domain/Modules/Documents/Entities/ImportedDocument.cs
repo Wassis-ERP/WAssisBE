@@ -60,6 +60,20 @@ public class ImportedDocument : AggregateRoot
         return new ImportedDocument(Guid.NewGuid(), tenantId, correlationId, fileName, contentType, source, storagePath, officeBranchId);
     }
 
+    public static ImportedDocument CreateStored(
+        Guid id,
+        string tenantId,
+        string correlationId,
+        string fileName,
+        string contentType,
+        string source,
+        string storagePath,
+        string officeBranchId)
+    {
+        if (id == Guid.Empty) throw new ArgumentException("Document ID is required.", nameof(id));
+        return new ImportedDocument(id, tenantId, correlationId, fileName, contentType, source, storagePath, officeBranchId);
+    }
+
     public void MarkAsProcessing()
     {
         Status = ImportedDocumentStatus.Processing;

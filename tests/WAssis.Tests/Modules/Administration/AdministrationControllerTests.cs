@@ -66,7 +66,8 @@ public sealed class AdministrationControllerTests
     private sealed class NullAuditTrailWriter : IAuditTrailWriter
     {
         public Task WriteAsync(string correlationId, string module, string action, string entityType, string entityId,
-            string? notes, CancellationToken cancellationToken, string? tenantId = null) => Task.CompletedTask;
+            string? notes, CancellationToken cancellationToken, string? tenantId = null,
+            string? branchId = null) => Task.CompletedTask;
     }
 
     private sealed class StubAdministrationRepository : IAdministrationRepository

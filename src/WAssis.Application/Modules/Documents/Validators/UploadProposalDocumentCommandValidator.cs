@@ -5,11 +5,9 @@ namespace WAssis.Application.Modules.Documents.Validators;
 
 public sealed class UploadProposalDocumentCommandValidator : AbstractValidator<UploadProposalDocumentCommand>
 {
-    private const int MaxPdfBytes = 8_000_000;
-    private static readonly byte[] PdfSignature = "%PDF-"u8.ToArray();
-
     public UploadProposalDocumentCommandValidator()
     {
+        RuleFor(x => x.DocumentId).NotEmpty();
         RuleFor(x => x.CorrelationId).NotEmpty().MaximumLength(64);
         RuleFor(x => x.FileName)
             .NotEmpty()
@@ -20,11 +18,6 @@ public sealed class UploadProposalDocumentCommandValidator : AbstractValidator<U
             .Equal("application/pdf", StringComparer.OrdinalIgnoreCase)
             .WithMessage("O Content-Type deve ser application/pdf.");
         RuleFor(x => x.Source).NotEmpty().MaximumLength(50);
-        RuleFor(x => x.Content)
-            .NotEmpty()
-            .Must(static content => content.Length <= MaxPdfBytes)
-            .WithMessage($"O PDF deve ter no maximo {MaxPdfBytes} bytes.")
-            .Must(static content => content.AsSpan().StartsWith(PdfSignature))
-            .WithMessage("O arquivo enviado nao possui uma assinatura PDF valida.");
+        RuleFor(x => x.StorageKey).NotEmpty().MaximumLength(160);
     }
 }

@@ -1,8 +1,11 @@
+using WAssis.Application.Modules.Calculations;
+using WAssis.Infra.Data.Modules.Calculations;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Http.Resilience;
 using Polly;
+using Npgsql;
 using Microsoft.Extensions.Hosting;
 using WAssis.Application.Modules.Billing.Interfaces;
 using WAssis.Application.Modules.Customers.Interfaces;
@@ -36,6 +39,7 @@ using WAssis.Infra.Data.Modules.Billing.Repositories;
 using WAssis.Infra.Data.Modules.Customers.Repositories;
 using WAssis.Infra.Data.Modules.Core.Queries;
 using WAssis.Infra.Data.Modules.Documents.Repositories;
+using WAssis.Infra.Data.Modules.Documents.Storage;
 using WAssis.Infra.Data.Modules.Financial.Repositories;
 using WAssis.Infra.Data.Modules.Identity;
 using WAssis.Infra.Data.Modules.Notifications.Queries;
@@ -73,12 +77,33 @@ public static class InfraDataServiceCollectionExtensions
 
         if (!hostEnvironment.IsDevelopment()) DatabaseConnectionPolicy.ValidateSharedEnvironment(connectionString);
 
-        services.AddDbContext<WAssisDbContext>(options =>
-            options.UseNpgsql(connectionString, npgsqlOptions =>
+        // Authentication must not construct the request DbContext before HttpContext.User
+        // has been assigned. Security queries lease separate, short-lived connections.
+        services.AddSingleton(_ => NpgsqlDataSource.Create(connectionString));
+        services.AddScoped<RecordPermissionScope>();
+        services.AddDbContext<WAssisDbContext>((provider, options) =>
+            options.UseNpgsql(provider.GetRequiredService<NpgsqlDataSource>(), npgsqlOptions =>
                 npgsqlOptions.MigrationsHistoryTable("__EFMigrationsHistory", "quotes")));
 
         services.Configure<TesseractOcrOptions>(options =>
             configuration.GetSection(TesseractOcrOptions.SectionName).Bind(options));
+        services.AddOptions<AuthSessionOptions>()
+            .Bind(configuration.GetSection(AuthSessionOptions.SectionName))
+            .Validate(options => options.IdleTimeoutMinutes is >= 5 and <= 1440,
+                "Identity:Session:IdleTimeoutMinutes must be between 5 and 1440 minutes.")
+            .ValidateOnStart();
+        services.AddOptions<PrivateDocumentStorageOptions>()
+            .Bind(configuration.GetSection(PrivateDocumentStorageOptions.SectionName))
+            .PostConfigure(options =>
+            {
+                if (hostEnvironment.IsDevelopment() && string.IsNullOrWhiteSpace(options.RootPath))
+                    options.RootPath = Path.Combine(AppContext.BaseDirectory, "private-documents");
+            })
+            .Validate(options => Path.IsPathFullyQualified(options.RootPath),
+                "Documents:PrivateStorage:RootPath must be an absolute private directory.")
+            .Validate(options => options.MaxBytes is >= 1_000_000 and <= 20_000_000,
+                "Documents:PrivateStorage:MaxBytes must be between 1 MB and 20 MB.")
+            .ValidateOnStart();
         services.Configure<AggilizadorAutoQuoteOptions>(options =>
             configuration.GetSection(AggilizadorAutoQuoteOptions.SectionName).Bind(options));
         services.Configure<BradescoAutoQuoteOptions>(options =>
@@ -100,6 +125,7 @@ public static class InfraDataServiceCollectionExtensions
         services.AddScoped<IBillingRepository, BillingRepository>();
         services.AddScoped<IAdministrationRepository, AdministrationRepository>();
         services.AddScoped<IEffectivePermissionService, EffectivePermissionService>();
+        services.AddScoped<IExternalIdentityResolver, ExternalIdentityResolver>();
         services.AddScoped<IAuthSessionService, AuthSessionService>();
         services.AddScoped<ICoreBranchReadRepository, CoreBranchReadRepository>();
         services.AddScoped<IBusinessReferenceValidator, BusinessReferenceValidator>();
@@ -107,10 +133,15 @@ public static class InfraDataServiceCollectionExtensions
         services.AddScoped<IInsuredPersonRepository, InsuredPersonRepository>();
         services.AddScoped<IInsuredPersonReadRepository, InsuredPersonRepository>();
         services.AddScoped<IOpportunityRepository, OpportunityRepository>();
+        services.AddScoped<ICanonicalCalculationStore, CanonicalCalculationStore>();
+        services.AddScoped<ICanonicalExecutionStore, CanonicalExecutionStore>();
+        services.AddScoped<ICanonicalPresentationStore, CanonicalPresentationStore>();
+        services.AddSingleton(TimeProvider.System);
         services.AddScoped<IOpportunityReadRepository, OpportunityRepository>();
         services.AddScoped<IOpportunityScope, OpportunityScope>();
         services.AddScoped<IDocumentSearchRepository, DocumentSearchRepository>();
         services.AddScoped<IImportedDocumentRepository, ImportedDocumentRepository>();
+        services.AddSingleton<IPrivateDocumentStorage, LocalPrivateDocumentStorage>();
         services.AddScoped<ICommissionReceiptRepository, CommissionReceiptRepository>();
         services.AddSingleton<ICommissionStatementParser, CommissionStatementParser>();
         services.AddScoped<IOperationsDashboardReadRepository, OperationsDashboardReadRepository>();
@@ -118,6 +149,7 @@ public static class InfraDataServiceCollectionExtensions
         services.AddScoped<IQuoteProviderActivationRepository, QuoteProviderActivationRepository>();
         services.AddScoped<IQuoteRequestRepository, QuoteRequestRepository>();
         services.AddScoped<IDurableWorkQueue, WAssis.Infra.Data.Processing.DurableWorkQueue>();
+        services.AddScoped<IWorkerDataScope, WorkerDataScope>();
         services.AddScoped<IWhatsAppConversationRepository, WhatsAppConversationRepository>();
         services.AddScoped<IAuditTrailWriter, AuditTrailWriter>();
         services.AddScoped<IApplicationTransaction, EfApplicationTransaction>();

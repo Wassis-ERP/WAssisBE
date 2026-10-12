@@ -32,7 +32,7 @@ public sealed class OpportunityRepository(WAssisDbContext dbContext)
 
         if (!string.IsNullOrWhiteSpace(pipelineId))
         {
-            query = query.Where(x => x.PipelineId == pipelineId.Trim());
+            query = query.Where(x => x.Stage != null && x.Stage.PipelineId == pipelineId.Trim());
         }
 
         if (!string.IsNullOrWhiteSpace(stageId))
@@ -42,7 +42,13 @@ public sealed class OpportunityRepository(WAssisDbContext dbContext)
 
         if (!string.IsNullOrWhiteSpace(status))
         {
-            query = query.Where(x => x.Status == status.Trim());
+            query = status.Trim().ToLowerInvariant() switch
+            {
+                "won" => query.Where(x => x.WonAtUtc != null),
+                "lost" => query.Where(x => x.WonAtUtc == null && x.LostAtUtc != null),
+                "pending" => query.Where(x => x.WonAtUtc == null && x.LostAtUtc == null),
+                _ => query.Where(x => false)
+            };
         }
 
         var totalCount = await query.LongCountAsync(cancellationToken);

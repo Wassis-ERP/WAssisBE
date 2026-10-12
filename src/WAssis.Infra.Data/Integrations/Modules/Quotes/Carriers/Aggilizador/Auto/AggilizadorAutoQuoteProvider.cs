@@ -19,6 +19,7 @@ public sealed class AggilizadorAutoQuoteProvider(
     public string ProviderCode => "aggilizador_auto";
     public string ProviderName => "Aggilizador Auto";
     public bool IsEnabled => _options.Enabled;
+    public bool SupportsAutoSubmission => true;
 
     public QuoteProviderDescriptorDto Describe()
     {
@@ -41,7 +42,7 @@ public sealed class AggilizadorAutoQuoteProvider(
             [
                 new QuoteStatusMessageDto(
                     "aggilizador_contingency_provider",
-                    "Provider contingencial de multicálculo pronto para gestao operacional e fallback do fluxo principal.")
+                    "Adaptador de envio; de-para e resultados por seguradora exigem homologação. Não há fallback automático.")
             ]);
     }
 
@@ -68,8 +69,9 @@ public sealed class AggilizadorAutoQuoteProvider(
             ];
         }
 
-        var validationMessages = ValidateRequest(request);
-        if (validationMessages.Count > 0)
+        var validationMessages = ValidateRequest(request)
+            .Concat(AggilizadorSubmissionMapping.Validate(request.AutoSubmission, _options)).ToArray();
+        if (validationMessages.Length > 0)
         {
             return
             [
@@ -94,32 +96,39 @@ public sealed class AggilizadorAutoQuoteProvider(
         }
 
         var root = response.RootElement;
-        var externalReference = ExtractString(root, "Id", "id", "QuoteId", "quoteId", "CalculationId")
-            ?? $"{ProviderCode}-{request.QuoteRequestId:N}";
+        if (root.ValueKind != JsonValueKind.Object)
+            return [CreateSingleResult(QuoteOptionStatus.Failure, string.Empty,
+                [new QuoteStatusMessageDto("invalid_provider_response", "Resposta inválida do Aggilizador.")])];
+        var externalReference = ExtractString(root, "Id", "id", "QuoteId", "quoteId", "CalculationId");
+        if (string.IsNullOrWhiteSpace(externalReference))
+            return [CreateSingleResult(QuoteOptionStatus.Failure, string.Empty,
+                [new QuoteStatusMessageDto("missing_external_reference", "O Aggilizador não confirmou uma referência de envio; confira antes de reenviar.")])];
 
         return
         [
             new QuoteProviderResultDto(
                 ProviderCode,
                 ProviderName,
-                QuoteOptionStatus.Ok,
+                QuoteOptionStatus.Pending,
                 externalReference,
-                ExtractMoney(root, "Premium", "premium", "TotalPremium", "totalPremium", "ValorPremio"),
+                null,
                 null,
                 [],
                 [],
                 [
                     new QuoteStatusMessageDto(
                         "aggilizador_quote_registered",
-                        "Solicitacao registrada no Aggilizador Auto como contingencia operacional.")
-                ])
+                        "Solicitação aceita pelo Aggilizador; resultados por seguradora ainda não foram obtidos.")
+                ],
+                InsuranceCompanyCode: "", InsuranceCompanyName: "", ProductCode: "", ProductName: "")
         ];
     }
 
     private object BuildPayload(StartQuoteProcessingDto request)
     {
-        var vigenciaInicial = DateTime.Today;
-        var vigenciaFinal = vigenciaInicial.AddYears(1);
+        var submission = request.AutoSubmission!;
+        var vigenciaInicial = submission.CoverageStartsOn;
+        var vigenciaFinal = submission.CoverageEndsOn;
         var commissionPercentage = request.BrokerCommissionPercentage ?? _options.DefaultCommissionPercentage;
         var parsedPhone = SplitPhone(request.PhoneNumber);
 
@@ -158,13 +167,13 @@ public sealed class AggilizadorAutoQuoteProvider(
                 },
                 CondutorPrincipal = new
                 {
-                    CpfCnpj = request.DocumentNumber,
-                    NomeCompleto = request.CustomerName,
-                    DataNascimento = request.CustomerBirthDateUtc?.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture),
-                    Sexo = MapGender(request.CustomerGender),
-                    EstadoCivil = request.CustomerMaritalStatusCode,
-                    TempoHabilitacao = request.DriverLicenseYears?.ToString(CultureInfo.InvariantCulture),
-                    NumeroHabilitacao = request.DriverLicenseNumber ?? string.Empty
+                    CpfCnpj = submission.DriverDocument,
+                    NomeCompleto = submission.DriverName,
+                    DataNascimento = submission.DriverBirthDate.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture),
+                    Sexo = MapGender(submission.DriverGender),
+                    EstadoCivil = _options.DriverMaritalStatusCodes[submission.DriverMaritalStatus],
+                    TempoHabilitacao = submission.DriverLicenseYears.ToString(CultureInfo.InvariantCulture),
+                    NumeroHabilitacao = string.Empty
                 },
                 Veiculo = new
                 {
@@ -212,35 +221,20 @@ public sealed class AggilizadorAutoQuoteProvider(
                     Pcd = _options.DefaultPcdCode
                 },
                 Caminhao = (object?)null,
-                Cobertura = new
-                {
-                    DanosMorais = _options.DefaultMoralDamagesAmount,
-                    DanosMateriais = _options.DefaultMaterialDamagesAmount,
-                    DanosCorporais = _options.DefaultBodilyDamagesAmount,
-                    MorteInvalidez = _options.DefaultDeathInvalidityAmount,
-                    TipoFranquia = _options.DefaultDeductibleTypeCode,
-                    Assistencia = _options.DefaultAssistanceCode,
-                    Vidros = _options.DefaultGlassCoverageCode,
-                    CarroReserva = _options.DefaultReserveCarCode,
-                    FatorAjuste = _options.DefaultAdjustmentFactor,
-                    KitGas = request.VehicleHasKitGas == true ? "1.00" : "0.00",
-                    Carroceria = "0.00",
-                    Equipamento = "0.00",
-                    ArCondicionado = "0"
-                },
+                Cobertura = AggilizadorSubmissionMapping.BuildCoverages(submission, _options),
                 Seguro = new
                 {
                     Banco = _options.DefaultBankCode,
-                    Bonus = request.PreviousBonus ?? string.Empty,
-                    TipoSeguro = _options.DefaultInsuranceTypeCode,
+                    Bonus = submission.BonusClass?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+                    TipoSeguro = _options.InsuranceTypeCodes[submission.InsuranceType],
                     Comissao = commissionPercentage.ToString(CultureInfo.InvariantCulture),
-                    VigenciaInicial = vigenciaInicial.ToString("dd/MM/yyyy 00:00:00", CultureInfo.InvariantCulture),
-                    VigenciaFinal = vigenciaFinal.ToString("dd/MM/yyyy 00:00:00", CultureInfo.InvariantCulture),
-                    VigenciaFinalAnterior = (string?)null,
+                    VigenciaInicial = FormatDate(vigenciaInicial),
+                    VigenciaFinal = FormatDate(vigenciaFinal),
+                    VigenciaFinalAnterior = FormatDate(submission.PreviousCoverageEndsOn),
                     SeguradoraAnterior = request.RenewalInsurerCode?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
-                    CodigoIdentificacao = string.Empty,
-                    NumeroApoliceAnterior = string.Empty,
-                    Sinistros = _options.DefaultSinisterCode,
+                    CodigoIdentificacao = submission.PreviousIdentificationCode ?? string.Empty,
+                    NumeroApoliceAnterior = submission.PreviousPolicyNumber ?? string.Empty,
+                    Sinistros = submission.ClaimCount?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
                     Observacoes = string.Empty
                 }
             },
@@ -321,6 +315,9 @@ public sealed class AggilizadorAutoQuoteProvider(
             messages.Add(new QuoteStatusMessageDto(code, description));
         }
     }
+
+    private static string? FormatDate(DateOnly? value) => value.HasValue
+        ? value.Value.ToString("dd/MM/yyyy", CultureInfo.InvariantCulture) + " 00:00:00" : null;
 
     private static string ToAggBoolean(bool? value) => value == true ? "1" : "0";
 
@@ -407,6 +404,7 @@ public sealed class AggilizadorAutoQuoteProvider(
             null,
             [],
             [],
-            messages);
+            messages,
+            InsuranceCompanyCode: "", InsuranceCompanyName: "", ProductCode: "", ProductName: "");
     }
 }

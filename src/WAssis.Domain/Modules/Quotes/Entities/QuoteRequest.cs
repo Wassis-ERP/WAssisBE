@@ -1,3 +1,4 @@
+using WAssis.Domain.Modules.Quotes.ValueObjects;
 using WAssis.Domain.Core.Entities;
 using WAssis.Domain.Modules.Quotes.Enums;
 
@@ -6,6 +7,8 @@ namespace WAssis.Domain.Modules.Quotes.Entities;
 public class QuoteRequest : AggregateRoot
 {
     private readonly List<QuoteOption> _options = [];
+
+    public AutoQuoteSubmission? AutoSubmission { get; private set; }
 
     public string TenantId { get; private set; } = string.Empty;
     public string? OfficeBranchId { get; private set; }
@@ -100,7 +103,8 @@ public class QuoteRequest : AggregateRoot
         Guid? insuredPersonId,
         string calculationType,
         string calculationOrigin,
-        string? versionLabel)
+        string? versionLabel,
+        AutoQuoteSubmission? autoSubmission)
     {
         Id = id;
         TenantId = tenantId;
@@ -111,6 +115,7 @@ public class QuoteRequest : AggregateRoot
         CalculationType = NormalizeRequired(calculationType, "AUTO");
         CalculationOrigin = NormalizeRequired(calculationOrigin, "PROPRIO");
         VersionLabel = NormalizeOptional(versionLabel);
+        AutoSubmission = autoSubmission?.Copy();
         CorrelationId = correlationId;
         CustomerName = customerName;
         DocumentNumber = documentNumber;
@@ -191,7 +196,8 @@ public class QuoteRequest : AggregateRoot
         Guid? insuredPersonId = null,
         string calculationType = "AUTO",
         string calculationOrigin = "PROPRIO",
-        string? versionLabel = null)
+        string? versionLabel = null,
+        AutoQuoteSubmission? autoSubmission = null)
     {
         return new QuoteRequest(
             Guid.NewGuid(),
@@ -235,7 +241,8 @@ public class QuoteRequest : AggregateRoot
             insuredPersonId,
             calculationType,
             calculationOrigin,
-            versionLabel);
+            versionLabel,
+            autoSubmission);
     }
 
     private static string NormalizeRequired(string? value, string fallback)
@@ -264,9 +271,13 @@ public class QuoteRequest : AggregateRoot
     {
         Status = _options.Count == 0
             ? QuoteRequestStatus.Failed
-            : _options.All(static option => option.Status == QuoteOptionStatus.Ok)
-                ? QuoteRequestStatus.Completed
-                : QuoteRequestStatus.PartiallyCompleted;
+            : _options.Any(static option => option.Status == QuoteOptionStatus.Pending)
+                ? QuoteRequestStatus.AwaitingResults
+                : _options.All(static option => option.Status == QuoteOptionStatus.Ok)
+                    ? QuoteRequestStatus.Completed
+                    : _options.Any(static option => option.Status == QuoteOptionStatus.Ok)
+                        ? QuoteRequestStatus.PartiallyCompleted
+                        : QuoteRequestStatus.Failed;
 
         UpdatedAtUtc = DateTime.UtcNow;
     }

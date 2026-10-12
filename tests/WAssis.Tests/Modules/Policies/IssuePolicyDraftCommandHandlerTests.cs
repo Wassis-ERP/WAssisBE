@@ -61,7 +61,7 @@ public sealed class IssuePolicyDraftCommandHandlerTests
             string entityType,
             string entityId,
             string? notes,
-            CancellationToken cancellationToken, string? tenantId = null)
+            CancellationToken cancellationToken, string? tenantId = null, string? branchId = null)
         {
             Entries.Add($"{module}:{action}:{entityType}:{entityId}:{notes}");
             return Task.CompletedTask;

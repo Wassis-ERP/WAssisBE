@@ -22,19 +22,30 @@ ALTER ROLE wassis_migrator NOSUPERUSER NOCREATEDB NOCREATEROLE NOINHERIT NOBYPAS
 
 GRANT USAGE ON SCHEMA public, documents, financial, policies, quotes,
   whatsapp_support, operations, billing, erp, security TO wassis_app;
-GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA documents,
+GRANT SELECT, INSERT, UPDATE ON ALL TABLES IN SCHEMA documents,
   financial, policies, quotes, public, whatsapp_support, operations, billing TO wassis_app;
-GRANT SELECT ON erp.profiles, erp.profile_filiais, erp.filiais, erp.perfis,
-  erp.role_permissions, erp.produtores TO wassis_app;
+REVOKE DELETE ON ALL TABLES IN SCHEMA documents, financial, policies, quotes,
+  public, whatsapp_support, operations, billing FROM wassis_app;
+GRANT SELECT, INSERT, UPDATE ON erp.profiles, erp.profile_filiais, erp.filiais,
+  erp.perfis, erp.role_permissions TO wassis_app;
+GRANT SELECT, UPDATE ON erp.tenants TO wassis_app;
+GRANT SELECT ON erp.produtores TO wassis_app;
 GRANT SELECT, INSERT, UPDATE, DELETE ON security.auth_sessions,
   security.rate_limit_buckets TO wassis_app;
 GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA documents, financial, policies,
   quotes, public, whatsapp_support, operations, billing TO wassis_app;
 
-GRANT USAGE ON SCHEMA infrastructure, security TO wassis_worker;
+GRANT USAGE ON SCHEMA infrastructure, security, quotes, documents, operations TO wassis_worker;
 GRANT SELECT, INSERT, UPDATE ON infrastructure.work_outbox, infrastructure.work_inbox TO wassis_worker;
+GRANT SELECT, UPDATE ON quotes.quote_requests TO wassis_worker;
+GRANT SELECT, INSERT ON quotes.quote_options, quotes.quote_option_coverages,
+  quotes.quote_option_installments, quotes.quote_option_messages TO wassis_worker;
+GRANT SELECT ON quotes.quote_provider_activation_settings TO wassis_worker;
+GRANT SELECT, UPDATE ON documents.imported_documents TO wassis_worker;
+GRANT INSERT ON operations.audit_entries TO wassis_worker;
 GRANT EXECUTE ON FUNCTION security.current_tenant_id() TO wassis_app, wassis_worker;
 GRANT EXECUTE ON FUNCTION security.current_branch_id() TO wassis_app, wassis_worker;
+GRANT EXECUTE ON FUNCTION security.resolve_external_profile(text, text) TO wassis_app;
 
 -- The migration role owns schema changes only. Do not grant it to API/worker logins.
 GRANT USAGE, CREATE ON SCHEMA public, documents, financial, policies, quotes,
@@ -42,7 +53,7 @@ GRANT USAGE, CREATE ON SCHEMA public, documents, financial, policies, quotes,
 
 ALTER DEFAULT PRIVILEGES FOR ROLE wassis_migrator IN SCHEMA documents, financial,
   policies, quotes, public, whatsapp_support, operations, billing
-  GRANT SELECT, INSERT, UPDATE, DELETE ON TABLES TO wassis_app;
+  GRANT SELECT, INSERT, UPDATE ON TABLES TO wassis_app;
 ALTER DEFAULT PRIVILEGES FOR ROLE wassis_migrator IN SCHEMA documents, financial,
   policies, quotes, public, whatsapp_support, operations, billing
   GRANT USAGE, SELECT ON SEQUENCES TO wassis_app;

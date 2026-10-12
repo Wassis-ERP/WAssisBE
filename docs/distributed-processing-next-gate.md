@@ -18,4 +18,11 @@ NeedsReview exige consulta à seguradora, decisão auditada e reconciliação in
 
 Antes de escalar: outbox por provedor/operação, Idempotency-Key e consulta remota, inbox de callbacks com unique de evento externo (a inbox atual é recibo interno), heartbeat durante chamadas longas, recuperação após consulta remota, testes de morte antes/depois de envio e redelivery, retenção de recibos, storage durável e quotas. Não aumentar réplicas com base somente nesta entrega.
 
-Documentos pendentes: streaming, storage por ambiente, checksum/retenção, malware e OCR isolado com limites de CPU/memória/tempo/rede. Duas réplicas no mesmo nó não protegem contra perda do host. PostgreSQL/volumes locais seguem pontos únicos de falha. PRD exige backup, restore ensaiado, PITR e isolamento de banco/usuário/JWT/cache/storage/credenciais.
+Documentos agora usam streaming para storage privado, outbox `documents.parse` e
+parser/OCR em processo filho encerrável. Isso não conclui a operação de Production:
+faltam checksum/antimalware, política de retenção, storage compartilhado durável,
+limites rígidos no runtime (cgroup/Job Object) e ensaio de arquivos hostis. O limite
+observado no processo filho é defesa adicional, não substitui a quota do runtime.
+Duas réplicas no mesmo nó não protegem contra perda do host. PostgreSQL/volumes
+locais seguem pontos únicos de falha. PRD exige backup, restore ensaiado, PITR e
+isolamento de banco/usuário/JWT/cache/storage/credenciais.

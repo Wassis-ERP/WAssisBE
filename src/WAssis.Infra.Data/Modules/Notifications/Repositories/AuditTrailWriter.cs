@@ -17,7 +17,8 @@ public sealed class AuditTrailWriter(
         string entityId,
         string? notes,
         CancellationToken cancellationToken,
-        string? tenantId = null)
+        string? tenantId = null,
+        string? branchId = null)
     {
         var scope = systemScope is not null && !currentUserContext.IsAuthenticated
             ? tenantId : currentUserContext.ResolveTenantIdOrPlatform();
@@ -32,7 +33,7 @@ public sealed class AuditTrailWriter(
             entityId,
             Sanitize(notes),
             systemScope is not null && !currentUserContext.IsAuthenticated
-                ? null
+                ? branchId
                 : currentUserContext.ResolveBranchIdForWrite());
         await dbContext.AuditEntries.AddAsync(entry, cancellationToken);
         await dbContext.SaveChangesAsync(cancellationToken);

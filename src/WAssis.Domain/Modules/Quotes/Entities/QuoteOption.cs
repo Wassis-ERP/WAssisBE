@@ -12,6 +12,8 @@ public class QuoteOption : Entity
 
     public string TenantId { get; private set; } = string.Empty;
     public Guid QuoteRequestId { get; private set; }
+    public string ProviderCode { get; private set; } = string.Empty;
+    public string ProviderName { get; private set; } = string.Empty;
     public string InsuranceCompanyCode { get; private set; } = string.Empty;
     public string InsuranceCompanyName { get; private set; } = string.Empty;
     public string ProductCode { get; private set; } = string.Empty;
@@ -42,11 +44,15 @@ public class QuoteOption : Entity
         string externalReference,
         IEnumerable<CoverageSnapshot>? coverages,
         IEnumerable<InstallmentSnapshot>? installments,
-        IEnumerable<QuoteStatusMessage>? messages)
+        IEnumerable<QuoteStatusMessage>? messages,
+        string? providerCode = null,
+        string? providerName = null)
     {
         Id = id;
         TenantId = tenantId;
         QuoteRequestId = quoteRequestId;
+        ProviderCode = providerCode ?? insuranceCompanyCode;
+        ProviderName = providerName ?? insuranceCompanyName;
         InsuranceCompanyCode = insuranceCompanyCode;
         InsuranceCompanyName = insuranceCompanyName;
         ProductCode = productCode;
