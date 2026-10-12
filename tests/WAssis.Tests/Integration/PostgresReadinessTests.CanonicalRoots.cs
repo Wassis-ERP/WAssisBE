@@ -38,6 +38,8 @@ public sealed partial class PostgresReadinessTests
             UPDATE erp.oportunidades SET segurado_id = {otherBranchInsured} WHERE id = {opportunityId}
             """));
         Assert.Equal(PostgresErrorCodes.CheckViolation, conflict.SqlState);
-        Assert.Equal(insuredId, (await db.Opportunities.AsNoTracking().SingleAsync(x => x.Id == opportunityId)).InsuredPersonId);
+        Assert.Equal(insuredId, await db.Database.SqlQuery<Guid>($"""
+            SELECT segurado_id AS "Value" FROM erp.oportunidades WHERE id = {opportunityId}
+            """).SingleAsync());
     }
 }
