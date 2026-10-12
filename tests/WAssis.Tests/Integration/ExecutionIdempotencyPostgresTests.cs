@@ -118,6 +118,22 @@ public sealed class ExecutionIdempotencyPostgresTests
         Assert.Equal(2, await admin.Database.SqlQueryRaw<int>("SELECT count(*)::int AS \"Value\" FROM infrastructure.presentation_receipts").SingleAsync());
         await Assert.ThrowsAsync<PresentationConflictException>(() => SavePresentation("same-presentation", selectionInput, opportunity, false));
 
+        // Historical FK must not expose a catalog name if a privileged repair moves the catalog row to another group.
+        var otherTenant = Guid.NewGuid();
+        await admin.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO erp.tenants (id) VALUES ({otherTenant});
+            UPDATE erp.seguradoras SET tenant_id={otherTenant},nome='Nome privado de outro grupo' WHERE id={insurer};
+            """);
+        await using (var db = Context(user))
+        {
+            await using var transaction = await db.Database.BeginTransactionAsync(); await SetScope(db, user);
+            var audit = new AuditTrailWriter(db, user);
+            var store = new CanonicalPresentationStore(db, user, TimeProvider.System, audit, new CanonicalExecutionStore(db, user, TimeProvider.System, audit));
+            var historical = (await store.GetAsync(presentation.Presentation.Id, default))!;
+            Assert.All(historical.Results, x => Assert.Equal("Seguradora indisponível", x.InsurerName));
+            await transaction.CommitAsync();
+        }
+
         var own = new RecordPermissionScope(); own.RestrictToOwner("comercial", Guid.NewGuid().ToString(), []);
         Assert.Null(await SavePresentation("hidden-presentation", selectionInput, opportunity, false, own));
         Assert.Null(await Run(s => s.GetAsync(execution.Id, default), scope: own));

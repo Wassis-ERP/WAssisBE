@@ -154,7 +154,11 @@ public sealed class CanonicalPresentationStore(WAssisDbContext db, ICurrentUserC
             if (result is null) return null;
             var calculation = await connection.QuerySingleAsync<CalculationRow>(Command(
                 $"SELECT {CanonicalCalculationSql.Select<CalculationRow>("c")} FROM erp.calculos c WHERE c.id=@Id", new { Id = result.Execution.CalculationId }, token));
-            var insurerName = await connection.QuerySingleAsync<string>(Command("SELECT COALESCE(nome,'Seguradora sem nome') FROM erp.seguradoras WHERE id=@Id", new { Id = result.Execution.InsurerId }, token));
+            var insurerName = await connection.QuerySingleOrDefaultAsync<string>(Command("""
+                SELECT COALESCE(s.nome,'Seguradora sem nome') FROM erp.seguradoras s
+                JOIN erp.oportunidades o ON o.tenant_id=s.tenant_id
+                WHERE o.id=@Opportunity AND s.id=@Id
+                """, new { Opportunity = header.OpportunityId, Id = result.Execution.InsurerId }, token)) ?? "Seguradora indisponível";
             results.Add(new(result, calculation, insurerName));
         }
         if (transaction is not null) await transaction.CommitAsync(token);
