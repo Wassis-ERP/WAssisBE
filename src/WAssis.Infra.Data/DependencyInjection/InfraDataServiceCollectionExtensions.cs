@@ -140,6 +140,7 @@ public static class InfraDataServiceCollectionExtensions
         services.AddSingleton(TimeProvider.System);
         services.AddScoped<IOpportunityReadRepository, OpportunityRepository>();
         services.AddScoped<IOpportunityScope, OpportunityScope>();
+        services.AddScoped<IOpportunityReadContext, OpportunityReadContextRepository>();
         services.AddScoped<IDocumentSearchRepository, DocumentSearchRepository>();
         services.AddScoped<IImportedDocumentRepository, ImportedDocumentRepository>();
         services.AddSingleton<IPrivateDocumentStorage, LocalPrivateDocumentStorage>();
