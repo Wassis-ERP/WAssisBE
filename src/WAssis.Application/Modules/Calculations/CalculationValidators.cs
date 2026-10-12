@@ -95,5 +95,10 @@ public sealed class CalculationCoverageValidator : AbstractValidator<RequestedCa
 public static class CalculationCalendar
 {
     public static bool OptionalDate(string? value) => value is null || DateOnly.TryParseExact(value, "yyyy-MM-dd", CultureInfo.InvariantCulture, DateTimeStyles.None, out _);
-    public static string EndOfAnnualTerm(string start) => DateOnly.ParseExact(start, "yyyy-MM-dd", CultureInfo.InvariantCulture).AddYears(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+    public static string EndOfAnnualTerm(string start)
+    {
+        var day = DateOnly.ParseExact(start, "yyyy-MM-dd", CultureInfo.InvariantCulture);
+        if (day.Year == 9999) throw new ValidationException("Vigência fora do intervalo suportado.");
+        return day.AddYears(1).ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
+    }
 }

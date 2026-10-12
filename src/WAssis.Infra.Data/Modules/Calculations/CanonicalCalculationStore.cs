@@ -12,7 +12,7 @@ using WAssis.Infra.Data.Context;
 
 namespace WAssis.Infra.Data.Modules.Calculations;
 
-public sealed class CanonicalCalculationStore(WAssisDbContext db, ICurrentUserContext user, TimeProvider clock) : ICanonicalCalculationStore
+public sealed class CanonicalCalculationStore(WAssisDbContext db, ICurrentUserContext user, TimeProvider clock, IAuditTrailWriter audit) : ICanonicalCalculationStore
 {
     private CommandDefinition Command(string sql, object? parameters, CancellationToken token) =>
         new(sql, parameters, db.Database.CurrentTransaction?.GetDbTransaction(), commandTimeout: 30, cancellationToken: token);
@@ -39,7 +39,9 @@ public sealed class CanonicalCalculationStore(WAssisDbContext db, ICurrentUserCo
         {
             OpportunityId = opportunityId,
             Specialization = input.Specialization with { Data = input.Specialization.Data with { CalculationId = Guid.Empty } },
-            Coverages = input.Coverages.OrderBy(c => c.CoverageId).ToArray()
+            SuggestedCommission = NormalizeDecimal(input.SuggestedCommission),
+            Coverages = input.Coverages.OrderBy(c => c.CoverageId).Select(c => c with
+            { RequestedLimit = NormalizeDecimal(c.RequestedLimit), RequestedFipePercentage = NormalizeDecimal(c.RequestedFipePercentage) }).ToArray()
         };
         var hash = Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(normalized))));
         var receipt = await connection.QuerySingleOrDefaultAsync<Receipt>(Command("""
@@ -67,10 +69,11 @@ public sealed class CanonicalCalculationStore(WAssisDbContext db, ICurrentUserCo
             insuredName = insured.Name;
         }
         var catalogIds = input.Coverages.Select(c => c.CoverageId).ToArray();
-        var validCoverageCount = await connection.ExecuteScalarAsync<int>(Command("""
-            SELECT count(*)::int FROM erp.coberturas_catalogo WHERE id=ANY(@Ids) AND ramo_id=@Line AND ativo
+        var catalog = await connection.QueryAsync<CatalogCoverage>(Command("""
+            SELECT id AS "Id",COALESCE(nome,codigo,'Cobertura') AS "Name" FROM erp.coberturas_catalogo WHERE id=ANY(@Ids) AND ramo_id=@Line AND ativo
             """, new { Ids = catalogIds, Line = input.InsuranceBranchId }, cancellationToken));
-        if (validCoverageCount != catalogIds.Length) throw new ValidationException("Coberturas indisponíveis neste ramo.");
+        if (catalog.Count() != catalogIds.Length) throw new ValidationException("Coberturas indisponíveis neste ramo.");
+        var version = await connection.ExecuteScalarAsync<long>(Command("SELECT count(*)+1 FROM erp.calculos WHERE oportunidade_id=@Id", new { Id = opportunityId }, cancellationToken));
 
         var fields = await ResolveTermAsync(normalized, opportunity.OriginPolicyId, tenant, branch, cancellationToken);
         if (fields.PreviousInsurerId.HasValue && !await connection.ExecuteScalarAsync<bool>(Command("""
@@ -89,7 +92,7 @@ public sealed class CanonicalCalculationStore(WAssisDbContext db, ICurrentUserCo
             PreviousPolicyNumber = fields.PreviousPolicyNumber, PreviousIdentification = fields.PreviousIdentification,
             PreviousPolicyStatus = fields.PreviousPolicyStatus, InternalNote = fields.InternalNote,
             CreatedAtUtc = clock.GetUtcNow().UtcDateTime,
-            VersionLabel = BuildLabel(insuredName, input.Specialization.Data, fields, input.Coverages)
+            VersionLabel = $"V{version} · " + BuildLabel(insuredName, input.Specialization.Data, fields, input.Coverages, catalog.ToDictionary(c => c.Id, c => c.Name))
         };
         var headerInsert = CanonicalCalculationSql.Insert("calculos", header);
         await connection.ExecuteAsync(Command(headerInsert.Sql, headerInsert.Parameters, cancellationToken));
@@ -113,6 +116,8 @@ public sealed class CanonicalCalculationStore(WAssisDbContext db, ICurrentUserCo
             INSERT INTO infrastructure.calculation_receipts (tenant_id,branch_id,opportunity_id,idempotency_key,request_hash,calculation_id)
             VALUES (@Tenant,@Branch,@Opportunity,@Key,@Hash,@Calculation)
             """, new { Tenant = tenant, Branch = branch, Opportunity = opportunityId, Key = key, Hash = hash, Calculation = id }, cancellationToken));
+        await audit.WriteAsync(key, "Calculations", "CreatedAutoSnapshot", "CalculationRow", id.ToString(),
+            "Canonical Auto request created", cancellationToken, tenant.ToString(), branch.ToString());
         var result = await GetAsync(id, cancellationToken);
         if (transaction is not null) await transaction.CommitAsync(cancellationToken);
         return result;
@@ -169,11 +174,15 @@ public sealed class CanonicalCalculationStore(WAssisDbContext db, ICurrentUserCo
             var source = await db.Database.GetDbConnection().QuerySingleOrDefaultAsync<SourcePolicy>(Command("""
                 SELECT a.vigencia_fim::text AS "EndsOn",a.numero_apolice AS "Number",a.seguradora_id AS "InsurerId",a.status AS "Status"
                 FROM erp.apolices a JOIN erp.segurados s ON s.id=a.segurado_id
-                WHERE a.id=@Id AND s.tenant_id=@Tenant AND s.filial_id=@Branch
-                """, new { Id = sourcePolicy, Tenant = tenant, Branch = branch }, token));
+                WHERE a.id=@Id AND a.ramo_id=@Line AND s.tenant_id=@Tenant AND s.filial_id=@Branch
+                """, new { Id = sourcePolicy, Line = input.InsuranceBranchId, Tenant = tenant, Branch = branch }, token));
             if (source is null || source.EndsOn is null || source.InsurerId is null || string.IsNullOrWhiteSpace(source.Number))
                 throw new ValidationException("A apólice de origem não contém os dados necessários.");
             start = source.EndsOn;
+            if (input.PreviousInsurerId.HasValue && input.PreviousInsurerId != source.InsurerId
+                || input.PreviousCoverageEndsOn is not null && input.PreviousCoverageEndsOn != source.EndsOn
+                || input.PreviousPolicyNumber is not null && input.PreviousPolicyNumber != source.Number)
+                throw new ValidationException("Dados anteriores devem corresponder à apólice de origem.");
             fields = input with { PreviousCoverageEndsOn = start, PreviousPolicyNumber = source.Number, PreviousInsurerId = source.InsurerId, PreviousPolicyStatus = source.Status };
         }
         else start = input.CoverageStartsOn!;
@@ -183,12 +192,17 @@ public sealed class CanonicalCalculationStore(WAssisDbContext db, ICurrentUserCo
         return fields with { CoverageStartsOn = start, CoverageEndsOn = end };
     }
 
-    private static string BuildLabel(string? name, AutoCalculationRisk risk, CalculationFields fields, IReadOnlyList<RequestedCalculationCoverage> coverages)
+    private static string BuildLabel(string? name, AutoCalculationRisk risk, CalculationFields fields, IReadOnlyList<RequestedCalculationCoverage> coverages, IReadOnlyDictionary<Guid, string> catalog)
     {
         var limits = string.Join(" / ", coverages.Where(x => x.Selected == true).OrderBy(x => x.CoverageId)
-            .Select(x => x.RequestedLimit?.ToString("0.##", CultureInfo.InvariantCulture) ?? x.RequestedFipePercentage?.ToString("0.##", CultureInfo.InvariantCulture) + "%"));
-        return $"{name ?? "Lead"} · {risk.DriverName ?? "Condutor não informado"} · {risk.Model ?? risk.Plate ?? "Auto"} · {fields.InsuranceType} · {limits}";
+            .Select(x => catalog[x.CoverageId] + " " + (x.RequestedLimit.HasValue ? x.RequestedLimit.Value.ToString("0.##", CultureInfo.InvariantCulture)
+                : x.RequestedFipePercentage.HasValue ? x.RequestedFipePercentage.Value.ToString("0.##", CultureInfo.InvariantCulture) + "%" : x.RequestedOption ?? "selecionada")));
+        var commission = fields.SuggestedCommission.HasValue ? $" · Comissão {fields.SuggestedCommission.Value.ToString("0.##", CultureInfo.InvariantCulture)}%" : string.Empty;
+        return $"{name ?? "Lead"} · {risk.DriverName ?? "Condutor não informado"} · {risk.Model ?? risk.Plate ?? "Auto"} · {fields.InsuranceType} · {limits}{commission}";
     }
     private sealed record Receipt(Guid CalculationId, string RequestHash);
+    private sealed record CatalogCoverage(Guid Id, string Name);
     private sealed record SourcePolicy(string? EndsOn, string? Number, Guid? InsurerId, string? Status);
+    private static decimal? NormalizeDecimal(decimal? value) => value.HasValue
+        ? decimal.Parse(value.Value.ToString("G29", CultureInfo.InvariantCulture), CultureInfo.InvariantCulture) : null;
 }

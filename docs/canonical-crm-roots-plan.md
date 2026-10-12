@@ -11,8 +11,9 @@ Segurados e Oportunidades passam a usar `erp.segurados` e `erp.oportunidades`, d
 - Manter RLS de empresa/filial e ownership PROPRIO, validar vínculo do segurado e referências da oportunidade no banco.
 
 ## Etapas
-- [~] Mapas/domínio CRM canônicos, migration de reset não produtivo e atualização de consultas/fixtures.
-- [ ] Testes unitários, PostgreSQL/RLS e jornada HTTP/Playwright conectada.
+- [x] Mapas/domínio CRM canônicos, migration de reset não produtivo e atualização de consultas/fixtures.
+- [x] Testes unitários, PostgreSQL/RLS e jornada HTTP conectada em CI 38248283807 (160 testes, zero ignorados).
+- [ ] Playwright conectado local: bloqueado pelo Controle de Aplicativos ao iniciar psql; sem alegação de aprovação nesta rodada.
 - [ ] Serviços de pedido de cálculo e CTI/coberturas.
 - [ ] Execuções, resultados normalizados, renovação própria e apresentações.
 
@@ -20,3 +21,5 @@ O contrato de referência continua v3.1. Sem integração SegFy inferida e sem a
 
 ## Validação intermediária
 Build Release sem avisos/erros e modelo EF sem divergência. Os 152 testes existentes sem PostgreSQL passaram após adaptar as fixtures UUID; foram acrescentadas coberturas de aliases/metadata e da FK cálculo → oportunidade → segurado. A tentativa PostgreSQL local em 12/10 foi bloqueada pelo Controle de Aplicativos do Windows ao carregar `WAssis.Infra.Data.dll` (0x800711C7), antes da execução de negócio. Não é aprovação da suíte. Fixture Windows corrigida para pg_ctl não herdar pipes nem aguardar descendentes do servidor; cluster parado e credenciais temporárias removidas. Validação final segue no CI autorizado.
+
+Validação final da raiz: [CI 38248283807](https://github.com/Wassis-ERP/WAssisBE/actions/runs/38248283807), commit ab95578, aprovado integralmente (160 testes e scans finais). A falha do primeiro CI era fixture tentando alterar o alias Name; corrigida para Title. Vínculo direto de segurado de outra corretora foi recusado pelo banco. O recorte posterior dos pedidos Auto está em `canonical-calculations-plan.md`.

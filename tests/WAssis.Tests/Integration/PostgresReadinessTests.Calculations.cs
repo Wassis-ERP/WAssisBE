@@ -71,6 +71,29 @@ public sealed partial class PostgresReadinessTests
         var renewed = (await renewalResponse.Content.ReadFromJsonAsync<CalculationAggregate>())!;
         Assert.Equal("2029-02-28", renewed.Calculation.CoverageEndsOn);
         Assert.Equal(0, renewed.Calculation.Bonus);
+
+        // Failure after header/risk insertion must roll back the entire aggregate and receipt.
+        await db.Database.ExecuteSqlRawAsync("ALTER TABLE erp.calculo_coberturas ADD CONSTRAINT ck_http_rollback_fixture CHECK (quantidade_solicitada IS DISTINCT FROM 123456789)");
+        using var rolledBack = await Create("calc-rollback", input with { Coverages = [input.Coverages[0] with { RequestedQuantity = 123456789 }] });
+        Assert.Equal(HttpStatusCode.Conflict, rolledBack.StatusCode);
+        Assert.Equal(4, await db.Database.SqlQuery<int>($"SELECT count(*)::int AS \"Value\" FROM erp.calculos WHERE oportunidade_id={opportunityId}").SingleAsync());
+        Assert.Equal(0, await db.Database.SqlQuery<int>($"SELECT count(*)::int AS \"Value\" FROM infrastructure.calculation_receipts WHERE opportunity_id={opportunityId} AND idempotency_key='calc-rollback'").SingleAsync());
+
+        var sourcePolicy = Guid.NewGuid();
+        await db.Database.ExecuteSqlInterpolatedAsync($"""
+            INSERT INTO erp.apolices (id,segurado_id,seguradora_id,ramo_id,status,numero_apolice,vigencia_fim)
+            VALUES ({sourcePolicy},{insuredId},{insurer},{line},'VIGENTE','Origem HTTP','2028-02-29');
+            UPDATE erp.oportunidades SET apolice_origem_id={sourcePolicy} WHERE id={opportunityId};
+            """);
+        using var ownRenewal = await Create("calc-own-renewal", input with { InsuranceType = "RENOVACAO_PROPRIA", Bonus = 0 });
+        Assert.Equal(HttpStatusCode.Created, ownRenewal.StatusCode);
+        var own = (await ownRenewal.Content.ReadFromJsonAsync<CalculationAggregate>())!;
+        Assert.Equal("2028-02-29", own.Calculation.CoverageStartsOn);
+        Assert.Equal("2029-02-28", own.Calculation.CoverageEndsOn);
+        Assert.Equal("Origem HTTP", own.Calculation.PreviousPolicyNumber);
+        Assert.Equal(insurer, own.Calculation.PreviousInsurerId);
+        using var spoofedPolicy = await Create("calc-own-spoof", input with { InsuranceType = "RENOVACAO_PROPRIA", PreviousPolicyNumber = "Outra apólice" });
+        Assert.Equal(HttpStatusCode.BadRequest, spoofedPolicy.StatusCode);
         return first.Calculation.Id;
     }
 }
