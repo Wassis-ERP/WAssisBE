@@ -337,3 +337,30 @@ integralmente aprovado, incluindo smoke do bundle Production e scan da imagem CR
 Isso comprova os artefatos do CI; não comprova deploy, Auth0 real ou infraestrutura
 operacional. O ajuste posterior de hooks preserva o código funcional validado e
 será reexecutado automaticamente pelo CI do novo HEAD.
+
+### Integração das telas de cálculo — 14/10/2026
+
+Recorte incremental sobre `codex/calculation-historical-insurers` (`792b777`).
+A jornada do CRM encontrou uma regressão em `Opportunity.Update`: limpar a
+navegação `Stage` quando `stage_id` não mudava fazia o relationship fixup do EF
+anular a FK obrigatória. A navegação agora é preservada nessa situação; a troca
+explícita de etapa continua suportada. Nenhum filtro, trigger, RLS ou validação de
+escopo foi removido.
+
+O teste HTTP PostgreSQL existente foi ampliado para alterar prêmio/data mantendo
+a etapa, reler ambos os campos e a FK, e depois trocar a etapa. Passou com a role
+comum da aplicação. A fixture do navegador recebeu fuso e catálogos sintéticos
+para o cálculo Auto e o limite de cinco resultados; são somente dados de teste
+descartáveis, sem backfill de registros reais e sem migration nova.
+
+Validação local: SDK 10.0.401, restore `--locked-mode --no-http-cache`, build API
+Release com zero avisos/erros, 161 testes sem PostgreSQL e oito integrações reais
+com TLS `VerifyFull` aprovados (zero ignorados). Reprodução PostgreSQL:
+`scripts/test-security-postgres.ps1 -PostgresBinDirectory <bin>`.
+A jornada do navegador é executada separadamente com `-ConnectedOnly` e fica
+documentada no micro-plano do CRM. CI e evidência do navegador serão registrados
+após os gates dos commits publicados.
+
+Esta fatia não comprova deploy, Auth0 real/MFA, OCR, orçamento por seguradora,
+grants operacionais, retenção ou backup/restore/PITR. Os bloqueadores anteriores
+de Production continuam pendentes.
