@@ -18,14 +18,20 @@ public sealed class CanonicalCalculationLookupStore(WAssisDbContext db, ICurrent
         || !Guid.TryParse(user.TenantId, out _) || !Guid.TryParse(user.BranchId, out _) ? Task.FromResult<Opportunity?>(null)
         : db.Opportunities.AsNoTracking().SingleOrDefaultAsync(x => x.Id == id && x.OfficeBranchId == user.BranchId, token);
 
-    public async Task<PagedResult<CalculationInsurerOption>?> ListInsurersAsync(Guid opportunityId, int page, int pageSize, string? search, CancellationToken token)
+    public async Task<PagedResult<CalculationInsurerOption>?> ListInsurersAsync(Guid opportunityId, int page, int pageSize, string? search, CancellationToken token, bool includeReferencedInactive = false)
     {
         await new ListCalculationInsurersQueryValidator().ValidateAndThrowAsync(new(opportunityId, page, pageSize, search), token);
         var opportunity = await OpportunityAsync(opportunityId, token);
         if (opportunity is null) return null;
         await db.Database.OpenConnectionAsync(token);
-        var parameters = new { Tenant = Guid.Parse(opportunity.TenantId), Search = search, Limit = pageSize, Offset = (long)(page - 1) * pageSize };
-        const string source = "FROM erp.seguradoras s WHERE s.tenant_id=@Tenant AND s.ativo AND (@Search IS NULL OR COALESCE(s.nome,'') ILIKE '%'||@Search||'%')";
+        var parameters = new { Tenant = Guid.Parse(opportunity.TenantId), Opportunity = opportunityId, IncludeReferencedInactive = includeReferencedInactive, Search = search, Limit = pageSize, Offset = (long)(page - 1) * pageSize };
+        const string source = """
+            FROM erp.seguradoras s WHERE s.tenant_id=@Tenant
+              AND (s.ativo OR (@IncludeReferencedInactive AND EXISTS (
+                SELECT 1 FROM erp.calculo_execucoes e JOIN erp.calculos c ON c.id=e.calculo_id
+                WHERE e.seguradora_id=s.id AND c.oportunidade_id=@Opportunity)))
+              AND (@Search IS NULL OR COALESCE(s.nome,'') ILIKE '%'||@Search||'%')
+            """;
         var connection = db.Database.GetDbConnection();
         var count = await connection.ExecuteScalarAsync<long>(Command("SELECT count(*) " + source, parameters, token));
         var rows = await connection.QueryAsync<CalculationInsurerOption>(Command("""

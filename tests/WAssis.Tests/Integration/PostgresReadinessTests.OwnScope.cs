@@ -35,6 +35,7 @@ public sealed partial class PostgresReadinessTests
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/oportunidades/{otherOpportunity}/contexto-comercial")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/oportunidades/{opportunityId}/calculos/lookups/seguradoras")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/oportunidades/{otherOpportunity}/calculos/lookups/seguradoras")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/oportunidades/{otherOpportunity}/calculos/lookups/seguradoras?includeReferencedInactive=true")).StatusCode);
         using var opportunities = await client.GetFromJsonAsync<JsonDocument>("/api/oportunidades");
         Assert.Equal(opportunityId, Assert.Single(opportunities!.RootElement.GetProperty("items").EnumerateArray()).GetProperty("id").GetGuid());
         using var insuredPeople = await client.GetFromJsonAsync<JsonDocument>("/api/segurados");
