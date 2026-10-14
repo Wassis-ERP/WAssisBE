@@ -21,3 +21,18 @@ para usar retry da última tentativa terminal: criar uma primeira tentativa para
 seguradora com histórico retorna 409 por regra do ciclo de vida; retry com seguradora
 inativada retorna 400. Nenhum cadastro foi reativado em ambiente compartilhado;
 apenas fixture descartável restaurada no teste. Projeção continua id/tenant_id/nome.
+
+## Atualização do runtime após gate remoto — 14/10/2026
+
+O CI de `4d7a0b6` aprovou build/testes/audit e falhou no scan da imagem API:
+ASP.NET/.NET 10.0.12 apresentou 12 ocorrências HIGH/CRITICAL corrigíveis, duas
+CRITICAL. A Microsoft publicou o patch 10.0.13 em 13/10/2026:
+[release oficial](https://github.com/dotnet/core/blob/main/release-notes/10.0/10.0.13/10.0.13.md).
+
+Atualizado somente o estágio final das imagens API e worker para ASP.NET 10.0.13.
+Digest do índice obtido e conferido com SHA-256 do manifesto em MCR:
+`sha256:d5633778c754e89a386882eddf8dbee6942447a8a4b8267c19cf1e1158d0b0ac`;
+contém linux/amd64. SDK de build, pacotes e migrations preservados. O gate de scan
+continua com HIGH/CRITICAL, ignore-unfixed e exit-code 1. Build e scan das duas
+imagens serão validados pelo novo CI; Docker Desktop local indisponível. Nenhum
+deploy ou atualização em servidor compartilhado.
