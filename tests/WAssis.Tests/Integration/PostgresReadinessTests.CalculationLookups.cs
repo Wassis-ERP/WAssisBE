@@ -31,6 +31,21 @@ public sealed partial class PostgresReadinessTests
         Assert.DoesNotContain("cnpj", raw, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("credencial", raw, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("Inativa fixture", raw);
+        var previous = (await client.GetFromJsonAsync<PagedResult<CalculationExecutionRow>>($"/api/calculos/{calculationId}/execucoes"))!.Items.OrderByDescending(row => row.Attempt).First();
+        var referenced = previous.InsurerId;
+        await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE erp.seguradoras SET ativo=false WHERE id={referenced}");
+        var activeOnly = (await client.GetFromJsonAsync<PagedResult<CalculationInsurerOption>>(insurersPath))!;
+        Assert.DoesNotContain(activeOnly.Items, row => row.Id == referenced);
+        var history = (await client.GetFromJsonAsync<PagedResult<CalculationInsurerOption>>(insurersPath + "?includeReferencedInactive=true"))!;
+        Assert.Contains(history.Items, row => row.Id == referenced);
+        Assert.DoesNotContain(history.Items, row => row.Id == inactiveInsurer);
+        using (var newAttempt = new HttpRequestMessage(HttpMethod.Post, $"/api/execucoes/{previous.Id}/reexecutar"))
+        {
+            newAttempt.Headers.Add("Idempotency-Key", "inactive-reference-new-attempt");
+            newAttempt.Content = JsonContent.Create(new RetryCalculationExecution());
+            Assert.Equal(HttpStatusCode.BadRequest, (await client.SendAsync(newAttempt)).StatusCode);
+        }
+        await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE erp.seguradoras SET ativo=true WHERE id={referenced}");
         var second = (await client.GetFromJsonAsync<PagedResult<CalculationInsurerOption>>(insurersPath + "?page=2&pageSize=1"))!;
         Assert.NotEqual(insurers.Items.Single().Id, second.Items.Single().Id);
         var search = (await client.GetFromJsonAsync<PagedResult<CalculationInsurerOption>>(insurersPath + "?search=Manual%20HTTP"))!;
