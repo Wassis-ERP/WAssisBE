@@ -119,6 +119,17 @@ public sealed partial class PostgresReadinessTests
         var opportunityId = opportunity!["id"].GetGuid();
         await VerifyCanonicalCalculationReferences(db, opportunityId, id);
         Assert.Equal("55555555-5555-5555-5555-555555555555", opportunity["pipelineId"].GetString());
+        // Updating a scalar with the same loaded stage must retain the required FK.
+        // EF relationship fixup used to null stage_id when Update cleared Stage.
+        opportunity["estimatedPremiumAmount"] = JsonSerializer.SerializeToElement(1250.50m);
+        opportunity["expectedCloseDate"] = JsonSerializer.SerializeToElement("2026-10-20");
+        Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync($"/api/oportunidades/{opportunityId}", opportunity)).StatusCode);
+        using (var scalarRead = await client.GetFromJsonAsync<JsonDocument>($"/api/oportunidades/{opportunityId}"))
+        {
+            Assert.Equal("66666666-6666-6666-6666-666666666666", scalarRead!.RootElement.GetProperty("stageId").GetString());
+            Assert.Equal(1250.50m, scalarRead.RootElement.GetProperty("estimatedPremiumAmount").GetDecimal());
+            Assert.Equal("2026-10-20", scalarRead.RootElement.GetProperty("expectedCloseDate").GetString());
+        }
         opportunity["stageId"] = JsonSerializer.SerializeToElement("66666666-6666-6666-6666-666666666667");
         opportunity["status"] = JsonSerializer.SerializeToElement("won");
         opportunity["wonAtUtc"] = JsonSerializer.SerializeToElement(DateTime.UtcNow);

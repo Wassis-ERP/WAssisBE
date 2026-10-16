@@ -285,7 +285,9 @@ public class Opportunity : AggregateRoot
         ResponsibleId = string.IsNullOrWhiteSpace(responsibleId) ? ResponsibleId : responsibleId.Trim();
         InsuredPersonId = insuredPersonId;
         PipelineId = Normalize(pipelineId);
-        Stage = null;
+        // Preserve the loaded navigation when its FK is unchanged. Clearing it
+        // makes EF relationship fixup null the required stage_id on update.
+        if (Stage?.Id != Normalize(stageId)) Stage = null;
         StageId = Normalize(stageId);
         InsuranceLineId = Normalize(insuranceLineId);
         InsurerId = Normalize(insurerId);
