@@ -31,6 +31,8 @@ public sealed partial class PostgresReadinessTests
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/segurados/{otherInsured}")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/oportunidades/{opportunityId}")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/oportunidades/{otherOpportunity}")).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/oportunidades/{opportunityId}/contexto-comercial")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/oportunidades/{otherOpportunity}/contexto-comercial")).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/oportunidades/{opportunityId}/calculos/lookups/seguradoras")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/oportunidades/{otherOpportunity}/calculos/lookups/seguradoras")).StatusCode);
         using var opportunities = await client.GetFromJsonAsync<JsonDocument>("/api/oportunidades");
@@ -49,6 +51,7 @@ public sealed partial class PostgresReadinessTests
         await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE erp.role_permissions SET can_read = false WHERE perfil_id = {Guid.Parse(ProfileA)}");
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/segurados/{insuredId}")).StatusCode);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/oportunidades/{opportunityId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync($"/api/oportunidades/{opportunityId}/contexto-comercial")).StatusCode);
         await db.Database.ExecuteSqlInterpolatedAsync($"UPDATE erp.role_permissions SET can_read = true, escopo = 'CORRETORA' WHERE perfil_id = {Guid.Parse(ProfileA)}");
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync($"/api/oportunidades/{otherOpportunity}")).StatusCode);
 
@@ -60,6 +63,7 @@ public sealed partial class PostgresReadinessTests
         await AssertIdentityBranches(client, BranchA, BranchB);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync("/api/segurados")).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/segurados/{insuredId}")).StatusCode);
+        Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/oportunidades/{opportunityId}/contexto-comercial")).StatusCode);
         using var selected = await client.GetFromJsonAsync<JsonDocument>("/api/identity/me");
         Assert.Equal(BranchB, selected!.RootElement.GetProperty("branchId").GetString());
         await db.Database.ExecuteSqlInterpolatedAsync($"DELETE FROM erp.profile_filiais WHERE profile_id = {Guid.Parse(UserA)} AND filial_id = {Guid.Parse(BranchB)}");

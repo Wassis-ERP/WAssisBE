@@ -191,6 +191,7 @@ public sealed partial class PostgresReadinessTests
             Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/apresentacoes/{presentationId}")).StatusCode);
             Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/oportunidades/{opportunityId}/calculos/lookups/seguradoras")).StatusCode);
             Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/oportunidades/{opportunityId}/calculos/contexto")).StatusCode);
+            Assert.Equal(HttpStatusCode.NotFound, (await client.GetAsync($"/api/oportunidades/{opportunityId}/contexto-comercial")).StatusCode);
             using var hiddenMutation = new HttpRequestMessage(HttpMethod.Post, $"/api/execucoes/{manualResult.Execution}/cancelar");
             hiddenMutation.Headers.Add("Idempotency-Key", "hidden-cancel");
             Assert.Equal(HttpStatusCode.NotFound, (await client.SendAsync(hiddenMutation)).StatusCode);

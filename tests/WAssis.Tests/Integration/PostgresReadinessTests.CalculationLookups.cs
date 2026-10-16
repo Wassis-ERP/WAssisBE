@@ -20,6 +20,7 @@ public sealed partial class PostgresReadinessTests
             UPDATE erp.role_permissions SET can_read=false WHERE perfil_id={Guid.Parse(ProfileA)} AND modulo='configuracoes';
             """);
         Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync("/api/core/catalogs/seguradoras")).StatusCode);
+        await VerifyOpportunityReadContextHttp(db, client, opportunityId, line);
         var insurersPath = $"/api/oportunidades/{opportunityId}/calculos/lookups/seguradoras";
         using var response = await client.GetAsync(insurersPath + "?pageSize=1");
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
